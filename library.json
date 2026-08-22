@@ -8,40 +8,34 @@
         "url": "https://espressio.org"
     },
     "build": {
-        "flags": [
-            "-std=gnu++17",
-            "-frtti",
-            "-DESPRESSIO_EVENT"
-        ],
-        "unflags": [
-            "-fno-rtti"
-        ]
+        "flags": ["-std=gnu++17","-frtti","-DESPRESSIO_EVENT"],
+        "unflags": ["-fno-rtti"]
     },
     "repository": {
         "type": "git",
         "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Event.git"
     },
-    "version": "6.0.0",
+    "version": "6.0.1",
     "license": "Apache-2.0",
     "frameworks": "arduino",
     "platforms": "espressif32",
     "dependencies": [
         {
             "name": "ESPressio-Threads",
-            "version": ">=3.1.4 <4.0.0",
+            "version": ">=3.1.5 <4.0.0",
             "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git",
             "platforms": "espressif32"
         },
         {
             "name": "ESPressio-Observable",
-            "version": ">=3.0.1 <4.0.0",
+            "version": ">=3.0.2 <4.0.0",
             "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git",
             "platforms": "*"
         },
         {
             "owner": "espressio-development-platform",
             "name": "ESPressio-Timing",
-            "version": ">=2.2.4 <3.0.0"
+            "version": ">=2.2.5 <3.0.0"
         }
     ]
 }

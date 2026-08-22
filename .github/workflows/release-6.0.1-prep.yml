@@ -1,0 +1,42 @@
+name: Prepare Event 6.0.1 release
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    if: github.head_ref == 'release/49-6.0.1-repository-relocation' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/49-6.0.1-repository-relocation
+      - name: Prepare release documentation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('README.md'); t=p.read_text()
+          t=t.replace('## Current Version — 6.0.0','## Current Version — 6.0.1',1)
+          t=t.replace('Event 6.0.0 establishes a strict **mechanism-only** dependency boundary.','Event 6.0.1 is the repository-relocation dependency patch for the mechanism-only Event 6.x generation.',1)
+          t=t.replace('espressio-development-platform/ESPressio-Event@^6.0.0','espressio-development-platform/ESPressio-Event@^6.0.1')
+          for a,b in [('Threads >= 3.1.4 < 4.0.0','Threads >= 3.1.5 < 4.0.0'),('Timing >= 2.2.4 < 3.0.0','Timing >= 2.2.5 < 3.0.0'),('Observable >= 3.0.1 < 4.0.0','Observable >= 3.0.2 < 4.0.0'),('Serializable >= 0.10.2 < 1.0.0','Serializable >= 0.10.3 < 1.0.0'),('ESPressio-Threads@^3.1.4','ESPressio-Threads@^3.1.5'),('ESPressio-Timing@^2.2.4','ESPressio-Timing@^2.2.5'),('ESPressio-Observable@^3.0.1','ESPressio-Observable@^3.0.2'),('ESPressio-Serializable@^0.10.2','ESPressio-Serializable@^0.10.3')]: t=t.replace(a,b)
+          p.write_text(t)
+          p=Path('CHANGELOG.md'); t=p.read_text(); entry='''## 6.0.1 — 2026-08-22\n\n### Changed\n- Published the post-migration ESPressio Event package generation from `ESPressio-Development-Platform`.\n- Raised required Threads to `>=3.1.5 <4.0.0`, Timing to `>=2.2.5 <3.0.0`, and Observable to `>=3.0.2 <4.0.0`.\n- Raised the optional Serializable Event integration baseline to `>=0.10.3 <1.0.0`.\n- Updated package metadata, README dependency/install guidance, CI checkouts, and dependency documentation.\n\n### Compatibility\n- No Event public API or runtime behaviour changes are introduced. Stable Event type/wire identifiers are unchanged.\n\n''';
+          if '## 6.0.1' not in t: t=t.replace('# Changelog\n\n','# Changelog\n\n'+entry,1)
+          p.write_text(t)
+          reps=[('Observable    3.0.1','Observable    3.0.2'),('Observable 3.0.1','Observable 3.0.2'),('Serializable  0.10.2','Serializable  0.10.3'),('Serializable 0.10.2','Serializable 0.10.3'),('Units         0.2.3','Units         0.2.4'),('Units 0.2.3','Units 0.2.4'),('Timing        2.2.4','Timing        2.2.5'),('Timing 2.2.4','Timing 2.2.5'),('Threads       3.1.4','Threads       3.1.5'),('Threads 3.1.4','Threads 3.1.5'),('Event         6.0.0','Event         6.0.1'),('Event 6.0.0','Event 6.0.1'),('Threads >= 3.1.4','Threads >= 3.1.5'),('Timing >= 2.2.4','Timing >= 2.2.5'),('Observable >= 3.0.1','Observable >= 3.0.2'),('Serializable >= 0.10.2','Serializable >= 0.10.3'),('Units >= 0.2.3','Units >= 0.2.4')]
+          for f in ['ESPRESSIO_DEPENDENCY_CHART.md','ESPRESSIO_DEPENDENCY_CHART.svg']:
+              p=Path(f); t=p.read_text()
+              for a,b in reps: t=t.replace(a,b)
+              p.write_text(t)
+          PY
+      - name: Commit release preparation
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md CHANGELOG.md ESPRESSIO_DEPENDENCY_CHART.md ESPRESSIO_DEPENDENCY_CHART.svg
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Prepare Event 6.0.1 release documentation (#49)'
+          git push

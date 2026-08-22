@@ -10,12 +10,12 @@ This document is the canonical snapshot of the current released ESPressio depend
 ## Released generation
 
 ```text
-Observable    3.0.1
-Serializable  0.10.2
-Units         0.2.3
-Timing        2.2.4
-Threads       3.1.4
-Event         6.0.0
+Observable    3.0.2
+Serializable  0.10.3
+Units         0.2.4
+Timing        2.2.5
+Threads       3.1.5
+Event         6.0.1
 Command       1.0.0
 Security      0.3.0
 Sockets       0.7.0
@@ -26,40 +26,40 @@ Serial        0.7.2
 ## Required dependencies
 
 ```text
-Observable 3.0.1
+Observable 3.0.2
     -> none
 
-Serializable 0.10.2
+Serializable 0.10.3
     -> none
 
-Units 0.2.3
+Units 0.2.4
     -> none
 
-Timing 2.2.4
-    -> Units >= 0.2.3 < 1.0.0
-    -> Observable >= 3.0.1 < 4.0.0
+Timing 2.2.5
+    -> Units >= 0.2.4 < 1.0.0
+    -> Observable >= 3.0.2 < 4.0.0
 
-Threads 3.1.4
-    -> Timing >= 2.2.4 < 3.0.0
-    -> Observable >= 3.0.1 < 4.0.0
+Threads 3.1.5
+    -> Timing >= 2.2.5 < 3.0.0
+    -> Observable >= 3.0.2 < 4.0.0
 
-Event 6.0.0
-    -> Threads >= 3.1.4 < 4.0.0
-    -> Timing >= 2.2.4 < 3.0.0
-    -> Observable >= 3.0.1 < 4.0.0
+Event 6.0.1
+    -> Threads >= 3.1.5 < 4.0.0
+    -> Timing >= 2.2.5 < 3.0.0
+    -> Observable >= 3.0.2 < 4.0.0
 
 Command 1.0.0
-    -> Observable >= 3.0.1 < 4.0.0
+    -> Observable >= 3.0.2 < 4.0.0
 
 Security 0.3.0
-    -> Observable >= 3.0.1 < 4.0.0
+    -> Observable >= 3.0.2 < 4.0.0
 
 Sockets 0.7.0
-    -> Observable >= 3.0.1 < 4.0.0
+    -> Observable >= 3.0.2 < 4.0.0
 
 ESP-Now 0.8.0
-    -> Timing >= 2.2.4 < 3.0.0
-    -> Observable >= 3.0.1 < 4.0.0
+    -> Timing >= 2.2.5 < 3.0.0
+    -> Observable >= 3.0.2 < 4.0.0
 
 Serial 0.7.2
     -> none in the core package
@@ -69,11 +69,11 @@ Serial 0.7.2
 
 ```text
 Units
-    - - -> Serializable >= 0.10.2 < 1.0.0
+    - - -> Serializable >= 0.10.3 < 1.0.0
             Serializable Unit variants
 
 Event
-    - - -> Serializable >= 0.10.2 < 1.0.0
+    - - -> Serializable >= 0.10.3 < 1.0.0
             Serializable Events / Event Transport
 
 Command
@@ -88,7 +88,7 @@ Sockets
     - - -> Event >= 6.0.0 < 7.0.0
     - - -> Command >= 1.0.0 < 2.0.0
     - - -> Security >= 0.3.0 < 1.0.0
-    - - -> Timing >= 2.2.4 < 3.0.0
+    - - -> Timing >= 2.2.5 < 3.0.0
 
 ESP-Now
     - - -> Event >= 6.0.0 < 7.0.0
@@ -101,16 +101,16 @@ Serial
     - - -> Sockets >= 0.7.0 < 1.0.0
     - - -> ESP-Now >= 0.8.0 < 1.0.0
     - - -> Event >= 6.0.0 < 7.0.0
-    - - -> Serializable >= 0.10.2 < 1.0.0
-    - - -> Timing >= 2.2.4 < 3.0.0
-    - - -> Threads >= 3.1.4 < 4.0.0
+    - - -> Serializable >= 0.10.3 < 1.0.0
+    - - -> Timing >= 2.2.5 < 3.0.0
+    - - -> Threads >= 3.1.5 < 4.0.0
 ```
 
 `JsonCommandInterpreter` optionally consumes external **ArduinoJson 7.x**. ArduinoJson is not an ESPressio library and is therefore not represented as an ESPressio graph edge.
 
 ## Dependency-direction invariants
 
-Event 6.0.0 owns the generic Event mechanism. Domain-specific Event types and bridges belong to the lowest-order library that owns the represented concept without introducing a reverse dependency:
+Event 6.0.1 owns the generic Event mechanism. Domain-specific Event types and bridges belong to the lowest-order library that owns the represented concept without introducing a reverse dependency:
 
 ```text
 Command  - - -> Event

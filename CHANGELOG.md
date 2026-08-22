@@ -1,5 +1,16 @@
 # Changelog
 
+## 6.0.1 — 2026-08-22
+
+### Changed
+- Published the post-migration ESPressio Event package generation from `ESPressio-Development-Platform`.
+- Raised required Threads to `>=3.1.5 <4.0.0`, Timing to `>=2.2.5 <3.0.0`, and Observable to `>=3.0.2 <4.0.0`.
+- Raised the optional Serializable Event integration baseline to `>=0.10.3 <1.0.0`.
+- Updated package metadata, README dependency/install guidance, CI checkouts, and dependency documentation.
+
+### Compatibility
+- No Event public API or runtime behaviour changes are introduced. Stable Event type/wire identifiers are unchanged.
+
 ## 6.0.0 — 2026-08-21
 
 ### Removed

@@ -1,5 +1,21 @@
 # Changelog
 
+## 6.0.2 — 2026-08-23
+
+### Changed
+- Raised required ESPressio Threads to `>=3.1.6 <4.0.0`.
+- Raised required ESPressio Timing to `>=2.2.7 <3.0.0`.
+- Preserved required ESPressio Observable at `>=3.0.2 <4.0.0`.
+- Raised the optional Serializable Event/Event Transport baseline to `>=0.11.2 <1.0.0`.
+- Updated host and ESP32 CI to validate the corrected cascade generation: Units 0.2.6, Timing 2.2.7, Threads 3.1.6 and Serializable 0.11.2.
+- Updated package metadata, README, and dependency documentation for Event 6.0.2.
+
+### Compatibility
+- No Event public API or runtime behaviour changes are introduced by this dependency-maintenance release.
+- Serializable remains opt-in.
+- Event remains mechanism-only for external domains; no reverse dependencies on Command, Security, Sockets or ESP-Now are introduced.
+- Stable Event type IDs, EVTT envelope semantics and ESPB v2 payload representation are unchanged.
+
 ## 6.0.1 — 2026-08-22
 
 ### Changed

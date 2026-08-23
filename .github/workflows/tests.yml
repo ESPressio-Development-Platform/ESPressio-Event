@@ -29,12 +29,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: 2.2.5
+          ref: 2.2.7
           path: ESPressio_Timing
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Units
-          ref: 0.2.4
+          ref: 0.2.6
           path: ESPressio-Units
       - name: Configure
         run: cmake -S ESPressio-Event/tests -B build
@@ -57,22 +57,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Units
-          ref: 0.2.4
+          ref: 0.2.6
           path: project/dependencies/ESPressio-Units
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: 2.2.5
+          ref: 2.2.7
           path: project/dependencies/ESPressio-Timing
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Threads
-          ref: 3.1.5
+          ref: 3.1.6
           path: project/dependencies/ESPressio-Threads
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: 0.10.3
+          ref: 0.11.2
           path: project/dependencies/ESPressio-Serializable
       - uses: actions/setup-python@v5
         with:

@@ -4,11 +4,11 @@ Generic Event-Driven Development infrastructure for the ESPressio Development Pl
 
 ESPressio Event provides the asynchronous counterpart to ESPressio Observable: producers dispatch strongly typed data contracts without knowing which consumers exist, while listeners process those Events independently on Event-aware Threads.
 
-## Current Version — 6.0.1
+## Current Version — 6.0.2
 
-Event 6.0.1 is the repository-relocation dependency patch for the mechanism-only Event 6.x generation. Event owns asynchronous Event lifecycle, dispatch, listeners, Event-aware Threads, transport-neutral Serializable Event routing, and the generic Event Transport abstraction. Concrete Event integrations for ESPressio domains that Event does not otherwise consume now live in the libraries that own those domains.
+Event 6.0.2 is a dependency-maintenance release in the corrected Serializable 0.11.2 cascade. Event owns asynchronous Event lifecycle, dispatch, listeners, Event-aware Threads, transport-neutral Serializable Event routing, and the generic Event Transport abstraction. Concrete Event integrations for ESPressio domains that Event does not otherwise consume live in the libraries that own those domains.
 
-The core Event programming model remains intact from the 5.x generation; 6.0.0 is a major release because several integration headers moved to their correct owning packages.
+The core Event programming model remains intact from the 6.0.1 generation.
 
 # Why Event-Driven Development?
 
@@ -111,15 +111,15 @@ Important public concepts include:
 Required:
 
 ```text
-ESPressio Threads >= 3.1.5 < 4.0.0
-ESPressio Timing >= 2.2.5 < 3.0.0
+ESPressio Threads >= 3.1.6 < 4.0.0
+ESPressio Timing >= 2.2.7 < 3.0.0
 ESPressio Observable >= 3.0.2 < 4.0.0
 ```
 
 Optional Serializable Event / Event Transport support:
 
 ```text
-ESPressio Serializable >= 0.10.3 < 1.0.0
+ESPressio Serializable >= 0.11.2 < 1.0.0
 ```
 
 Event no longer consumes Command, Security, Sockets or ESP-Now merely to host their domain-specific bridges.
@@ -132,14 +132,14 @@ PlatformIO:
 
 ```ini
 lib_deps =
-    espressio-development-platform/ESPressio-Event@^6.0.1
+    espressio-development-platform/ESPressio-Event@^6.0.2
 ```
 
 For Serializable Events/Event Transport, also include:
 
 ```ini
 lib_deps =
-    espressio-development-platform/ESPressio-Serializable@^0.10.3
+    espressio-development-platform/ESPressio-Serializable@^0.11.2
 ```
 
 The current ESP32 implementation uses C++17 and RTTI. When the surrounding toolchain disables RTTI, enable it in the project configuration.
@@ -320,7 +320,7 @@ A Serializable Event combines the Event contract with ESPressio Serializable met
 examples/SerializableEvent/
 ```
 
-Event Transport uses the existing EVTT transport envelope and ESPB v2 Serializable payload representation; Event 6.0.0 did not change the wire format.
+Event Transport uses the existing EVTT transport envelope and ESPB v2 Serializable payload representation; Event 6.0.2 does not change the wire format.
 
 # Runtime Serializable Event discovery
 
@@ -478,29 +478,7 @@ examples/ThreadInfrastructureEventBridges/
 
 # Domain Event integrations moved in 6.0.0
 
-Event does **not** own concrete Event representations for ESPressio Command, Security, Sockets or ESP-Now. Those integrations now live with their owning libraries:
-
-```text
-Command 0.4.0
-    Command Event types
-    CommandRegistryEventBridge
-
-Security 0.3.0
-    TransportSecurity Event types
-    TransportSecurityEventBridge
-
-Sockets 0.6.0
-    Socket Event types
-    SocketWorkerEventBridge
-    SocketSecuritySessionEventBridge
-
-ESP-Now 0.6.0
-    ESPNow Event types
-    ESPNowTransportEventBridge
-    ESPNowEventTransport
-```
-
-Where names remained semantically correct, public header/class names were preserved. Applications simply obtain them from the correct domain package.
+Event does **not** own concrete Event representations for ESPressio Command, Security, Sockets or ESP-Now. Those integrations live with their owning libraries.
 
 The intended dependency direction is one-way:
 
@@ -545,7 +523,7 @@ They are compiled against current `main` in CI and are the best source for compl
 
 ESPressio Event targets ESP32-family microcontrollers using Arduino-ESP32. The current architecture uses ESP-IDF FreeRTOS facilities, C++17, RTTI, ESPressio Threads/Timing/Observable, and optional Serializable support.
 
-Event 6.0.0 does not change core dispatch semantics, Event listener/receiver semantics, lifecycle timestamps, Serializable payload representation, Event Transport envelope format, or routing/origin/message-ID/hop semantics.
+Event 6.0.2 does not change core dispatch semantics, Event listener/receiver semantics, lifecycle timestamps, Serializable payload representation, Event Transport envelope format, or routing/origin/message-ID/hop semantics.
 
 # Changelog
 

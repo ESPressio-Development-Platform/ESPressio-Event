@@ -1,4 +1,4 @@
-# ESPressio Dependency Chart — Serializable 0.11.2 Cascade
+# ESPressio Dependency Chart — Serializable 0.11.3 Cascade
 
 ![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.svg)
 
@@ -11,28 +11,28 @@ Arrows point from the consuming library to the library it consumes.
 
 ```text
 Observable    3.0.2
-Serializable  0.11.2
-Units         0.2.6
-Timing        2.2.7
-Threads       3.1.6
-Event         6.0.2   (this release)
-Command       1.0.1   -> planned 1.0.2
-Security      0.4.0   -> planned 0.4.1
-Persistence   0.3.0   -> planned 0.3.1
-Sockets       0.7.1   -> planned 0.7.2
-ESP-Now       0.8.1   -> planned 0.8.2
-WiFi          0.2.0   unreleased
-Serial        0.8.0   -> planned 0.8.1
+Serializable  0.11.3
+Units         0.2.7
+Timing        2.2.8
+Threads       3.1.7
+Event         6.0.3   (this release)
+Command       1.0.2   -> next patch required
+Security      0.4.1   -> next patch required
+Persistence   0.3.1   -> next patch required
+Sockets       0.7.2   -> next patch required
+ESP-Now       0.8.2   -> next patch required
+WiFi          0.2.0   unreleased / requires released cascade repoint
+Serial        0.8.0   -> downstream terminal cascade pending
 ```
 
 ## Event dependencies
 
 ```text
-Event 6.0.2
-    -> Threads >= 3.1.6 < 4.0.0      required
-    -> Timing >= 2.2.7 < 3.0.0       required
+Event 6.0.3
+    -> Threads >= 3.1.7 < 4.0.0      required
+    -> Timing >= 2.2.8 < 3.0.0       required
     -> Observable >= 3.0.2 < 4.0.0   required
-    - - -> Serializable >= 0.11.2 < 1.0.0
+    - - -> Serializable >= 0.11.3 < 1.0.0
             opt-in Serializable Events / Event Transport
 ```
 
@@ -41,15 +41,15 @@ Event remains a mechanism-only library. It does not consume Command, Security, S
 ## Active propagation order
 
 ```text
-Serializable 0.11.2
-    -> Units 0.2.6
-    -> Timing 2.2.7
-    -> Threads 3.1.6
-    -> Event 6.0.2
-    -> Command 1.0.2 / Security 0.4.1
-    -> Persistence 0.3.1 / Sockets 0.7.2 / ESP-Now 0.8.2
+Serializable 0.11.3
+    -> Units 0.2.7
+    -> Timing 2.2.8
+    -> Threads 3.1.7
+    -> Event 6.0.3
+    -> Command / Security patch releases
+    -> Persistence / Sockets / ESP-Now patch releases
     -> WiFi 0.2.0
-    -> Serial 0.8.1
+    -> Serial
 ```
 
 ## Dependency-direction invariants

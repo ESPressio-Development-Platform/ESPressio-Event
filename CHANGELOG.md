@@ -1,5 +1,21 @@
 # Changelog
 
+## 6.0.3 — 2026-08-24
+
+### Changed
+- Raised required ESPressio Threads from `>=3.1.6 <4.0.0` to `>=3.1.7 <4.0.0`.
+- Raised required ESPressio Timing from `>=2.2.7 <3.0.0` to `>=2.2.8 <3.0.0`.
+- Preserved required ESPressio Observable at `>=3.0.2 <4.0.0`.
+- Raised the optional Serializable Event/Event Transport validation baseline to released ESPressio Serializable 0.11.3.
+- Updated host and ESP32 CI to validate Units 0.2.7, Timing 2.2.8, Threads 3.1.7 and Serializable 0.11.3.
+- Updated package, Arduino, ESP-IDF component, README, dependency-boundary and dependency-chart documentation for Event 6.0.3.
+
+### Compatibility
+- No Event public API or runtime behaviour changes are introduced by this dependency-maintenance release.
+- Serializable remains opt-in.
+- Event remains mechanism-only for external domains; no reverse dependencies on Command, Security, Sockets or ESP-Now are introduced.
+- Stable Event type IDs, EVTT envelope semantics, ESPB v2 payload representation, routing/origin/message-ID/hop semantics, callback behaviour and Observer behaviour are unchanged.
+
 ## 6.0.2 — 2026-08-23
 
 ### Changed

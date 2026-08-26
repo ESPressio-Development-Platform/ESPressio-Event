@@ -14,7 +14,6 @@
 #include <mutex>
 #include <tuple>
 #include <type_traits>
-#include <typeindex>
 #include <unordered_map>
 #include <vector>
 
@@ -31,6 +30,7 @@
 #include "ESPressio_EventManager.hpp"
 #include "ESPressio_EventTransportManagerObservable.hpp"
 #include "ESPressio_EventTransportTypes.hpp"
+#include "ESPressio_EventTypeKey.hpp"
 #include "ESPressio_IEventManagerObserver.hpp"
 #include "ESPressio_IEventTransport.hpp"
 #include "ESPressio_SerializableEventDescriptor.hpp"
@@ -51,14 +51,11 @@ class EventTransportManager final :
     public IEventManagerObserver {
 
 private:
-    struct Registration {
+    struct RuntimeRegistration {
+        EventTypeKey EventType = nullptr;
         uint64_t TypeID = 0;
         std::string_view TypeName{};
         uint32_t SchemaVersion = 1;
-        std::type_index RuntimeType = std::type_index(typeid(void));
-        EventTransportDirection DefaultDirection = EventTransportDirection::None;
-        std::unordered_map<IEventTransport*, EventTransportDirection>
-            TransportDirections;
         std::function<bool(IEvent*, std::vector<uint8_t>&)> Serialize;
         std::function<IEvent*(const uint8_t*, std::size_t)> Deserialize;
         std::vector<Serializable::PropertySchemaInfo> Properties;
@@ -66,6 +63,16 @@ private:
             const Serializable::SerializationNode&,
             const Serializable::DeserializationOptions&)>
             ConstructFromNode;
+    };
+
+    using RuntimeRegistrationPtr =
+        std::shared_ptr<const RuntimeRegistration>;
+
+    struct Registration {
+        RuntimeRegistrationPtr Runtime;
+        EventTransportDirection DefaultDirection = EventTransportDirection::None;
+        std::unordered_map<IEventTransport*, EventTransportDirection>
+            TransportDirections;
 
         EventTransportDirection EffectiveDirection(
             IEventTransport* transport
@@ -93,7 +100,7 @@ private:
         IEvent* Event = nullptr;
         IEventTransport* Transport = nullptr;
         uint64_t TypeID = 0;
-        Registration RegistrationSnapshot;
+        RuntimeRegistrationPtr Runtime;
         EventDispatchMethod Method = EventDispatchMethod::Queue;
         EventPriority Priority = EventPriority::Normal;
         uint64_t MessageID = 0;
@@ -102,13 +109,13 @@ private:
     struct InboundWork {
         IEventTransport* Transport = nullptr;
         uint64_t TypeID = 0;
-        Registration RegistrationSnapshot;
+        RuntimeRegistrationPtr Runtime;
         std::vector<uint8_t> Packet;
     };
 
     mutable std::mutex _mutex;
     std::unordered_map<uint64_t, Registration> _registrations;
-    std::unordered_map<std::type_index, uint64_t> _runtimeTypes;
+    std::unordered_map<EventTypeKey, uint64_t> _runtimeTypes;
     std::vector<IEventTransport*> _transports;
     std::deque<OutboundWork> _outbound;
     std::deque<InboundWork> _inbound;
@@ -178,18 +185,18 @@ private:
         if (found == _registrations.end() || found->second.HasAnyDirection()) {
             return;
         }
-        /*
-         * A registration whose default/overrides are all None may still be a
-         * deliberate local-only runtime registration used by EventConsole.
-         * Keep it while it retains its construction factory/schema metadata.
-         */
+
+        const RuntimeRegistrationPtr runtime = found->second.Runtime;
         if (
-            found->second.ConstructFromNode ||
-            !found->second.Properties.empty()
+            runtime &&
+            (runtime->ConstructFromNode || !runtime->Properties.empty())
         ) {
             return;
         }
-        _runtimeTypes.erase(found->second.RuntimeType);
+
+        if (runtime && runtime->EventType != nullptr) {
+            _runtimeTypes.erase(runtime->EventType);
+        }
         _registrations.erase(found);
     }
 
@@ -204,16 +211,18 @@ private:
     }
 
     void ProcessOutbound(OutboundWork work) {
+        const RuntimeRegistrationPtr& runtime = work.Runtime;
         if (
             work.Transport == nullptr ||
-            !work.RegistrationSnapshot.Serialize
+            !runtime ||
+            !runtime->Serialize
         ) {
             NotifyTransaction({
                 EventTransportTransactionStage::Failed,
                 EventTransportDirection::Outbound,
                 work.TypeID,
-                work.RegistrationSnapshot.TypeName,
-                work.RegistrationSnapshot.SchemaVersion,
+                runtime ? runtime->TypeName : std::string_view{},
+                runtime ? runtime->SchemaVersion : 0,
                 work.MessageID,
                 work.Transport,
                 work.Event,
@@ -229,19 +238,14 @@ private:
             return;
         }
 
-        /*
-         * Allocate the final packet once. The serializer appends the ESPB
-         * payload directly after the envelope, removing the old payload-vector
-         * allocation followed by BuildPacket() and a second payload copy.
-         */
         std::vector<uint8_t> bytes(sizeof(EventTransportEnvelope));
-        if (!work.RegistrationSnapshot.Serialize(work.Event, bytes)) {
+        if (!runtime->Serialize(work.Event, bytes)) {
             NotifyTransaction({
                 EventTransportTransactionStage::Failed,
                 EventTransportDirection::Outbound,
                 work.TypeID,
-                work.RegistrationSnapshot.TypeName,
-                work.RegistrationSnapshot.SchemaVersion,
+                runtime->TypeName,
+                runtime->SchemaVersion,
                 work.MessageID,
                 work.Transport,
                 work.Event,
@@ -266,8 +270,8 @@ private:
             EventTransportTransactionStage::OutboundSerialized,
             EventTransportDirection::Outbound,
             work.TypeID,
-            work.RegistrationSnapshot.TypeName,
-            work.RegistrationSnapshot.SchemaVersion,
+            runtime->TypeName,
+            runtime->SchemaVersion,
             work.MessageID,
             work.Transport,
             work.Event,
@@ -281,8 +285,8 @@ private:
         });
 
         EventTransportEnvelope envelope;
-        envelope.EventTypeID = work.RegistrationSnapshot.TypeID;
-        envelope.SchemaVersion = work.RegistrationSnapshot.SchemaVersion;
+        envelope.EventTypeID = runtime->TypeID;
+        envelope.SchemaVersion = runtime->SchemaVersion;
         envelope.MessageID = work.MessageID;
         envelope.DispatchMethod = static_cast<uint8_t>(work.Method);
         envelope.Priority = static_cast<uint8_t>(work.Priority);
@@ -313,8 +317,8 @@ private:
             EventTransportTransactionStage::OutboundHandedToTransport,
             EventTransportDirection::Outbound,
             work.TypeID,
-            work.RegistrationSnapshot.TypeName,
-            work.RegistrationSnapshot.SchemaVersion,
+            runtime->TypeName,
+            runtime->SchemaVersion,
             work.MessageID,
             work.Transport,
             work.Event,
@@ -342,12 +346,12 @@ private:
             return;
         }
 
-        const Registration& registration = work.RegistrationSnapshot;
-        if (!registration.Deserialize) {
+        const RuntimeRegistrationPtr& runtime = work.Runtime;
+        if (!runtime || !runtime->Deserialize) {
             return;
         }
 
-        IEvent* event = registration.Deserialize(
+        IEvent* event = runtime->Deserialize(
             payload,
             envelope.PayloadLength
         );
@@ -357,7 +361,7 @@ private:
                 EventTransportTransactionStage::Failed,
                 EventTransportDirection::Inbound,
                 envelope.EventTypeID,
-                registration.TypeName,
+                runtime->TypeName,
                 envelope.SchemaVersion,
                 envelope.MessageID,
                 work.Transport,
@@ -386,7 +390,7 @@ private:
             EventTransportTransactionStage::InboundDeserialized,
             EventTransportDirection::Inbound,
             envelope.EventTypeID,
-            registration.TypeName,
+            runtime->TypeName,
             envelope.SchemaVersion,
             envelope.MessageID,
             work.Transport,
@@ -440,7 +444,7 @@ private:
             EventTransportTransactionStage::InboundDispatched,
             EventTransportDirection::Inbound,
             envelope.EventTypeID,
-            registration.TypeName,
+            runtime->TypeName,
             envelope.SchemaVersion,
             envelope.MessageID,
             work.Transport,
@@ -551,32 +555,32 @@ private:
     static Registration CreateRegistration(
         EventTransportDirection defaultDirection
     ) {
-        Registration proposed;
-        proposed.TypeID = EventTransportTypeID<TEvent>();
-        proposed.TypeName = EventTransportTypeTraits<TEvent>::Name;
-        proposed.SchemaVersion = TEvent::GetSchemaVersion();
-        proposed.RuntimeType = std::type_index(typeid(TEvent));
-        proposed.DefaultDirection = defaultDirection;
-        proposed.Properties = Serializable::SchemaInspector<TEvent>::Properties();
+        auto runtime = std::make_shared<RuntimeRegistration>();
+        runtime->EventType = EventTypeKeyOf<TEvent>();
+        runtime->TypeID = EventTransportTypeID<TEvent>();
+        runtime->TypeName = EventTransportTypeTraits<TEvent>::Name;
+        runtime->SchemaVersion = TEvent::GetSchemaVersion();
+        runtime->Properties = Serializable::SchemaInspector<TEvent>::Properties();
 
-        proposed.Serialize =
+        runtime->Serialize =
             [](IEvent* event, std::vector<uint8_t>& bytes) {
-                auto* typed = dynamic_cast<TEvent*>(event);
-                if (typed == nullptr) {
+                if (
+                    event == nullptr ||
+                    event->__getTypeKey() != EventTypeKeyOf<TEvent>()
+                ) {
                     return false;
                 }
 
+                auto* typed = static_cast<TEvent*>(event);
                 const std::size_t prefix = bytes.size();
                 if (Serializable::AppendDirectBinary(*typed, bytes)) {
                     return bytes.size() > prefix;
                 }
 
-                /* Compatibility fallback for an adapter/type not supported by
-                 * the direct writer. */
                 bytes.resize(prefix);
                 Serializable::BinaryArchive archive;
                 typed->Serialize(archive);
-                const auto payload = archive.GetData();
+                const auto& payload = archive.GetData();
                 if (payload.empty()) {
                     return false;
                 }
@@ -585,7 +589,7 @@ private:
             };
 
         if constexpr (std::is_default_constructible_v<TEvent>) {
-            proposed.Deserialize =
+            runtime->Deserialize =
                 [](const uint8_t* data, std::size_t size) -> IEvent* {
                     auto event = std::make_unique<TEvent>();
                     const auto direct =
@@ -598,8 +602,6 @@ private:
                         return event.release();
                     }
 
-                    /* Preserve migrations/legacy behaviour through BinaryArchive
-                     * if the direct same-schema path cannot decode the payload. */
                     Serializable::BinaryArchive archive;
                     if (!archive.Load(data, size)) {
                         return nullptr;
@@ -611,7 +613,7 @@ private:
                     return event.release();
                 };
 
-            proposed.ConstructFromNode =
+            runtime->ConstructFromNode =
                 [](const Serializable::SerializationNode& node,
                    const Serializable::DeserializationOptions& options)
                     -> SerializableEventConstructionResult {
@@ -630,6 +632,9 @@ private:
                 };
         }
 
+        Registration proposed;
+        proposed.Runtime = std::move(runtime);
+        proposed.DefaultDirection = defaultDirection;
         return proposed;
     }
 
@@ -661,6 +666,7 @@ private:
 
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
         Registration proposed = CreateRegistration<TEvent>(direction);
+        const EventTypeKey eventType = proposed.Runtime->EventType;
         EventTransportRegistrationResult result;
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
@@ -669,11 +675,14 @@ private:
             std::lock_guard<std::mutex> lock(_mutex);
             auto found = _registrations.find(typeID);
             if (found == _registrations.end()) {
-                _registrations.emplace(typeID, proposed);
-                _runtimeTypes[proposed.RuntimeType] = typeID;
+                _registrations.emplace(typeID, std::move(proposed));
+                _runtimeTypes[eventType] = typeID;
                 result = EventTransportRegistrationResult::Registered;
                 after = direction;
-            } else if (found->second.RuntimeType != proposed.RuntimeType) {
+            } else if (
+                !found->second.Runtime ||
+                found->second.Runtime->EventType != eventType
+            ) {
                 return EventTransportRegistrationResult::TypeConflict;
             } else {
                 before = found->second.DefaultDirection;
@@ -682,16 +691,7 @@ private:
                     return EventTransportRegistrationResult::AlreadyRegistered;
                 }
                 found->second.DefaultDirection = after;
-                if (!found->second.Deserialize && proposed.Deserialize) {
-                    found->second.Deserialize = proposed.Deserialize;
-                }
-                if (found->second.Properties.empty() && !proposed.Properties.empty()) {
-                    found->second.Properties = proposed.Properties;
-                }
-                if (!found->second.ConstructFromNode && proposed.ConstructFromNode) {
-                    found->second.ConstructFromNode = proposed.ConstructFromNode;
-                }
-                _runtimeTypes[proposed.RuntimeType] = typeID;
+                _runtimeTypes[eventType] = typeID;
                 result = EventTransportRegistrationResult::Updated;
             }
         }
@@ -727,6 +727,7 @@ private:
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
         Registration proposed =
             CreateRegistration<TEvent>(EventTransportDirection::None);
+        const EventTypeKey eventType = proposed.Runtime->EventType;
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
         bool createdOverride = false;
@@ -736,11 +737,14 @@ private:
             auto found = _registrations.find(typeID);
             if (found == _registrations.end()) {
                 proposed.TransportDirections[transport] = direction;
-                _registrations.emplace(typeID, proposed);
-                _runtimeTypes[proposed.RuntimeType] = typeID;
+                _registrations.emplace(typeID, std::move(proposed));
+                _runtimeTypes[eventType] = typeID;
                 after = direction;
                 createdOverride = true;
-            } else if (found->second.RuntimeType != proposed.RuntimeType) {
+            } else if (
+                !found->second.Runtime ||
+                found->second.Runtime->EventType != eventType
+            ) {
                 return EventTransportRegistrationResult::TypeConflict;
             } else {
                 auto route = found->second.TransportDirections.find(transport);
@@ -757,16 +761,7 @@ private:
                     }
                     route->second = after;
                 }
-                if (!found->second.Deserialize && proposed.Deserialize) {
-                    found->second.Deserialize = proposed.Deserialize;
-                }
-                if (found->second.Properties.empty() && !proposed.Properties.empty()) {
-                    found->second.Properties = proposed.Properties;
-                }
-                if (!found->second.ConstructFromNode && proposed.ConstructFromNode) {
-                    found->second.ConstructFromNode = proposed.ConstructFromNode;
-                }
-                _runtimeTypes[proposed.RuntimeType] = typeID;
+                _runtimeTypes[eventType] = typeID;
             }
         }
 
@@ -972,13 +967,15 @@ public:
         descriptors.reserve(_registrations.size());
         for (const auto& entry : _registrations) {
             const auto& registration = entry.second;
+            const RuntimeRegistrationPtr& runtime = registration.Runtime;
+            if (!runtime) continue;
             SerializableEventDescriptor descriptor;
-            descriptor.TypeID = registration.TypeID;
-            descriptor.TypeName = std::string(registration.TypeName);
-            descriptor.SchemaVersion = registration.SchemaVersion;
+            descriptor.TypeID = runtime->TypeID;
+            descriptor.TypeName = std::string(runtime->TypeName);
+            descriptor.SchemaVersion = runtime->SchemaVersion;
             descriptor.DefaultDirection = registration.DefaultDirection;
-            descriptor.Properties = registration.Properties;
-            descriptor.CanConstruct = static_cast<bool>(registration.ConstructFromNode);
+            descriptor.Properties = runtime->Properties;
+            descriptor.CanConstruct = static_cast<bool>(runtime->ConstructFromNode);
             descriptors.push_back(std::move(descriptor));
         }
         std::sort(
@@ -996,16 +993,20 @@ public:
     ) const {
         std::lock_guard<std::mutex> lock(_mutex);
         const auto found = _registrations.find(typeID);
-        if (found == _registrations.end()) {
+        if (
+            found == _registrations.end() ||
+            !found->second.Runtime
+        ) {
             return false;
         }
         const auto& registration = found->second;
-        descriptor.TypeID = registration.TypeID;
-        descriptor.TypeName = std::string(registration.TypeName);
-        descriptor.SchemaVersion = registration.SchemaVersion;
+        const RuntimeRegistrationPtr& runtime = registration.Runtime;
+        descriptor.TypeID = runtime->TypeID;
+        descriptor.TypeName = std::string(runtime->TypeName);
+        descriptor.SchemaVersion = runtime->SchemaVersion;
         descriptor.DefaultDirection = registration.DefaultDirection;
-        descriptor.Properties = registration.Properties;
-        descriptor.CanConstruct = static_cast<bool>(registration.ConstructFromNode);
+        descriptor.Properties = runtime->Properties;
+        descriptor.CanConstruct = static_cast<bool>(runtime->ConstructFromNode);
         return true;
     }
 
@@ -1016,15 +1017,16 @@ public:
         std::lock_guard<std::mutex> lock(_mutex);
         for (const auto& entry : _registrations) {
             const auto& registration = entry.second;
-            if (registration.TypeName != typeName) {
+            const RuntimeRegistrationPtr& runtime = registration.Runtime;
+            if (!runtime || runtime->TypeName != typeName) {
                 continue;
             }
-            descriptor.TypeID = registration.TypeID;
-            descriptor.TypeName = std::string(registration.TypeName);
-            descriptor.SchemaVersion = registration.SchemaVersion;
+            descriptor.TypeID = runtime->TypeID;
+            descriptor.TypeName = std::string(runtime->TypeName);
+            descriptor.SchemaVersion = runtime->SchemaVersion;
             descriptor.DefaultDirection = registration.DefaultDirection;
-            descriptor.Properties = registration.Properties;
-            descriptor.CanConstruct = static_cast<bool>(registration.ConstructFromNode);
+            descriptor.Properties = runtime->Properties;
+            descriptor.CanConstruct = static_cast<bool>(runtime->ConstructFromNode);
             return true;
         }
         return false;
@@ -1035,23 +1037,25 @@ public:
         const Serializable::SerializationNode& node,
         const Serializable::DeserializationOptions& options = {}
     ) const {
-        std::function<SerializableEventConstructionResult(
-            const Serializable::SerializationNode&,
-            const Serializable::DeserializationOptions&)> factory;
+        RuntimeRegistrationPtr runtime;
         {
             std::lock_guard<std::mutex> lock(_mutex);
             const auto found = _registrations.find(typeID);
             if (found == _registrations.end()) {
                 return {};
             }
-            if (!found->second.ConstructFromNode) {
-                SerializableEventConstructionResult result;
-                result.TypeRegistered = true;
-                return result;
-            }
-            factory = found->second.ConstructFromNode;
+            runtime = found->second.Runtime;
         }
-        return factory(node, options);
+
+        if (!runtime) {
+            return {};
+        }
+        if (!runtime->ConstructFromNode) {
+            SerializableEventConstructionResult result;
+            result.TypeRegistered = true;
+            return result;
+        }
+        return runtime->ConstructFromNode(node, options);
     }
 
     SerializableEventConstructionResult CreateSerializableEvent(
@@ -1059,25 +1063,29 @@ public:
         const Serializable::SerializationNode& node,
         const Serializable::DeserializationOptions& options = {}
     ) const {
-        std::function<SerializableEventConstructionResult(
-            const Serializable::SerializationNode&,
-            const Serializable::DeserializationOptions&)> factory;
+        RuntimeRegistrationPtr runtime;
         {
             std::lock_guard<std::mutex> lock(_mutex);
             for (const auto& entry : _registrations) {
-                if (entry.second.TypeName != typeName) {
-                    continue;
+                if (
+                    entry.second.Runtime &&
+                    entry.second.Runtime->TypeName == typeName
+                ) {
+                    runtime = entry.second.Runtime;
+                    break;
                 }
-                if (!entry.second.ConstructFromNode) {
-                    SerializableEventConstructionResult result;
-                    result.TypeRegistered = true;
-                    return result;
-                }
-                factory = entry.second.ConstructFromNode;
-                break;
             }
         }
-        return factory ? factory(node, options) : SerializableEventConstructionResult{};
+
+        if (!runtime) {
+            return {};
+        }
+        if (!runtime->ConstructFromNode) {
+            SerializableEventConstructionResult result;
+            result.TypeRegistered = true;
+            return result;
+        }
+        return runtime->ConstructFromNode(node, options);
     }
 
     static RuntimeEventDispatchResult DispatchSerializableEvent(
@@ -1352,6 +1360,7 @@ public:
         ), ...);
         return result;
     }
+
     template<typename... TEvents>
     EventTransportBulkOperationResult UnregisterEvents(
         IEventTransport* transport,
@@ -1574,21 +1583,31 @@ public:
             return;
         }
 
+        const EventTypeKey eventType = event->__getTypeKey();
+        if (eventType == nullptr) {
+            return;
+        }
+
         uint64_t typeID = 0;
         uint64_t messageID = 0;
+        RuntimeRegistrationPtr runtime;
         std::vector<IEventTransport*> targetTransports;
-        Registration registrationSnapshot;
 
         {
             std::lock_guard<std::mutex> lock(_mutex);
-            auto runtime = _runtimeTypes.find(std::type_index(typeid(*event)));
-            if (runtime == _runtimeTypes.end()) {
+            auto runtimeType = _runtimeTypes.find(eventType);
+            if (runtimeType == _runtimeTypes.end()) {
                 return;
             }
-            auto registration = _registrations.find(runtime->second);
-            if (registration == _registrations.end()) {
+            auto registration = _registrations.find(runtimeType->second);
+            if (
+                registration == _registrations.end() ||
+                !registration->second.Runtime
+            ) {
                 return;
             }
+
+            targetTransports.reserve(_transports.size());
             for (IEventTransport* transport : _transports) {
                 if (HasDirection(
                     registration->second.EffectiveDirection(transport),
@@ -1600,16 +1619,17 @@ public:
             if (targetTransports.empty()) {
                 return;
             }
-            typeID = runtime->second;
+
+            typeID = runtimeType->second;
+            runtime = registration->second.Runtime;
             messageID = _nextMessageID.fetch_add(1);
-            registrationSnapshot = registration->second;
             for (IEventTransport* transport : targetTransports) {
                 event->__ref();
                 _outbound.push_back({
                     event,
                     transport,
                     typeID,
-                    registrationSnapshot,
+                    runtime,
                     method,
                     priority,
                     messageID
@@ -1631,8 +1651,8 @@ public:
                 EventTransportTransactionStage::OutboundAccepted,
                 EventTransportDirection::Outbound,
                 typeID,
-                registrationSnapshot.TypeName,
-                registrationSnapshot.SchemaVersion,
+                runtime->TypeName,
+                runtime->SchemaVersion,
                 messageID,
                 transport,
                 event,
@@ -1681,15 +1701,20 @@ public:
         }
 
         bool accepted = false;
+        RuntimeRegistrationPtr runtime;
         std::string_view typeName{};
         uint32_t schemaVersion = envelope.SchemaVersion;
         {
             std::lock_guard<std::mutex> lock(_mutex);
             if (IsTransportRegisteredLocked(transport)) {
                 auto found = _registrations.find(envelope.EventTypeID);
-                if (found != _registrations.end()) {
-                    typeName = found->second.TypeName;
-                    schemaVersion = found->second.SchemaVersion;
+                if (
+                    found != _registrations.end() &&
+                    found->second.Runtime
+                ) {
+                    runtime = found->second.Runtime;
+                    typeName = runtime->TypeName;
+                    schemaVersion = runtime->SchemaVersion;
                     if (HasDirection(
                         found->second.EffectiveDirection(transport),
                         EventTransportDirection::Inbound
@@ -1697,7 +1722,7 @@ public:
                         _inbound.push_back({
                             transport,
                             envelope.EventTypeID,
-                            found->second,
+                            runtime,
                             std::vector<uint8_t>(data, data + size)
                         });
                         accepted = true;

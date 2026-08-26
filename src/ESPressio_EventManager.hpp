@@ -34,7 +34,11 @@ namespace ESPressio {
                     CreateEventManagerObservable();
 
             protected:
-                EventManager() : Thread(true) {
+                EventManager() :
+                    Thread(
+                        ThreadReleasePolicy::ReleaseOnTerminate
+                    ) {
+
                     SetPriority(
                         ESPRESSIO_EVENT_MANAGER_PRIORITY
                     );
@@ -69,58 +73,31 @@ namespace ESPressio {
                         );
                     }
 
-                    DispatchEvents();
+                    while (DispatchOne()) {
+                    }
                 }
 
-                void EventAdded() override {
-                    const TaskHandle_t task =
+                void NotifyWorkAvailable() override {
+                    TaskHandle_t notificationTask =
                         _notificationTask.load(
                             std::memory_order_acquire
                         );
 
-                    if (task != nullptr) {
-                        xTaskNotifyGive(
-                            task
-                        );
+                    if (notificationTask != nullptr) {
+                        xTaskNotifyGive(notificationTask);
                     }
                 }
 
-                void OnEventDispatched(
-                    IEvent* event,
-                    EventDispatchMethod method,
-                    EventPriority priority
-                ) override {
-                    _observable->EventDispatched(
-                        event, method, priority,
-                        event->__getDispatchContext()
-                    );
-                }
-
             public:
-                Observable::ObserverHandlePtr RegisterObserver(
-                    IEventManagerObserver* observer
-                ) {
-                    return _observable->RegisterObserver(observer);
-                }
-
-                void UnregisterObserver(
-                    IEventManagerObserver* observer
-                ) {
-                    _observable->UnregisterObserver(observer);
-                }
-
-                static EventManager* GetInstance() {
-                    static EventManager* instance = new EventManager();
+                static EventManager& GetInstance() {
+                    static EventManager instance;
                     return instance;
                 }
 
-                virtual ~EventManager() {
-                    _notificationTask.store(
-                        nullptr,
-                        std::memory_order_release
-                    );
+                std::shared_ptr<EventManagerObservable>
+                GetObservable() {
+                    return _observable;
                 }
-
         };
 
     }

@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: 3.0.2
+          ref: feature/16-rtti-free-observer-registry
           path: ESPressio-Observable
       - uses: actions/checkout@v4
         with:
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: 3.0.2
+          ref: feature/16-rtti-free-observer-registry
           path: project/dependencies/ESPressio-Observable
       - uses: actions/checkout@v4
         with:
@@ -79,7 +79,7 @@ jobs:
           python-version: '3.x'
       - name: Install PlatformIO
         run: pip install platformio
-      - name: Create Event mechanism compile project
+      - name: Create RTTI-free Event mechanism compile project
         shell: bash
         run: |
           mkdir -p project/compile/src
@@ -90,10 +90,10 @@ jobs:
           framework = arduino
           build_flags =
               -std=gnu++17
-              -frtti
+              -fno-rtti
           build_unflags =
               -std=gnu++11
-              -fno-rtti
+              -frtti
           lib_ldf_mode = deep+
           lib_deps =
               ../dependencies/ESPressio-Observable
@@ -114,5 +114,5 @@ jobs:
           void setup() {}
           void loop() {}
           EOF
-      - name: Compile ESP32 Event mechanism and legitimate downstream bridges
+      - name: Compile ESP32 Event mechanism and downstream bridges without RTTI
         run: pio run -d project/compile

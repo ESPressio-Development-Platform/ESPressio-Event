@@ -8,8 +8,7 @@
         "url": "https://espressio.org"
     },
     "build": {
-        "flags": ["-std=gnu++17","-frtti","-DESPRESSIO_EVENT"],
-        "unflags": ["-fno-rtti"]
+        "flags": ["-std=gnu++17","-DESPRESSIO_EVENT"]
     },
     "repository": {
         "type": "git",
@@ -28,8 +27,7 @@
         },
         {
             "name": "ESPressio-Observable",
-            "version": ">=3.0.2 <4.0.0",
-            "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git",
+            "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#feature/16-rtti-free-observer-registry",
             "platforms": "*"
         },
         {

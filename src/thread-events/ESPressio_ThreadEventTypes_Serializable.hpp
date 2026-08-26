@@ -8,7 +8,12 @@
 #include <string>
 
 #include <ESPressio_ThreadManagerTypes.hpp>
-#include <ESPressio_ThreadGarbageCollectorTypes.hpp>
+
+#if __has_include(<ESPressio_ThreadGarbageCollectorTypes.hpp>)
+    #include <ESPressio_ThreadGarbageCollectorTypes.hpp>
+#else
+    #include "ESPressio_ThreadGarbageCollectorTypes_Compatibility.hpp"
+#endif
 
 #include "../ESPressio_Event_Serializable.hpp"
 

@@ -73,31 +73,58 @@ namespace ESPressio {
                         );
                     }
 
-                    while (DispatchOne()) {
-                    }
+                    DispatchEvents();
                 }
 
-                void NotifyWorkAvailable() override {
-                    TaskHandle_t notificationTask =
+                void EventAdded() override {
+                    const TaskHandle_t task =
                         _notificationTask.load(
                             std::memory_order_acquire
                         );
 
-                    if (notificationTask != nullptr) {
-                        xTaskNotifyGive(notificationTask);
+                    if (task != nullptr) {
+                        xTaskNotifyGive(
+                            task
+                        );
                     }
                 }
 
+                void OnEventDispatched(
+                    IEvent* event,
+                    EventDispatchMethod method,
+                    EventPriority priority
+                ) override {
+                    _observable->EventDispatched(
+                        event, method, priority,
+                        event->__getDispatchContext()
+                    );
+                }
+
             public:
-                static EventManager& GetInstance() {
-                    static EventManager instance;
+                Observable::ObserverHandlePtr RegisterObserver(
+                    IEventManagerObserver* observer
+                ) {
+                    return _observable->RegisterObserver(observer);
+                }
+
+                void UnregisterObserver(
+                    IEventManagerObserver* observer
+                ) {
+                    _observable->UnregisterObserver(observer);
+                }
+
+                static EventManager* GetInstance() {
+                    static EventManager* instance = new EventManager();
                     return instance;
                 }
 
-                std::shared_ptr<EventManagerObservable>
-                GetObservable() {
-                    return _observable;
+                virtual ~EventManager() {
+                    _notificationTask.store(
+                        nullptr,
+                        std::memory_order_release
+                    );
                 }
+
         };
 
     }

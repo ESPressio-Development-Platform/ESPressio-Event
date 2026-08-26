@@ -23,10 +23,9 @@ public:
     virtual void __setDispatchContext(const EventDispatchContext& context) = 0;
     virtual EventDispatchContext __getDispatchContext() const = 0;
 
-    /// Compiler-backed local process identity for routing/listener dispatch.
-    /// Legacy Event<TTime> returns nullptr; TypedEvent/SerializableEvent return
-    /// their concrete Event type key. RTTI-enabled builds may fall back for
-    /// legacy events during migration.
+    /// Compiler-backed local process identity used for routing and listener dispatch.
+    /// Every concrete routable Event must provide a stable EventTypeKey; use
+    /// TypedEvent<TDerived> or SerializableEvent<TDerived> for the standard CRTP path.
     virtual EventTypeKey __getTypeKey() const noexcept = 0;
 
     virtual void Queue(

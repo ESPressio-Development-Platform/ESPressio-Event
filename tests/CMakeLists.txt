@@ -8,6 +8,12 @@ option(ESPRESSIO_ENABLE_SANITIZERS "Enable address and undefined-behavior saniti
 add_executable(espressio_event_observer_tests test_event_observer.cpp)
 add_executable(espressio_event_reference_tests test_event_references.cpp)
 add_executable(espressio_event_dispatch_context_tests test_event_dispatch_context.cpp)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_executable(espressio_event_observer_no_rtti_tests test_event_observer.cpp)
+    target_compile_options(espressio_event_observer_no_rtti_tests PRIVATE -fno-rtti)
+endif()
+
 target_compile_features(espressio_event_dispatch_context_tests PRIVATE cxx_std_17)
 target_include_directories(espressio_event_dispatch_context_tests PRIVATE
     ../src
@@ -32,6 +38,18 @@ target_include_directories(espressio_event_reference_tests PRIVATE
     ../../ESPressio_Timing/tests/stubs
 )
 
+if(TARGET espressio_event_observer_no_rtti_tests)
+    target_compile_features(espressio_event_observer_no_rtti_tests PRIVATE cxx_std_17)
+    target_include_directories(espressio_event_observer_no_rtti_tests PRIVATE
+        stubs
+        ../src
+        ../../ESPressio-Observable/src
+        ../../ESPressio_Timing/src
+        ../../ESPressio-Units/src
+        ../../ESPressio_Timing/tests/stubs
+    )
+endif()
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(espressio_event_observer_tests PRIVATE
         -Wall -Wextra -Wpedantic -Werror
@@ -42,6 +60,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(espressio_event_dispatch_context_tests PRIVATE
         -Wall -Wextra -Wpedantic -Werror
     )
+    if(TARGET espressio_event_observer_no_rtti_tests)
+        target_compile_options(espressio_event_observer_no_rtti_tests PRIVATE
+            -Wall -Wextra -Wpedantic -Werror
+        )
+    endif()
 elseif(MSVC)
     target_compile_options(espressio_event_observer_tests PRIVATE /W4 /WX)
     target_compile_options(espressio_event_reference_tests PRIVATE /W4 /WX)
@@ -67,3 +90,6 @@ enable_testing()
 add_test(NAME espressio_event_observer_tests COMMAND espressio_event_observer_tests)
 add_test(NAME espressio_event_reference_tests COMMAND espressio_event_reference_tests)
 add_test(NAME espressio_event_dispatch_context_tests COMMAND espressio_event_dispatch_context_tests)
+if(TARGET espressio_event_observer_no_rtti_tests)
+    add_test(NAME espressio_event_observer_no_rtti_tests COMMAND espressio_event_observer_no_rtti_tests)
+endif()

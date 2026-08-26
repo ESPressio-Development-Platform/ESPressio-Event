@@ -6,12 +6,6 @@
 
 #include <ESPressio_ThreadManagerTypes.hpp>
 
-#if __has_include(<ESPressio_ThreadGarbageCollectorTypes.hpp>)
-    #include <ESPressio_ThreadGarbageCollectorTypes.hpp>
-#else
-    #include "ESPressio_ThreadGarbageCollectorTypes_Compatibility.hpp"
-#endif
-
 #include "../ESPressio_Event.hpp"
 
 namespace ESPressio {
@@ -20,9 +14,6 @@ namespace Event {
 using ThreadSnapshot = Threads::ThreadManagerThreadSnapshot;
 using ThreadCleanupResult = Threads::ThreadManagerCleanupResult;
 using ThreadInitializationResult = Threads::ThreadManagerInitializationResult;
-using ThreadGarbageCollectionResult = Threads::ThreadGarbageCollectionResult;
-using ThreadGarbageCollectionExecutionMode =
-    Threads::ThreadGarbageCollectionExecutionMode;
 
 class ThreadRegisteredEvent final :
     public TypedEvent<ThreadRegisteredEvent> {
@@ -88,52 +79,6 @@ public:
     explicit ThreadManagerInitializationCompletedEvent(
         const ThreadInitializationResult& result
     ) : Result(result) {}
-};
-
-class ThreadGarbageCollectorInitializedEvent final :
-    public TypedEvent<ThreadGarbageCollectorInitializedEvent> {
-public:
-    const bool Available;
-    explicit ThreadGarbageCollectorInitializedEvent(bool available)
-        : Available(available) {}
-};
-
-class ThreadGarbageCollectorInitializationFailedEvent final :
-    public TypedEvent<ThreadGarbageCollectorInitializationFailedEvent> {};
-
-class ThreadGarbageCollectionRequestedEvent final :
-    public TypedEvent<ThreadGarbageCollectionRequestedEvent> {
-public:
-    const ThreadGarbageCollectionExecutionMode ExecutionMode;
-    explicit ThreadGarbageCollectionRequestedEvent(
-        ThreadGarbageCollectionExecutionMode executionMode
-    ) : ExecutionMode(executionMode) {}
-};
-
-#define ESPRESSIO_DEFINE_GC_RESULT_EVENT(CLASS_NAME) \
-class CLASS_NAME final : public TypedEvent<CLASS_NAME> { \
-public: \
-    const ThreadGarbageCollectionResult Result; \
-    explicit CLASS_NAME(const ThreadGarbageCollectionResult& result) : Result(result) {} \
-};
-
-ESPRESSIO_DEFINE_GC_RESULT_EVENT(ThreadGarbageCollectionQueuedEvent)
-ESPRESSIO_DEFINE_GC_RESULT_EVENT(ThreadGarbageCollectionRequestCoalescedEvent)
-ESPRESSIO_DEFINE_GC_RESULT_EVENT(ThreadGarbageCollectionStartedEvent)
-ESPRESSIO_DEFINE_GC_RESULT_EVENT(ThreadGarbageCollectionCompletedEvent)
-ESPRESSIO_DEFINE_GC_RESULT_EVENT(ThreadGarbageCollectionFallbackStartedEvent)
-
-#undef ESPRESSIO_DEFINE_GC_RESULT_EVENT
-
-class ThreadGarbageCollectionFailedEvent final :
-    public TypedEvent<ThreadGarbageCollectionFailedEvent> {
-public:
-    const ThreadGarbageCollectionResult Result;
-    const std::exception_ptr Cause;
-    ThreadGarbageCollectionFailedEvent(
-        const ThreadGarbageCollectionResult& result,
-        std::exception_ptr cause
-    ) : Result(result), Cause(cause) {}
 };
 
 class ThreadTerminationDispatcherInitializedEvent final :

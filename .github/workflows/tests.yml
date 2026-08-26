@@ -29,12 +29,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: 2.2.8
+          ref: main
           path: ESPressio_Timing
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Units
-          ref: 0.2.7
+          ref: chore/27-serializable-0.11.3-cascade
           path: ESPressio-Units
       - name: Configure
         run: cmake -S ESPressio-Event/tests -B build
@@ -62,17 +62,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Units
-          ref: 0.2.7
+          ref: chore/27-serializable-0.11.3-cascade
           path: project/dependencies/ESPressio-Units
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: 2.2.8
+          ref: main
           path: project/dependencies/ESPressio-Timing
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Threads
-          ref: integration/69-73-memory-efficiency
+          ref: optimisation/69-resource-footprint
           path: project/dependencies/ESPressio-Threads
       - uses: actions/checkout@v4
         with:

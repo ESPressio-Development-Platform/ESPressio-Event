@@ -328,6 +328,10 @@ protected:
     }
 
 public:
+    using IEventListener::RegisterListener;
+    using IEventListener::RegisterObserver;
+    using IEventListener::UnregisterListener;
+
     ~EventListener() override {
         UnregisterAllListeners();
     }

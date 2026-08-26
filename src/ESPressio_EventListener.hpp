@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -194,7 +195,11 @@ private:
         bool Active = false;
     };
 
-    std::vector<ListenerRecord> _listeners;
+    // deque is intentional here. Registrations may occur re-entrantly from a
+    // callback. push_back() preserves references to existing records, allowing
+    // ProcessEvent() to invoke the stored std::function in-place instead of
+    // copying it merely to survive a vector reallocation.
+    std::deque<ListenerRecord> _listeners;
     mutable std::recursive_mutex _listenersMutex;
     std::size_t _processingDepth = 0;
     bool _needsCompaction = false;
@@ -392,18 +397,15 @@ public:
 
         try {
             for (std::size_t index = 0; index < listenerCount; ++index) {
-                // Re-fetch by index after callbacks: a callback may append and
-                // reallocate the vector, but entries existing at notification
-                // start remain at the same indices. Tombstoned entries are skipped.
-                if (!_listeners[index].Active) continue;
-                if (!MatchesEvent(_listeners[index], event)) continue;
-                if (!IsInterested(_listeners[index], event)) continue;
+                ListenerRecord& listener = _listeners[index];
+                if (!listener.Active) continue;
+                if (!MatchesEvent(listener, event)) continue;
+                if (!IsInterested(listener, event)) continue;
 
-                auto callback = _listeners[index].Callback;
-                // Keep the registry lock recursive so self-unregister/register is
-                // legal. Copy only the one std::function being invoked; never copy
-                // the listener collection.
-                callback(event, dispatchMethod, priority);
+                // Existing deque elements keep stable references when a callback
+                // appends a listener. Tombstoning defers erasure until the outermost
+                // dispatch completes, so this call needs no std::function copy.
+                listener.Callback(event, dispatchMethod, priority);
             }
         } catch (...) {
             FinishProcessingLocked();

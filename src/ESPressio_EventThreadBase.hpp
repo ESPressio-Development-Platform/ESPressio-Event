@@ -97,14 +97,6 @@ namespace ESPressio {
                     );
                 }
 
-                explicit EventThreadBase(bool freeOnTerminate) :
-                    EventThreadBase(
-                        freeOnTerminate
-                            ? ThreadReleasePolicy::ReleaseOnTerminate
-                            : ThreadReleasePolicy::ExplicitRelease
-                    ) {
-                }
-
                 virtual ~EventThreadBase() {
                     _notificationTask.store(
                         nullptr,

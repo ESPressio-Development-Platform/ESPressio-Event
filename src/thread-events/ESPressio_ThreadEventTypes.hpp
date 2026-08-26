@@ -8,9 +8,8 @@
 
 #if __has_include(<ESPressio_ThreadGarbageCollectorTypes.hpp>)
     #include <ESPressio_ThreadGarbageCollectorTypes.hpp>
-    #define ESPRESSIO_EVENT_HAS_THREAD_GARBAGE_COLLECTOR 1
 #else
-    #define ESPRESSIO_EVENT_HAS_THREAD_GARBAGE_COLLECTOR 0
+    #include "ESPressio_ThreadGarbageCollectorTypes_Compatibility.hpp"
 #endif
 
 #include "../ESPressio_Event.hpp"
@@ -21,12 +20,9 @@ namespace Event {
 using ThreadSnapshot = Threads::ThreadManagerThreadSnapshot;
 using ThreadCleanupResult = Threads::ThreadManagerCleanupResult;
 using ThreadInitializationResult = Threads::ThreadManagerInitializationResult;
-
-#if ESPRESSIO_EVENT_HAS_THREAD_GARBAGE_COLLECTOR
 using ThreadGarbageCollectionResult = Threads::ThreadGarbageCollectionResult;
 using ThreadGarbageCollectionExecutionMode =
     Threads::ThreadGarbageCollectionExecutionMode;
-#endif
 
 class ThreadRegisteredEvent final :
     public TypedEvent<ThreadRegisteredEvent> {
@@ -94,8 +90,6 @@ public:
     ) : Result(result) {}
 };
 
-#if ESPRESSIO_EVENT_HAS_THREAD_GARBAGE_COLLECTOR
-
 class ThreadGarbageCollectorInitializedEvent final :
     public TypedEvent<ThreadGarbageCollectorInitializedEvent> {
 public:
@@ -141,8 +135,6 @@ public:
         std::exception_ptr cause
     ) : Result(result), Cause(cause) {}
 };
-
-#endif
 
 class ThreadTerminationDispatcherInitializedEvent final :
     public TypedEvent<ThreadTerminationDispatcherInitializedEvent> {

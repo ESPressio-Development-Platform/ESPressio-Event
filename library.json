@@ -21,19 +21,18 @@
     "dependencies": [
         {
             "name": "ESPressio-Threads",
-            "version": ">=3.1.7 <4.0.0",
-            "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git#optimisation/69-resource-footprint",
             "platforms": "espressif32"
         },
         {
             "name": "ESPressio-Observable",
-            "url": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#feature/16-rtti-free-observer-registry",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#feature/16-rtti-free-observer-registry",
             "platforms": "*"
         },
         {
-            "owner": "espressio-development-platform",
             "name": "ESPressio-Timing",
-            "version": ">=2.2.8 <3.0.0"
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Timing.git#main",
+            "platforms": "*"
         }
     ]
 }

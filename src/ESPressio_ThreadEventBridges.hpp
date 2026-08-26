@@ -1,5 +1,9 @@
 #pragma once
 
 #include "ESPressio_ThreadManagerEventBridge.hpp"
-#include "ESPressio_ThreadGarbageCollectorEventBridge.hpp"
+
+#if __has_include(<ESPressio_ThreadGarbageCollector.hpp>)
+    #include "ESPressio_ThreadGarbageCollectorEventBridge.hpp"
+#endif
+
 #include "ESPressio_ThreadTerminationDispatcherEventBridge.hpp"

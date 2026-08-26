@@ -91,8 +91,7 @@ protected:
         try {
             if (_processOrder == EventsBeforeLoop) {
                 WithEvents(
-                    [&](
-                        IEvent* event,
+                    [&](n                        IEvent* event,
                         EventDispatchMethod dispatchMethod,
                         EventPriority priority
                     ) {

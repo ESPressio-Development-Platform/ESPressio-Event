@@ -50,6 +50,9 @@ protected:
     }
 
 public:
+    explicit EventThread(Threads::ThreadReleasePolicy releasePolicy)
+        : EventThreadBase(releasePolicy) {}
+
     explicit EventThread(bool freeOnTerminate)
         : EventThreadBase(freeOnTerminate) {}
 
@@ -131,11 +134,18 @@ protected:
     }
 
 public:
-    explicit EventThreadWithLoop(bool freeOnTerminate)
-        : Threads::Thread(freeOnTerminate) {
+    explicit EventThreadWithLoop(Threads::ThreadReleasePolicy releasePolicy)
+        : Threads::Thread(releasePolicy) {
         SetPriority(ESPRESSIO_EVENT_THREAD_DEFAULT_PRIORITY);
         SetCoreID(ESPRESSIO_EVENT_THREAD_DEFAULT_CORE_ID);
     }
+
+    explicit EventThreadWithLoop(bool freeOnTerminate)
+        : EventThreadWithLoop(
+            freeOnTerminate
+                ? Threads::ThreadReleasePolicy::ReleaseOnTerminate
+                : Threads::ThreadReleasePolicy::ExplicitRelease
+        ) {}
 
     ~EventThreadWithLoop() override {
         Shutdown();

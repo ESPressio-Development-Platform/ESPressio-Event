@@ -119,8 +119,7 @@ protected:
         std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
         EventListenerInterest interest,
         EventTime maximumTimeSinceDispatch,
-        std::function<bool(IEvent*)> customInterestCallback,
-        bool (*legacyMatcher)(IEvent*)
+        std::function<bool(IEvent*)> customInterestCallback
     ) = 0;
 
     template<typename EventType>
@@ -130,19 +129,12 @@ protected:
         EventTime maximumTimeSinceDispatch,
         std::function<bool(IEvent*)> customInterestCallback
     ) {
-        bool (*legacyMatcher)(IEvent*) = nullptr;
-#if defined(__GXX_RTTI) || defined(_CPPRTTI)
-        legacyMatcher = [](IEvent* event) -> bool {
-            return dynamic_cast<EventType*>(event) != nullptr;
-        };
-#endif
         return RegisterTypedListenerErased(
             EventTypeKeyOf<EventType>(),
             std::move(callback),
             interest,
             maximumTimeSinceDispatch,
-            std::move(customInterestCallback),
-            legacyMatcher
+            std::move(customInterestCallback)
         );
     }
 };
@@ -191,7 +183,6 @@ private:
         EventListenerInterest Interest = EventListenerInterest::All;
         uint64_t MaximumTimeSinceDispatchNanoseconds = 0;
         std::function<bool(IEvent*)> CustomInterest;
-        bool (*LegacyMatcher)(IEvent*) = nullptr;
         bool Active = false;
     };
 
@@ -231,13 +222,7 @@ private:
     }
 
     bool MatchesEvent(const ListenerRecord& listener, IEvent* event) const {
-        const EventTypeKey eventType = event->__getTypeKey();
-        if (eventType != nullptr) return listener.EventType == eventType;
-#if defined(__GXX_RTTI) || defined(_CPPRTTI)
-        return listener.LegacyMatcher != nullptr && listener.LegacyMatcher(event);
-#else
-        return false;
-#endif
+        return listener.EventType == event->__getTypeKey();
     }
 
     bool IsInterested(const ListenerRecord& listener, IEvent* event) const {
@@ -263,8 +248,7 @@ protected:
         std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
         EventListenerInterest interest,
         EventTime maximumTimeSinceDispatch,
-        std::function<bool(IEvent*)> customInterestCallback,
-        bool (*legacyMatcher)(IEvent*)
+        std::function<bool(IEvent*)> customInterestCallback
     ) override {
         if (eventType == nullptr || !callback) return {};
 
@@ -285,7 +269,6 @@ protected:
                     maximumTimeSinceDispatch
                 ),
                 std::move(customInterestCallback),
-                legacyMatcher,
                 true
             });
         }
@@ -348,8 +331,7 @@ public:
             std::move(callback),
             interest,
             maximumTimeSinceDispatch,
-            std::move(customInterestCallback),
-            nullptr
+            std::move(customInterestCallback)
         );
     }
 

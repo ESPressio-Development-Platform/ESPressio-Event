@@ -87,14 +87,22 @@ namespace ESPressio {
                 }
 
             public:
-                EventThreadBase(bool freeOnTerminate) :
-                    Thread(freeOnTerminate) {
+                explicit EventThreadBase(ThreadReleasePolicy releasePolicy) :
+                    Thread(releasePolicy) {
                     SetPriority(
                         ESPRESSIO_EVENT_THREAD_DEFAULT_PRIORITY
                     );
                     SetCoreID(
                         ESPRESSIO_EVENT_THREAD_DEFAULT_CORE_ID
                     );
+                }
+
+                explicit EventThreadBase(bool freeOnTerminate) :
+                    EventThreadBase(
+                        freeOnTerminate
+                            ? ThreadReleasePolicy::ReleaseOnTerminate
+                            : ThreadReleasePolicy::ExplicitRelease
+                    ) {
                 }
 
                 virtual ~EventThreadBase() {

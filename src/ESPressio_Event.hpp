@@ -71,10 +71,6 @@ public:
     using TimeType = TTime;
     virtual ~Event() = default;
 
-    /// Legacy untyped Event base. Concrete routable events should inherit from
-    /// TypedEvent<TDerived,TTime>; RTTI-enabled builds retain migration fallback.
-    EventTypeKey __getTypeKey() const noexcept override { return nullptr; }
-
     void __ref() noexcept override {
         _refCount.fetch_add(1, std::memory_order_relaxed);
     }
@@ -143,7 +139,6 @@ public:
     }
 };
 
-/// CRTP Event base that supplies concrete type identity without RTTI.
 template<
     typename TDerived,
     typename TTime = Timing::DefaultClockTime

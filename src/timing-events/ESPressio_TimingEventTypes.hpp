@@ -14,7 +14,7 @@ using TimingClockTick = Timing::ClockTick;
 using SynchronizationResult = Timing::ClockSynchronizationResult<TimingClockTick>;
 using SynchronizationStatus = Timing::ClockSynchronizationStatus<TimingClockTick>;
 
-class SystemClockTimeChangedEvent final : public Event<> {
+class SystemClockTimeChangedEvent final : public TypedEvent<SystemClockTimeChangedEvent> {
 public:
     const TimingClockTick PreviousTimeNanoseconds;
     const TimingClockTick NewTimeNanoseconds;
@@ -23,7 +23,7 @@ public:
         : PreviousTimeNanoseconds(previousTime), NewTimeNanoseconds(newTime), DifferenceNanoseconds(difference) {}
 };
 
-class SynchronizationSampleAcceptedEvent final : public Event<> {
+class SynchronizationSampleAcceptedEvent final : public TypedEvent<SynchronizationSampleAcceptedEvent> {
 public:
     const TimingClockTick ClockBeforeNanoseconds;
     const TimingClockTick ClockAfterNanoseconds;
@@ -36,7 +36,7 @@ public:
           Result(result), Status(status) {}
 };
 
-class SynchronizationSampleRejectedEvent final : public Event<> {
+class SynchronizationSampleRejectedEvent final : public TypedEvent<SynchronizationSampleRejectedEvent> {
 public:
     const SynchronizationResult Result;
     const SynchronizationStatus Status;
@@ -44,7 +44,7 @@ public:
         : Result(result), Status(status) {}
 };
 
-class SystemClockSynchronizedEvent final : public Event<> {
+class SystemClockSynchronizedEvent final : public TypedEvent<SystemClockSynchronizedEvent> {
 public:
     const TimingClockTick ClockBeforeNanoseconds;
     const TimingClockTick ClockAfterNanoseconds;
@@ -57,7 +57,7 @@ public:
           Result(result), Status(status) {}
 };
 
-class SynchronizationStateChangedEvent final : public Event<> {
+class SynchronizationStateChangedEvent final : public TypedEvent<SynchronizationStateChangedEvent> {
 public:
     const Timing::ClockSynchronizationState PreviousState;
     const Timing::ClockSynchronizationState NewState;
@@ -67,7 +67,7 @@ public:
         : PreviousState(previousState), NewState(newState), Status(status) {}
 };
 
-class SynchronizationResetEvent final : public Event<> {
+class SynchronizationResetEvent final : public TypedEvent<SynchronizationResetEvent> {
 public:
     const SynchronizationStatus PreviousStatus;
     const SynchronizationStatus NewStatus;
@@ -75,7 +75,7 @@ public:
         : PreviousStatus(previousStatus), NewStatus(newStatus) {}
 };
 
-class SynchronizationConfigurationChangedEvent final : public Event<> {
+class SynchronizationConfigurationChangedEvent final : public TypedEvent<SynchronizationConfigurationChangedEvent> {
 public:
     const Timing::ClockSynchronizationConfig PreviousConfig;
     const Timing::ClockSynchronizationConfig NewConfig;
@@ -84,19 +84,19 @@ public:
         : PreviousConfig(previousConfig), NewConfig(newConfig) {}
 };
 
-class SystemClockCallbackScheduledEvent final : public Event<> {
+class SystemClockCallbackScheduledEvent final : public TypedEvent<SystemClockCallbackScheduledEvent> {
 public:
     const TimingClockTick ScheduledTimeNanoseconds;
     explicit SystemClockCallbackScheduledEvent(TimingClockTick scheduled) : ScheduledTimeNanoseconds(scheduled) {}
 };
 
-class SystemClockCallbackScheduleFailedEvent final : public Event<> {
+class SystemClockCallbackScheduleFailedEvent final : public TypedEvent<SystemClockCallbackScheduleFailedEvent> {
 public:
     const TimingClockTick ScheduledTimeNanoseconds;
     explicit SystemClockCallbackScheduleFailedEvent(TimingClockTick scheduled) : ScheduledTimeNanoseconds(scheduled) {}
 };
 
-class SystemClockCallbackExecutedEvent final : public Event<> {
+class SystemClockCallbackExecutedEvent final : public TypedEvent<SystemClockCallbackExecutedEvent> {
 public:
     const TimingClockTick ScheduledTimeNanoseconds;
     const TimingClockTick ActualTimeNanoseconds;
@@ -105,7 +105,7 @@ public:
         : ScheduledTimeNanoseconds(scheduled), ActualTimeNanoseconds(actual), DifferenceNanoseconds(difference) {}
 };
 
-class SystemClockCallbackExecutionFailedEvent final : public Event<> {
+class SystemClockCallbackExecutionFailedEvent final : public TypedEvent<SystemClockCallbackExecutionFailedEvent> {
 public:
     const TimingClockTick ScheduledTimeNanoseconds;
     const TimingClockTick ActualTimeNanoseconds;
@@ -117,7 +117,7 @@ public:
           DifferenceNanoseconds(difference), Cause(cause) {}
 };
 
-class SystemClockCallbacksClearedEvent final : public Event<> {
+class SystemClockCallbacksClearedEvent final : public TypedEvent<SystemClockCallbacksClearedEvent> {
 public:
     const std::size_t ClearedCallbackCount;
     explicit SystemClockCallbacksClearedEvent(std::size_t count) : ClearedCallbackCount(count) {}

@@ -165,16 +165,10 @@ public:
         typename PrecisionThreadBase::IterationTime
     >;
 
-    explicit PrecisionEventThread(ClockType* clock = nullptr)
-        : PrecisionThreadBase(clock),
-          _lifecycleObserverHandle(
-              this->RegisterThreadObserver(&_lifecycleObserver)
-          ) {}
-
-    PrecisionEventThread(
-        bool freeOnTerminate,
+    explicit PrecisionEventThread(
+        Threads::ThreadReleasePolicy releasePolicy,
         ClockType* clock = nullptr
-    ) : PrecisionThreadBase(freeOnTerminate, clock),
+    ) : PrecisionThreadBase(releasePolicy, clock),
         _lifecycleObserverHandle(
             this->RegisterThreadObserver(&_lifecycleObserver)
         ) {}

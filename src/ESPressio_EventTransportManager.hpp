@@ -126,7 +126,9 @@ private:
     std::atomic<uint64_t> _nextMessageID{1};
     bool _initialized = false;
 
-    EventTransportManager() : Threads::Thread(false) {
+    EventTransportManager() : Threads::Thread(
+        Threads::ThreadReleasePolicy::ExplicitRelease
+    ) {
         SetPriority(ESPRESSIO_EVENT_TRANSPORT_MANAGER_PRIORITY);
         SetCoreID(ESPRESSIO_EVENT_TRANSPORT_MANAGER_CORE_ID);
     }

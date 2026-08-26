@@ -9,15 +9,19 @@
 #include "thread-events/ESPressio_ThreadCleanupCompletedEvent.hpp"
 #include "thread-events/ESPressio_ThreadCleanupFailedEvent.hpp"
 #include "thread-events/ESPressio_ThreadManagerInitializationCompletedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectorInitializedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectorInitializationFailedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectionRequestedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectionQueuedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectionRequestCoalescedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectionStartedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectionCompletedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectionFailedEvent.hpp"
-#include "thread-events/ESPressio_ThreadGarbageCollectionFallbackStartedEvent.hpp"
+
+#if __has_include(<ESPressio_ThreadGarbageCollectorTypes.hpp>)
+    #include "thread-events/ESPressio_ThreadGarbageCollectorInitializedEvent.hpp"
+    #include "thread-events/ESPressio_ThreadGarbageCollectorInitializationFailedEvent.hpp"
+    #include "thread-events/ESPressio_ThreadGarbageCollectionRequestedEvent.hpp"
+    #include "thread-events/ESPressio_ThreadGarbageCollectionQueuedEvent.hpp"
+    #include "thread-events/ESPressio_ThreadGarbageCollectionRequestCoalescedEvent.hpp"
+    #include "thread-events/ESPressio_ThreadGarbageCollectionStartedEvent.hpp"
+    #include "thread-events/ESPressio_ThreadGarbageCollectionCompletedEvent.hpp"
+    #include "thread-events/ESPressio_ThreadGarbageCollectionFailedEvent.hpp"
+    #include "thread-events/ESPressio_ThreadGarbageCollectionFallbackStartedEvent.hpp"
+#endif
+
 #include "thread-events/ESPressio_ThreadTerminationDispatcherInitializedEvent.hpp"
 #include "thread-events/ESPressio_ThreadTerminationDispatchQueuedEvent.hpp"
 #include "thread-events/ESPressio_ThreadTerminationDispatchQueueFailedEvent.hpp"

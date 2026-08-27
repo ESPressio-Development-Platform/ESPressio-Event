@@ -1,11 +1,10 @@
 #pragma once
 
-#include <atomic>
+#include <memory>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
+#include <ESPressio_Synchronization.hpp>
 #include <ESPressio_Thread.hpp>
+
 #include "ESPressio_EventReceiver.hpp"
 
 #ifndef ESPRESSIO_EVENT_THREAD_DEFAULT_PRIORITY
@@ -28,28 +27,20 @@ namespace ESPressio {
 
         class EventThreadBase : public Thread, public EventReceiver, public IEventThreadBase {
             private:
-                std::atomic<TaskHandle_t>
-                    _notificationTask{
-                        nullptr
-                    };
+                std::unique_ptr<System::Synchronization::ISignal>
+                    _eventSignal =
+                        System::Synchronization::CreateBinarySignal();
 
             protected:
                 void OnLoop() override {
-                    _notificationTask.store(
-                        xTaskGetCurrentTaskHandle(),
-                        std::memory_order_release
-                    );
-
-                    if (GetPendingEventCount() == 0) {
-                        ulTaskNotifyTake(
-                            pdTRUE,
-                            portMAX_DELAY
-                        );
-                    } else {
-                        ulTaskNotifyTake(
-                            pdTRUE,
-                            0
-                        );
+                    if (_eventSignal != nullptr) {
+                        if (GetPendingEventCount() == 0) {
+                            (void)_eventSignal->Wait(
+                                System::Synchronization::WaitForever
+                            );
+                        } else {
+                            (void)_eventSignal->Wait(0);
+                        }
                     }
 
                     WithEvents(
@@ -74,15 +65,8 @@ namespace ESPressio {
                 ) = 0;
 
                 void EventAdded() override {
-                    const TaskHandle_t task =
-                        _notificationTask.load(
-                            std::memory_order_acquire
-                        );
-
-                    if (task != nullptr) {
-                        xTaskNotifyGive(
-                            task
-                        );
+                    if (_eventSignal != nullptr) {
+                        (void)_eventSignal->Give();
                     }
                 }
 
@@ -97,12 +81,7 @@ namespace ESPressio {
                     );
                 }
 
-                virtual ~EventThreadBase() {
-                    _notificationTask.store(
-                        nullptr,
-                        std::memory_order_release
-                    );
-                }
+                ~EventThreadBase() override = default;
         };
 
     }

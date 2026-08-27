@@ -23,6 +23,11 @@ jobs:
           path: ESPressio-Event
       - uses: actions/checkout@v4
         with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: feature/1-system-memory-policy
+          path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
           ref: feature/16-rtti-free-observer-registry
           path: ESPressio-Observable
@@ -49,6 +54,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: project/ESPressio-Event
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: feature/1-system-memory-policy
+          path: project/dependencies/ESPressio-System
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Task
@@ -102,6 +112,7 @@ jobs:
               -frtti
           lib_ldf_mode = deep+
           lib_deps =
+              ../dependencies/ESPressio-System
               ../dependencies/ESPressio-Task
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Units

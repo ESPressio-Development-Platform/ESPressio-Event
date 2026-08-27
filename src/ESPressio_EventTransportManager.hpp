@@ -22,6 +22,7 @@
 
 #include <ESPressio_BinaryArchive.hpp>
 #include <ESPressio_DirectBinaryArchive.hpp>
+#include <ESPressio_Memory.hpp>
 #include <ESPressio_TreeArchive.hpp>
 #include <ESPressio_SchemaIntrospection.hpp>
 #include <ESPressio_SerializationTraits.hpp>
@@ -51,6 +52,9 @@ class EventTransportManager final :
     public IEventManagerObserver {
 
 private:
+    static constexpr auto ExternalPreferred =
+        System::Memory::MemoryPolicy::ExternalPreferred;
+
     struct RuntimeRegistration {
         EventTypeKey EventType = nullptr;
         uint64_t TypeID = 0;
@@ -71,8 +75,11 @@ private:
     struct Registration {
         RuntimeRegistrationPtr Runtime;
         EventTransportDirection DefaultDirection = EventTransportDirection::None;
-        std::unordered_map<IEventTransport*, EventTransportDirection>
-            TransportDirections;
+        System::Memory::UnorderedMap<
+            IEventTransport*,
+            EventTransportDirection,
+            ExternalPreferred
+        > TransportDirections;
 
         EventTransportDirection EffectiveDirection(
             IEventTransport* transport
@@ -110,15 +117,46 @@ private:
         IEventTransport* Transport = nullptr;
         uint64_t TypeID = 0;
         RuntimeRegistrationPtr Runtime;
-        std::vector<uint8_t> Packet;
+        System::Memory::Vector<uint8_t, ExternalPreferred> Packet;
     };
 
+    using RegistrationMap = System::Memory::UnorderedMap<
+        uint64_t,
+        Registration,
+        ExternalPreferred
+    >;
+    using RuntimeTypeMap = System::Memory::UnorderedMap<
+        EventTypeKey,
+        uint64_t,
+        ExternalPreferred
+    >;
+    using TransportVector = System::Memory::Vector<
+        IEventTransport*,
+        ExternalPreferred
+    >;
+    using OutboundQueue = System::Memory::Deque<
+        OutboundWork,
+        ExternalPreferred
+    >;
+    using InboundQueue = System::Memory::Deque<
+        InboundWork,
+        ExternalPreferred
+    >;
+    using OutboundVector = System::Memory::Vector<
+        OutboundWork,
+        ExternalPreferred
+    >;
+    using TypeIdVector = System::Memory::Vector<
+        uint64_t,
+        ExternalPreferred
+    >;
+
     mutable std::mutex _mutex;
-    std::unordered_map<uint64_t, Registration> _registrations;
-    std::unordered_map<EventTypeKey, uint64_t> _runtimeTypes;
-    std::vector<IEventTransport*> _transports;
-    std::deque<OutboundWork> _outbound;
-    std::deque<InboundWork> _inbound;
+    RegistrationMap _registrations;
+    RuntimeTypeMap _runtimeTypes;
+    TransportVector _transports;
+    OutboundQueue _outbound;
+    InboundQueue _inbound;
     std::atomic<TaskHandle_t> _notificationTask{nullptr};
     Observable::ObserverHandlePtr _eventManagerObserverHandle;
     std::shared_ptr<EventTransportManagerObservable> _observable =
@@ -509,7 +547,7 @@ private:
         const EventTransportUnregistrationOptions& options,
         bool outboundStillAllowed,
         bool inboundStillAllowed,
-        std::vector<OutboundWork>& discardedOutbound,
+        OutboundVector& discardedOutbound,
         std::size_t& discardedInbound
     ) {
         if (
@@ -557,7 +595,10 @@ private:
     static Registration CreateRegistration(
         EventTransportDirection defaultDirection
     ) {
-        auto runtime = std::make_shared<RuntimeRegistration>();
+        auto runtime = System::Memory::MakeShared<
+            RuntimeRegistration,
+            ExternalPreferred
+        >();
         runtime->EventType = EventTypeKeyOf<TEvent>();
         runtime->TypeID = EventTransportTypeID<TEvent>();
         runtime->TypeName = EventTransportTypeTraits<TEvent>::Name;
@@ -876,8 +917,8 @@ public:
             return;
         }
         _eventManagerObserverHandle.reset();
-        std::deque<OutboundWork> outbound;
-        std::vector<IEventTransport*> transports;
+        OutboundQueue outbound;
+        TransportVector transports;
         {
             std::lock_guard<std::mutex> lock(_mutex);
             outbound.swap(_outbound);
@@ -921,7 +962,7 @@ public:
             return;
         }
         bool removed = false;
-        std::vector<OutboundWork> discardedOutbound;
+        OutboundVector discardedOutbound;
         {
             std::lock_guard<std::mutex> lock(_mutex);
             const auto oldSize = _transports.size();
@@ -1244,7 +1285,7 @@ public:
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
         EventTransportUnregistrationResult result;
-        std::vector<OutboundWork> discardedOutbound;
+        OutboundVector discardedOutbound;
         std::size_t discardedInbound = 0;
         {
             std::lock_guard<std::mutex> lock(_mutex);
@@ -1301,7 +1342,7 @@ public:
         EventTransportDirection after = EventTransportDirection::None;
         EventTransportUnregistrationResult result =
             EventTransportUnregistrationResult::NotRegistered;
-        std::vector<OutboundWork> discardedOutbound;
+        OutboundVector discardedOutbound;
         std::size_t discardedInbound = 0;
         {
             std::lock_guard<std::mutex> lock(_mutex);
@@ -1396,7 +1437,7 @@ public:
         const EventTransportUnregistrationOptions& options = {}
     ) {
         EventTransportBulkOperationResult result;
-        std::vector<uint64_t> typeIDs;
+        TypeIdVector typeIDs;
         {
             std::lock_guard<std::mutex> lock(_mutex);
             typeIDs.reserve(_registrations.size());
@@ -1408,7 +1449,7 @@ public:
         for (uint64_t typeID : typeIDs) {
             EventTransportDirection before = EventTransportDirection::None;
             EventTransportDirection after = EventTransportDirection::None;
-            std::vector<OutboundWork> discardedOutbound;
+            OutboundVector discardedOutbound;
             std::size_t discardedInbound = 0;
             bool changed = false;
             {
@@ -1461,7 +1502,7 @@ public:
             result.Failed = 1;
             return result;
         }
-        std::vector<uint64_t> typeIDs;
+        TypeIdVector typeIDs;
         {
             std::lock_guard<std::mutex> lock(_mutex);
             typeIDs.reserve(_registrations.size());
@@ -1473,7 +1514,7 @@ public:
         for (uint64_t typeID : typeIDs) {
             EventTransportDirection before = EventTransportDirection::None;
             EventTransportDirection after = EventTransportDirection::None;
-            std::vector<OutboundWork> discardedOutbound;
+            OutboundVector discardedOutbound;
             std::size_t discardedInbound = 0;
             bool changed = false;
             {
@@ -1593,7 +1634,7 @@ public:
         uint64_t typeID = 0;
         uint64_t messageID = 0;
         RuntimeRegistrationPtr runtime;
-        std::vector<IEventTransport*> targetTransports;
+        TransportVector targetTransports;
 
         {
             std::lock_guard<std::mutex> lock(_mutex);
@@ -1721,12 +1762,12 @@ public:
                         found->second.EffectiveDirection(transport),
                         EventTransportDirection::Inbound
                     )) {
-                        _inbound.push_back({
-                            transport,
-                            envelope.EventTypeID,
-                            runtime,
-                            std::vector<uint8_t>(data, data + size)
-                        });
+                        InboundWork work;
+                        work.Transport = transport;
+                        work.TypeID = envelope.EventTypeID;
+                        work.Runtime = runtime;
+                        work.Packet.assign(data, data + size);
+                        _inbound.push_back(std::move(work));
                         accepted = true;
                     }
                 }

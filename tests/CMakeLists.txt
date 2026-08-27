@@ -24,6 +24,7 @@ target_link_libraries(espressio_event_reference_tests PRIVATE Threads::Threads)
 target_include_directories(espressio_event_observer_tests PRIVATE
     stubs
     ../src
+    ../../ESPressio-System/src
     ../../ESPressio-Observable/src
     ../../ESPressio_Timing/src
     ../../ESPressio-Units/src
@@ -32,6 +33,7 @@ target_include_directories(espressio_event_observer_tests PRIVATE
 target_include_directories(espressio_event_reference_tests PRIVATE
     stubs
     ../src
+    ../../ESPressio-System/src
     ../../ESPressio-Observable/src
     ../../ESPressio_Timing/src
     ../../ESPressio-Units/src
@@ -43,6 +45,7 @@ if(TARGET espressio_event_observer_no_rtti_tests)
     target_include_directories(espressio_event_observer_no_rtti_tests PRIVATE
         stubs
         ../src
+        ../../ESPressio-System/src
         ../../ESPressio-Observable/src
         ../../ESPressio_Timing/src
         ../../ESPressio-Units/src

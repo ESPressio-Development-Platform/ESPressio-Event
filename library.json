@@ -20,6 +20,11 @@
     "platforms": "espressif32",
     "dependencies": [
         {
+            "name": "ESPressio-System",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#feature/1-system-memory-policy",
+            "platforms": "*"
+        },
+        {
             "name": "ESPressio-Threads",
             "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git#optimisation/69-resource-footprint",
             "platforms": "espressif32"

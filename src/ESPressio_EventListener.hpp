@@ -3,14 +3,14 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
-#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <utility>
-#include <vector>
 
 #include <ESPressio_IObservable.hpp>
+#include <ESPressio_Memory.hpp>
 #include <ESPressio_TimeTraits.hpp>
 
 #include "ESPressio_IEvent.hpp"
@@ -51,19 +51,12 @@ public:
     ) {
         std::function<bool(IEvent*)> erasedInterest;
         if (customInterestCallback) {
-            erasedInterest = [customInterestCallback = std::move(customInterestCallback)](
-                IEvent* event
-            ) {
+            erasedInterest = [customInterestCallback = std::move(customInterestCallback)](IEvent* event) {
                 return customInterestCallback(static_cast<EventType*>(event));
             };
         }
-
         return RegisterTypedListener<EventType>(
-            [callback = std::move(callback)](
-                IEvent* event,
-                EventDispatchMethod method,
-                EventPriority priority
-            ) {
+            [callback = std::move(callback)](IEvent* event, EventDispatchMethod method, EventPriority priority) {
                 callback(static_cast<EventType*>(event), method, priority);
             },
             interest,
@@ -78,23 +71,13 @@ public:
         EventListenerInterest interest = EventListenerInterest::All,
         EventTime maximumTimeSinceDispatch = EventTime(0)
     ) {
-        if (observer == nullptr) {
-            throw Observable::InvalidObserverRegistrationException();
-        }
-
+        if (observer == nullptr) throw Observable::InvalidObserverRegistrationException();
         std::function<bool(EventType*)> customInterest;
         if (interest == EventListenerInterest::Custom) {
-            customInterest = [observer](EventType* event) {
-                return observer->IsInterestedInEvent(event);
-            };
+            customInterest = [observer](EventType* event) { return observer->IsInterestedInEvent(event); };
         }
-
         return RegisterListener<EventType>(
-            [observer](
-                EventType* event,
-                EventDispatchMethod method,
-                EventPriority priority
-            ) {
+            [observer](EventType* event, EventDispatchMethod method, EventPriority priority) {
                 observer->OnEvent(event, method, priority);
             },
             interest,
@@ -103,10 +86,7 @@ public:
         );
     }
 
-    virtual void UnregisterListener(
-        EventTypeKey eventType,
-        IEventListenerHandle* handler
-    ) = 0;
+    virtual void UnregisterListener(EventTypeKey eventType, IEventListenerHandle* handler) = 0;
 
     template<typename EventType>
     void UnregisterListener(IEventListenerHandle* handler) {
@@ -130,11 +110,8 @@ protected:
         std::function<bool(IEvent*)> customInterestCallback
     ) {
         return RegisterTypedListenerErased(
-            EventTypeKeyOf<EventType>(),
-            std::move(callback),
-            interest,
-            maximumTimeSinceDispatch,
-            std::move(customInterestCallback)
+            EventTypeKeyOf<EventType>(), std::move(callback), interest,
+            maximumTimeSinceDispatch, std::move(customInterestCallback)
         );
     }
 };
@@ -146,27 +123,35 @@ private:
     IEventListener* _listener = nullptr;
 
 public:
+    static void* operator new(std::size_t bytes) {
+        return System::Memory::GetProvider().Allocate(
+            bytes,
+            alignof(EventListenerHandle),
+            System::Memory::MemoryPolicy::ExternalPreferred
+        );
+    }
+    static void operator delete(void* pointer) noexcept {
+        System::Memory::GetProvider().Deallocate(
+            pointer,
+            sizeof(EventListenerHandle),
+            alignof(EventListenerHandle),
+            System::Memory::MemoryPolicy::ExternalPreferred
+        );
+    }
+
     EventListenerHandle(EventTypeKey eventType, IEventListener* listener)
         : _eventType(eventType), _listener(listener) {}
 
     ~EventListenerHandle() noexcept override {
-        try {
-            Unregister();
-        } catch (...) {
-            ForceUnregister();
-        }
+        try { Unregister(); } catch (...) { ForceUnregister(); }
     }
 
     void Unregister() override {
-        if (!_isRegistered.load(std::memory_order_acquire) || _listener == nullptr) {
-            return;
-        }
+        if (!_isRegistered.load(std::memory_order_acquire) || _listener == nullptr) return;
         _listener->UnregisterListener(_eventType, this);
     }
 
-    bool IsRegistered() const override {
-        return _isRegistered.load(std::memory_order_acquire);
-    }
+    bool IsRegistered() const override { return _isRegistered.load(std::memory_order_acquire); }
 
     void ForceUnregister() noexcept {
         _isRegistered.store(false, std::memory_order_release);
@@ -186,33 +171,28 @@ private:
         bool Active = false;
     };
 
-    // deque is intentional here. Registrations may occur re-entrantly from a
-    // callback. push_back() preserves references to existing records, allowing
-    // ProcessEvent() to invoke the stored std::function in-place instead of
-    // copying it merely to survive a vector reallocation.
-    std::deque<ListenerRecord> _listeners;
+    using ListenerStorage = System::Memory::Deque<
+        ListenerRecord,
+        System::Memory::MemoryPolicy::ExternalPreferred
+    >;
+    using RemovedTypeStorage = System::Memory::Vector<
+        EventTypeKey,
+        System::Memory::MemoryPolicy::ExternalPreferred
+    >;
+
+    ListenerStorage _listeners;
     mutable std::recursive_mutex _listenersMutex;
     std::size_t _processingDepth = 0;
     bool _needsCompaction = false;
 
     bool HasActiveListenerLocked(EventTypeKey type) const {
-        for (const auto& listener : _listeners) {
-            if (listener.Active && listener.EventType == type) return true;
-        }
+        for (const auto& listener : _listeners) if (listener.Active && listener.EventType == type) return true;
         return false;
     }
 
     void CompactLocked() {
-        _listeners.erase(
-            std::remove_if(
-                _listeners.begin(),
-                _listeners.end(),
-                [](const ListenerRecord& listener) {
-                    return !listener.Active;
-                }
-            ),
-            _listeners.end()
-        );
+        _listeners.erase(std::remove_if(_listeners.begin(), _listeners.end(),
+            [](const ListenerRecord& listener) { return !listener.Active; }), _listeners.end());
         _needsCompaction = false;
     }
 
@@ -227,15 +207,12 @@ private:
 
     bool IsInterested(const ListenerRecord& listener, IEvent* event) const {
         switch (listener.Interest) {
-            case EventListenerInterest::All:
-                return true;
+            case EventListenerInterest::All: return true;
             case EventListenerInterest::YoungerThan:
-                return event->GetTimeSinceDispatchNanoseconds() <
-                    listener.MaximumTimeSinceDispatchNanoseconds;
+                return event->GetTimeSinceDispatchNanoseconds() < listener.MaximumTimeSinceDispatchNanoseconds;
             case EventListenerInterest::Custom:
                 return listener.CustomInterest && listener.CustomInterest(event);
-            default:
-                return false;
+            default: return false;
         }
     }
 
@@ -251,11 +228,7 @@ protected:
         std::function<bool(IEvent*)> customInterestCallback
     ) override {
         if (eventType == nullptr || !callback) return {};
-
-        std::unique_ptr<EventListenerHandle> handler(
-            new EventListenerHandle(eventType, this)
-        );
-
+        std::unique_ptr<EventListenerHandle> handler(new EventListenerHandle(eventType, this));
         bool firstListener = false;
         {
             std::lock_guard<std::recursive_mutex> lock(_listenersMutex);
@@ -265,20 +238,17 @@ protected:
                 handler.get(),
                 std::move(callback),
                 interest,
-                Timing::TimeTraits<EventTime>::template ToNanoseconds<uint64_t>(
-                    maximumTimeSinceDispatch
-                ),
+                Timing::TimeTraits<EventTime>::template ToNanoseconds<uint64_t>(maximumTimeSinceDispatch),
                 std::move(customInterestCallback),
                 true
             });
         }
-
         if (firstListener) OnListenerRegistered(eventType);
         return EventListenerHandlePtr(handler.release());
     }
 
     void UnregisterAllListeners() noexcept {
-        std::vector<EventTypeKey> removedTypes;
+        RemovedTypeStorage removedTypes;
         {
             std::lock_guard<std::recursive_mutex> lock(_listenersMutex);
             removedTypes.reserve(_listeners.size());
@@ -286,10 +256,7 @@ protected:
                 if (!listener.Active) continue;
                 bool typeAlreadyRecorded = false;
                 for (EventTypeKey type : removedTypes) {
-                    if (type == listener.EventType) {
-                        typeAlreadyRecorded = true;
-                        break;
-                    }
+                    if (type == listener.EventType) { typeAlreadyRecorded = true; break; }
                 }
                 if (!typeAlreadyRecorded) removedTypes.push_back(listener.EventType);
                 static_cast<EventListenerHandle*>(listener.Handler)->ForceUnregister();
@@ -302,11 +269,8 @@ protected:
                 _needsCompaction = true;
             }
         }
-
         for (EventTypeKey type : removedTypes) {
-            try {
-                OnListenerUnregistered(type);
-            } catch (...) {}
+            try { OnListenerUnregistered(type); } catch (...) {}
         }
     }
 
@@ -315,9 +279,7 @@ public:
     using IEventListener::RegisterObserver;
     using IEventListener::UnregisterListener;
 
-    ~EventListener() override {
-        UnregisterAllListeners();
-    }
+    ~EventListener() override { UnregisterAllListeners(); }
 
     EventListenerHandlePtr RegisterListener(
         EventTypeKey eventType,
@@ -326,78 +288,47 @@ public:
         EventTime maximumTimeSinceDispatch = EventTime(0),
         std::function<bool(IEvent*)> customInterestCallback = nullptr
     ) override {
-        return RegisterTypedListenerErased(
-            eventType,
-            std::move(callback),
-            interest,
-            maximumTimeSinceDispatch,
-            std::move(customInterestCallback)
-        );
+        return RegisterTypedListenerErased(eventType, std::move(callback), interest,
+            maximumTimeSinceDispatch, std::move(customInterestCallback));
     }
 
-    void UnregisterListener(
-        EventTypeKey eventType,
-        IEventListenerHandle* handler
-    ) override {
+    void UnregisterListener(EventTypeKey eventType, IEventListenerHandle* handler) override {
         if (handler == nullptr) return;
-
         bool removed = false;
         bool removedLast = false;
         {
             std::lock_guard<std::recursive_mutex> lock(_listenersMutex);
             for (auto& listener : _listeners) {
-                if (
-                    listener.Active &&
-                    listener.EventType == eventType &&
-                    listener.Handler == handler
-                ) {
+                if (listener.Active && listener.EventType == eventType && listener.Handler == handler) {
                     static_cast<EventListenerHandle*>(handler)->ForceUnregister();
                     listener.Active = false;
                     removed = true;
                     break;
                 }
             }
-
             if (!removed) return;
             removedLast = !HasActiveListenerLocked(eventType);
-            if (_processingDepth > 0) {
-                _needsCompaction = true;
-            } else {
-                CompactLocked();
-            }
+            if (_processingDepth > 0) _needsCompaction = true;
+            else CompactLocked();
         }
-
         if (removedLast) OnListenerUnregistered(eventType);
     }
 
-    void ProcessEvent(
-        IEvent* event,
-        EventDispatchMethod dispatchMethod,
-        EventPriority priority
-    ) {
+    void ProcessEvent(IEvent* event, EventDispatchMethod dispatchMethod, EventPriority priority) {
         if (event == nullptr) return;
-
         std::lock_guard<std::recursive_mutex> lock(_listenersMutex);
         ++_processingDepth;
         const std::size_t listenerCount = _listeners.size();
-
         try {
             for (std::size_t index = 0; index < listenerCount; ++index) {
                 ListenerRecord& listener = _listeners[index];
-                if (!listener.Active) continue;
-                if (!MatchesEvent(listener, event)) continue;
-                if (!IsInterested(listener, event)) continue;
-
-                // Existing deque elements keep stable references when a callback
-                // appends a listener. Tombstoning defers erasure until the outermost
-                // dispatch completes, so this call needs no std::function copy.
+                if (!listener.Active || !MatchesEvent(listener, event) || !IsInterested(listener, event)) continue;
                 listener.Callback(event, dispatchMethod, priority);
             }
         } catch (...) {
             FinishProcessingLocked();
             throw;
         }
-
         FinishProcessingLocked();
     }
 };

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <atomic>
+#include <memory>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
+#include <ESPressio_Synchronization.hpp>
 #include <ESPressio_Thread.hpp>
+
 #include "ESPressio_EventDispatcher.hpp"
 #include "ESPressio_EventManagerObservable.hpp"
 
@@ -25,10 +24,9 @@ namespace ESPressio {
 
         class EventManager : public Thread, public EventDispatcher {
             private:
-                std::atomic<TaskHandle_t>
-                    _notificationTask{
-                        nullptr
-                    };
+                std::unique_ptr<System::Synchronization::ISignal>
+                    _eventSignal =
+                        System::Synchronization::CreateBinarySignal();
 
                 std::shared_ptr<EventManagerObservable> _observable =
                     CreateEventManagerObservable();
@@ -50,42 +48,28 @@ namespace ESPressio {
                 }
 
                 void OnLoop() override {
-                    _notificationTask.store(
-                        xTaskGetCurrentTaskHandle(),
-                        std::memory_order_release
-                    );
-
                     /*
-                     * If work arrived before this task published its handle,
-                     * the pending-count check prevents a lost wakeup. When work
-                     * is already pending, clear a possibly accumulated notify
-                     * token without blocking and drain the queue immediately.
+                     * If work arrived before the worker reached this wait, the
+                     * binary signal remains set. When work is already pending,
+                     * consume a possibly accumulated signal without blocking
+                     * and drain the queue immediately.
                      */
-                    if (GetPendingEventCount() == 0) {
-                        ulTaskNotifyTake(
-                            pdTRUE,
-                            portMAX_DELAY
-                        );
-                    } else {
-                        ulTaskNotifyTake(
-                            pdTRUE,
-                            0
-                        );
+                    if (_eventSignal != nullptr) {
+                        if (GetPendingEventCount() == 0) {
+                            (void)_eventSignal->Wait(
+                                System::Synchronization::WaitForever
+                            );
+                        } else {
+                            (void)_eventSignal->Wait(0);
+                        }
                     }
 
                     DispatchEvents();
                 }
 
                 void EventAdded() override {
-                    const TaskHandle_t task =
-                        _notificationTask.load(
-                            std::memory_order_acquire
-                        );
-
-                    if (task != nullptr) {
-                        xTaskNotifyGive(
-                            task
-                        );
+                    if (_eventSignal != nullptr) {
+                        (void)_eventSignal->Give();
                     }
                 }
 
@@ -118,12 +102,7 @@ namespace ESPressio {
                     return instance;
                 }
 
-                virtual ~EventManager() {
-                    _notificationTask.store(
-                        nullptr,
-                        std::memory_order_release
-                    );
-                }
+                ~EventManager() override = default;
 
         };
 

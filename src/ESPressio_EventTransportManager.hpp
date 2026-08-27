@@ -17,12 +17,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-
 #include <ESPressio_BinaryArchive.hpp>
 #include <ESPressio_DirectBinaryArchive.hpp>
 #include <ESPressio_Memory.hpp>
+#include <ESPressio_Synchronization.hpp>
 #include <ESPressio_TreeArchive.hpp>
 #include <ESPressio_SchemaIntrospection.hpp>
 #include <ESPressio_SerializationTraits.hpp>
@@ -157,7 +155,8 @@ private:
     TransportVector _transports;
     OutboundQueue _outbound;
     InboundQueue _inbound;
-    std::atomic<TaskHandle_t> _notificationTask{nullptr};
+    std::unique_ptr<System::Synchronization::ISignal> _workSignal =
+        System::Synchronization::CreateBinarySignal();
     Observable::ObserverHandlePtr _eventManagerObserverHandle;
     std::shared_ptr<EventTransportManagerObservable> _observable =
         CreateEventTransportManagerObservable();
@@ -198,10 +197,8 @@ private:
     }
 
     void Wake() {
-        const TaskHandle_t task =
-            _notificationTask.load(std::memory_order_acquire);
-        if (task != nullptr) {
-            xTaskNotifyGive(task);
+        if (_workSignal != nullptr) {
+            (void)_workSignal->Give();
         }
     }
 
@@ -500,15 +497,14 @@ private:
     }
 
     void OnLoop() override {
-        _notificationTask.store(
-            xTaskGetCurrentTaskHandle(),
-            std::memory_order_release
-        );
-
-        if (!HasPendingWork()) {
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        } else {
-            ulTaskNotifyTake(pdTRUE, 0);
+        if (_workSignal != nullptr) {
+            if (!HasPendingWork()) {
+                (void)_workSignal->Wait(
+                    System::Synchronization::WaitForever
+                );
+            } else {
+                (void)_workSignal->Wait(0);
+            }
         }
 
         for (;;) {
@@ -859,7 +855,6 @@ public:
     ~EventTransportManager() override {
         Shutdown();
         Threads::Thread::Shutdown();
-        _notificationTask.store(nullptr, std::memory_order_release);
     }
 
     EventTransportManager(const EventTransportManager&) = delete;

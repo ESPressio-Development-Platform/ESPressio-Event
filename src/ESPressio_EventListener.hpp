@@ -21,19 +21,30 @@
 namespace ESPressio {
 namespace Event {
 
+/// <summary>RAII handle controlling one event-listener registration.</summary>
 class IEventListenerHandle {
 public:
     virtual ~IEventListenerHandle() = default;
+    /// <summary>Unregisters the associated listener if it is still active.</summary>
     virtual void Unregister() = 0;
+    /// <summary>Indicates whether the associated registration remains active.</summary>
     virtual bool IsRegistered() const = 0;
 };
 
+/// <summary>Owning pointer type for event-listener registration handles.</summary>
 using EventListenerHandlePtr = std::unique_ptr<IEventListenerHandle>;
 
+/// <summary>Contract for registering callbacks or typed observers against event type identities.</summary>
 class IEventListener {
 public:
     virtual ~IEventListener() = default;
 
+    /// <summary>Registers a type-erased event callback for the supplied event type key.</summary>
+    /// <param name="eventType">RTTI-free event type identity to listen for.</param>
+    /// <param name="callback">Callback invoked for matching events.</param>
+    /// <param name="interest">Filter policy controlling which matching events are delivered.</param>
+    /// <param name="maximumTimeSinceDispatch">Age threshold used by YoungerThan filtering.</param>
+    /// <param name="customInterestCallback">Predicate used by Custom filtering.</param>
     virtual EventListenerHandlePtr RegisterListener(
         EventTypeKey eventType,
         std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
@@ -42,6 +53,7 @@ public:
         std::function<bool(IEvent*)> customInterestCallback = nullptr
     ) = 0;
 
+    /// <summary>Registers a strongly typed callback for a concrete event type.</summary>
     template<typename EventType>
     EventListenerHandlePtr RegisterListener(
         std::function<void(EventType*, EventDispatchMethod, EventPriority)> callback,
@@ -65,6 +77,7 @@ public:
         );
     }
 
+    /// <summary>Registers a typed event observer and adapts its callbacks to the listener contract.</summary>
     template<typename EventType>
     EventListenerHandlePtr RegisterObserver(
         IEventObserver<EventType>* observer,
@@ -86,14 +99,17 @@ public:
         );
     }
 
+    /// <summary>Unregisters a listener handle for the supplied event type.</summary>
     virtual void UnregisterListener(EventTypeKey eventType, IEventListenerHandle* handler) = 0;
 
+    /// <summary>Unregisters a listener handle for a concrete event type.</summary>
     template<typename EventType>
     void UnregisterListener(IEventListenerHandle* handler) {
         UnregisterListener(EventTypeKeyOf<EventType>(), handler);
     }
 
 protected:
+    /// <summary>Registers a typed listener after its callback and optional filter have been type-erased.</summary>
     virtual EventListenerHandlePtr RegisterTypedListenerErased(
         EventTypeKey eventType,
         std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
@@ -102,6 +118,7 @@ protected:
         std::function<bool(IEvent*)> customInterestCallback
     ) = 0;
 
+    /// <summary>Resolves a concrete event type to its stable key and forwards registration to the erased implementation.</summary>
     template<typename EventType>
     EventListenerHandlePtr RegisterTypedListener(
         std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
@@ -116,6 +133,7 @@ protected:
     }
 };
 
+/// <summary>Concrete RAII listener handle allocated from ExternalPreferred memory.</summary>
 class EventListenerHandle final : public IEventListenerHandle {
 private:
     std::atomic<bool> _isRegistered{true};
@@ -139,6 +157,7 @@ public:
         );
     }
 
+    /// <summary>Creates a handle associated with one event type and listener owner.</summary>
     EventListenerHandle(EventTypeKey eventType, IEventListener* listener)
         : _eventType(eventType), _listener(listener) {}
 
@@ -146,19 +165,23 @@ public:
         try { Unregister(); } catch (...) { ForceUnregister(); }
     }
 
+    /// <inheritdoc/>
     void Unregister() override {
         if (!_isRegistered.load(std::memory_order_acquire) || _listener == nullptr) return;
         _listener->UnregisterListener(_eventType, this);
     }
 
+    /// <inheritdoc/>
     bool IsRegistered() const override { return _isRegistered.load(std::memory_order_acquire); }
 
+    /// <summary>Marks the handle unregistered without invoking its listener owner.</summary>
     void ForceUnregister() noexcept {
         _isRegistered.store(false, std::memory_order_release);
         _listener = nullptr;
     }
 };
 
+/// <summary>Thread-safe listener registry that filters and invokes callbacks for matching event types.</summary>
 class EventListener : public IEventListener {
 private:
     struct ListenerRecord {
@@ -217,9 +240,12 @@ private:
     }
 
 protected:
+    /// <summary>Hook invoked when the first active listener for an event type is registered.</summary>
     virtual void OnListenerRegistered(EventTypeKey) {}
+    /// <summary>Hook invoked when the last active listener for an event type is removed.</summary>
     virtual void OnListenerUnregistered(EventTypeKey) {}
 
+    /// <inheritdoc/>
     EventListenerHandlePtr RegisterTypedListenerErased(
         EventTypeKey eventType,
         std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
@@ -247,6 +273,7 @@ protected:
         return EventListenerHandlePtr(handler.release());
     }
 
+    /// <summary>Unregisters every active listener and notifies derived types for each event type removed.</summary>
     void UnregisterAllListeners() noexcept {
         RemovedTypeStorage removedTypes;
         {
@@ -281,6 +308,7 @@ public:
 
     ~EventListener() override { UnregisterAllListeners(); }
 
+    /// <inheritdoc/>
     EventListenerHandlePtr RegisterListener(
         EventTypeKey eventType,
         std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
@@ -292,6 +320,7 @@ public:
             maximumTimeSinceDispatch, std::move(customInterestCallback));
     }
 
+    /// <inheritdoc/>
     void UnregisterListener(EventTypeKey eventType, IEventListenerHandle* handler) override {
         if (handler == nullptr) return;
         bool removed = false;
@@ -314,6 +343,7 @@ public:
         if (removedLast) OnListenerUnregistered(eventType);
     }
 
+    /// <summary>Delivers one event to all active matching listeners whose interest filters accept it.</summary>
     void ProcessEvent(IEvent* event, EventDispatchMethod dispatchMethod, EventPriority priority) {
         if (event == nullptr) return;
         std::lock_guard<std::recursive_mutex> lock(_listenersMutex);

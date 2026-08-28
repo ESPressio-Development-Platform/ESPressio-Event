@@ -12,21 +12,26 @@
 namespace ESPressio {
 namespace Event {
 
+/// <summary>Contract for routing event types to registered receivers.</summary>
 class IEventDispatcher {
 public:
     virtual ~IEventDispatcher() = default;
 
+    /// <summary>Registers a receiver for the supplied RTTI-free event type key.</summary>
     virtual void RegisterReceiver(
         EventTypeKey type,
         IEventReceiver* receiver
     ) = 0;
 
+    /// <summary>Removes a receiver registration for the supplied event type key.</summary>
     virtual void UnregisterReceiver(
         EventTypeKey type,
         IEventReceiver* receiver
     ) = 0;
 };
 
+/// <summary>Event receiver that redispatches queued events to receivers registered for each event type.</summary>
+/// <remarks>Receiver removal is safe during nested dispatch; inactive records are compacted when dispatch depth returns to zero.</remarks>
 class EventDispatcher : public EventReceiver, public IEventDispatcher {
 private:
     struct ReceiverRecord {
@@ -62,12 +67,14 @@ private:
     }
 
 protected:
+    /// <summary>Hook invoked after an event has been marked dispatched and before it is routed to typed receivers.</summary>
     virtual void OnEventDispatched(
         IEvent*,
         EventDispatchMethod,
         EventPriority
     ) {}
 
+    /// <summary>Removes all registered typed receivers, deferring physical compaction during active dispatch.</summary>
     void ClearEventReceivers() {
         std::lock_guard<std::recursive_mutex> lock(_eventReceiversMutex);
         if (_dispatchDepth > 0) {
@@ -78,6 +85,7 @@ protected:
         }
     }
 
+    /// <summary>Drains received events and routes each one to matching typed receivers.</summary>
     void DispatchEvents() {
         WithEvents(
             [&](
@@ -134,6 +142,7 @@ public:
         ClearEventReceivers();
     }
 
+    /// <inheritdoc/>
     void RegisterReceiver(
         EventTypeKey type,
         IEventReceiver* receiver
@@ -154,6 +163,7 @@ public:
         _eventReceivers.emplace_back(ReceiverRecord{type, receiver, true});
     }
 
+    /// <inheritdoc/>
     void UnregisterReceiver(
         EventTypeKey type,
         IEventReceiver* receiver

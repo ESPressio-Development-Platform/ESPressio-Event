@@ -22,6 +22,8 @@ namespace ESPressio {
 
     namespace Event {
 
+        /// <summary>Singleton worker that drains the global event queue and performs typed event dispatch.</summary>
+        /// <remarks>The manager owns a dedicated ESPressio Thread and is signalled whenever new event work is added.</remarks>
         class EventManager : public Thread, public EventDispatcher {
             private:
                 std::unique_ptr<System::Synchronization::ISignal>
@@ -32,6 +34,7 @@ namespace ESPressio {
                     CreateEventManagerObservable();
 
             protected:
+                /// <summary>Constructs and starts the singleton event-dispatch worker.</summary>
                 EventManager() :
                     Thread(
                         ThreadReleasePolicy::ReleaseOnTerminate
@@ -47,6 +50,7 @@ namespace ESPressio {
                     Start();
                 }
 
+                /// <summary>Waits for queued work and drains available events through the dispatcher.</summary>
                 void OnLoop() override {
                     /*
                      * If work arrived before the worker reached this wait, the
@@ -67,12 +71,14 @@ namespace ESPressio {
                     DispatchEvents();
                 }
 
+                /// <summary>Signals the worker whenever event work is added to the receiver queue.</summary>
                 void EventAdded() override {
                     if (_eventSignal != nullptr) {
                         (void)_eventSignal->Give();
                     }
                 }
 
+                /// <summary>Publishes manager-level notification after an event has entered dispatch.</summary>
                 void OnEventDispatched(
                     IEvent* event,
                     EventDispatchMethod method,
@@ -85,18 +91,21 @@ namespace ESPressio {
                 }
 
             public:
+                /// <summary>Registers an observer for manager-level event dispatch notifications.</summary>
                 Observable::ObserverHandlePtr RegisterObserver(
                     IEventManagerObserver* observer
                 ) {
                     return _observable->RegisterObserver(observer);
                 }
 
+                /// <summary>Unregisters a manager-level event observer.</summary>
                 void UnregisterObserver(
                     IEventManagerObserver* observer
                 ) {
                     _observable->UnregisterObserver(observer);
                 }
 
+                /// <summary>Returns the process-wide event manager singleton.</summary>
                 static EventManager* GetInstance() {
                     static EventManager* instance = new EventManager();
                     return instance;

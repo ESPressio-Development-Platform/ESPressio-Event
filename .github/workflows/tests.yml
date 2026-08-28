@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: main
+          ref: feature/29-platform-clock-abstractions
           path: ESPressio_Timing
       - uses: actions/checkout@v4
         with:
@@ -77,7 +77,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: main
+          ref: feature/29-platform-clock-abstractions
           path: project/dependencies/ESPressio-Timing
       - uses: actions/checkout@v4
         with:
@@ -107,6 +107,7 @@ jobs:
               -std=gnu++17
               -fno-rtti
               -DESPRESSIO_SERIALIZATION_PREFER_PSRAM
+              -DESPRESSIO_EVENT_SIGNAL_DIAGNOSTICS=1
           build_unflags =
               -std=gnu++11
               -frtti

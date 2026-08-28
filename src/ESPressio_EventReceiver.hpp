@@ -22,6 +22,7 @@
 namespace ESPressio {
     namespace Event {
 
+        /// <summary>Defines how a receiver behaves when its retained event capacity is exhausted.</summary>
         enum class EventQueueOverflowPolicy : uint8_t {
             BlockProducer,
             RejectIncoming,
@@ -29,25 +30,33 @@ namespace ESPressio {
             DropLowestPriority
         };
 
+        /// <summary>Controls how queue/stack backing capacity is retained after events are drained.</summary>
         enum class EventCollectionCapacityPolicy : uint8_t {
             Retain,
             ShrinkWhenUnderutilized,
             ReleaseAfterDrain
         };
 
+        /// <summary>Receives Event instances using FIFO queue or LIFO stack dispatch semantics.</summary>
         class IEventReceiver {
             public:
                 virtual ~IEventReceiver() = default;
+
+                /// <summary>Adds an Event for FIFO processing at the specified priority.</summary>
                 virtual void QueueEvent(
                     IEvent* event,
                     EventPriority priority = EventPriority::Normal
                 ) = 0;
+
+                /// <summary>Adds an Event for LIFO processing at the specified priority.</summary>
                 virtual void StackEvent(
                     IEvent* event,
                     EventPriority priority = EventPriority::Normal
                 ) = 0;
         };
 
+        /// <summary>Thread-safe priority receiver that retains Event references until queued or stacked work is processed.</summary>
+        /// <remarks>Queue entries are processed FIFO, stack entries LIFO, and higher priorities are drained before lower priorities. Capacity and overflow behavior are configurable.</remarks>
         class EventReceiver : public IEventReceiver {
             private:
                 struct PendingEvent {
@@ -430,6 +439,7 @@ namespace ESPressio {
                 }
 
             protected:
+                /// <summary>Prevents new events from being accepted and wakes any producer blocked by the capacity policy.</summary>
                 void StopAcceptingEvents() noexcept {
                     {
                         std::lock_guard<std::mutex> lock(_eventsMutex);
@@ -438,6 +448,8 @@ namespace ESPressio {
                     _capacityAvailable.notify_all();
                 }
 
+                /// <summary>Drains pending events in priority order and invokes the callback for each retained event.</summary>
+                /// <remarks>For each priority, stacked events are drained before queued events. Stack order is LIFO and queue order is FIFO.</remarks>
                 void WithEvents(
                     std::function<void(
                         IEvent*, EventDispatchMethod, EventPriority
@@ -465,6 +477,7 @@ namespace ESPressio {
                     }
                 }
 
+                /// <summary>Removes every pending queue/stack entry and releases the receiver's retained Event references.</summary>
                 void ClearPendingEvents() noexcept {
                     EventCollection queues;
                     EventCollection stacks;
@@ -486,6 +499,7 @@ namespace ESPressio {
                     release(stacks);
                 }
 
+                /// <summary>Hook invoked after an event has been accepted into pending storage.</summary>
                 virtual void EventAdded() { }
 
             public:
@@ -494,6 +508,7 @@ namespace ESPressio {
                     ClearPendingEvents();
                 }
 
+                /// <inheritdoc/>
                 void QueueEvent(
                     IEvent* event,
                     EventPriority priority = EventPriority::Normal
@@ -501,6 +516,7 @@ namespace ESPressio {
                     AddEvent(event, priority, EventDispatchMethod::Queue);
                 }
 
+                /// <inheritdoc/>
                 void StackEvent(
                     IEvent* event,
                     EventPriority priority = EventPriority::Normal
@@ -508,10 +524,13 @@ namespace ESPressio {
                     AddEvent(event, priority, EventDispatchMethod::Stack);
                 }
 
+                /// <summary>Returns the configured maximum number of retained pending/processing events; zero means unlimited.</summary>
                 size_t GetMaximumPendingEventCount() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _maximumPendingEventCount;
                 }
+
+                /// <summary>Sets the maximum number of retained pending/processing events; zero disables the limit.</summary>
                 void SetMaximumPendingEventCount(size_t maximum) {
                     {
                         std::lock_guard<std::mutex> lock(_eventsMutex);
@@ -519,10 +538,14 @@ namespace ESPressio {
                     }
                     _capacityAvailable.notify_all();
                 }
+
+                /// <summary>Returns the overflow policy applied when retained event capacity is exhausted.</summary>
                 EventQueueOverflowPolicy GetEventQueueOverflowPolicy() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _overflowPolicy;
                 }
+
+                /// <summary>Sets the overflow policy and wakes producers that may be waiting under BlockProducer.</summary>
                 void SetEventQueueOverflowPolicy(
                     EventQueueOverflowPolicy policy
                 ) {
@@ -532,11 +555,15 @@ namespace ESPressio {
                     }
                     _capacityAvailable.notify_all();
                 }
+
+                /// <summary>Returns the policy used to retain or reclaim queue/stack backing capacity after drains.</summary>
                 EventCollectionCapacityPolicy
                 GetEventCollectionCapacityPolicy() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _capacityPolicy;
                 }
+
+                /// <summary>Sets the backing-capacity policy and applies it immediately to all priority collections.</summary>
                 void SetEventCollectionCapacityPolicy(
                     EventCollectionCapacityPolicy policy
                 ) {
@@ -550,14 +577,20 @@ namespace ESPressio {
                     apply(_priorityQueues);
                     apply(_priorityStacks);
                 }
+
+                /// <summary>Returns the number of events waiting in queue/stack storage.</summary>
                 size_t GetPendingEventCount() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _pendingEventCount;
                 }
+
+                /// <summary>Returns the highest retained event count observed since statistics were last reset.</summary>
                 size_t GetPeakPendingEventCount() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _peakPendingEventCount;
                 }
+
+                /// <summary>Returns the aggregate vector capacity currently retained by all priority queue and stack collections.</summary>
                 size_t GetRetainedEventCapacity() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     size_t capacity = 0;
@@ -570,32 +603,46 @@ namespace ESPressio {
                     addCapacity(_priorityStacks);
                     return capacity;
                 }
+
+                /// <summary>Returns the number of incoming events rejected by capacity/lifecycle policy.</summary>
                 uint64_t GetRejectedEventCount() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _rejectedEventCount;
                 }
+
+                /// <summary>Returns the number of previously retained events displaced by a drop overflow policy.</summary>
                 uint64_t GetDroppedEventCount() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _droppedEventCount;
                 }
+
+                /// <summary>Resets peak, rejected, and dropped event statistics without altering pending events.</summary>
                 void ResetEventQueueStatistics() {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     _peakPendingEventCount = _pendingEventCount;
                     _rejectedEventCount = 0;
                     _droppedEventCount = 0;
                 }
+
+                /// <summary>Returns the minimum vector capacity retained by the adaptive shrink policy.</summary>
                 size_t GetMinimumRetainedEventCapacity() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _minimumRetainedCapacity;
                 }
+
+                /// <summary>Sets the minimum vector capacity retained by the adaptive shrink policy.</summary>
                 void SetMinimumRetainedEventCapacity(size_t capacity) {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     _minimumRetainedCapacity = capacity;
                 }
+
+                /// <summary>Returns the multiplier applied to recent peak drain size when calculating retained capacity.</summary>
                 size_t GetEventCapacityExcessFactor() const {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     return _capacityExcessFactor;
                 }
+
+                /// <summary>Sets the adaptive retained-capacity multiplier; values below one are normalized to one.</summary>
                 void SetEventCapacityExcessFactor(size_t factor) {
                     std::lock_guard<std::mutex> lock(_eventsMutex);
                     _capacityExcessFactor = std::max<size_t>(factor, 1);

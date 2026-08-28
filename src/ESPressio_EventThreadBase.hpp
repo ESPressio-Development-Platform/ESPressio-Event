@@ -58,7 +58,7 @@ namespace ESPressio {
                     std::size_t pending,
                     bool resultKnown = false,
                     bool result = false
-                ) const noexcept {
+                ) noexcept {
                     const auto worker =
                         _eventWorkerTask.load(std::memory_order_acquire);
                     const auto current =

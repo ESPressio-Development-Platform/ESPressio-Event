@@ -21,7 +21,12 @@ public:
         EventDispatchMethod dispatchMethod,
         EventPriority priority,
         const EventDispatchContext& context
-    ) {}
+    ) {
+        (void)event;
+        (void)dispatchMethod;
+        (void)priority;
+        (void)context;
+    }
 };
 
 }

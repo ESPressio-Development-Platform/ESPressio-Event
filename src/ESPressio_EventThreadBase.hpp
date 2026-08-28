@@ -21,10 +21,12 @@ namespace ESPressio {
 
     namespace Event {
 
+        /// <summary>Marker interface shared by event-processing thread implementations.</summary>
         class IEventThreadBase {
 
         };
 
+        /// <summary>Thread/receiver base that waits for queued events and forwards them to a derived event handler.</summary>
         class EventThreadBase : public Thread, public EventReceiver, public IEventThreadBase {
             private:
                 std::unique_ptr<System::Synchronization::ISignal>
@@ -32,6 +34,7 @@ namespace ESPressio {
                         System::Synchronization::CreateBinarySignal();
 
             protected:
+                /// <summary>Waits for pending events and drains them through <see cref="OnEvent"/>.</summary>
                 void OnLoop() override {
                     if (_eventSignal != nullptr) {
                         if (GetPendingEventCount() == 0) {
@@ -58,12 +61,14 @@ namespace ESPressio {
                     );
                 }
 
+                /// <summary>Handles one event removed from the thread's receiver queue.</summary>
                 virtual void OnEvent(
                     IEvent* event,
                     EventDispatchMethod dispatchMethod,
                     EventPriority priority
                 ) = 0;
 
+                /// <summary>Signals the worker when new receiver work becomes available.</summary>
                 void EventAdded() override {
                     if (_eventSignal != nullptr) {
                         (void)_eventSignal->Give();
@@ -71,6 +76,7 @@ namespace ESPressio {
                 }
 
             public:
+                /// <summary>Constructs an event-processing thread with the configured release policy and default scheduling parameters.</summary>
                 explicit EventThreadBase(ThreadReleasePolicy releasePolicy) :
                     Thread(releasePolicy) {
                     SetPriority(

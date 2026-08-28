@@ -4,25 +4,20 @@
 
 **Using the Library**
 - [Getting Started](Getting-Started)
-- [Typed Events and Identity](Typed-Events-and-Identity)
-- [Dispatch Queue and Stack](Dispatch-Queue-and-Stack)
-- [Event Listeners](Event-Listeners)
-- [EventThread](EventThread)
-- [PrecisionEventThread](PrecisionEventThread)
-- [Event Lifecycle Timing](Event-Lifecycle-Timing)
-- [Bounded Queues and Diagnostics](Bounded-Queues-and-Diagnostics)
+- [Event Types and Identity](Event-Types-and-Identity)
+- [Dispatching and Listening](Dispatching-and-Listening)
+- [Event Threads](Event-Threads)
 - [Serializable Events](Serializable-Events)
 - [Event Transport](Event-Transport)
-- [Runtime Serializable Discovery](Runtime-Serializable-Discovery)
-- [Timing and Thread Bridges](Timing-and-Thread-Bridges)
-- [Event versus Observable](Event-versus-Observable)
-- [Memory Behaviour](Memory-Behaviour)
+- [Timing and Infrastructure Bridges](Timing-and-Infrastructure-Bridges)
+- [Memory and Performance](Memory-and-Performance)
+- [API Map](API-Map)
 
 **Extending the Library**
-- [Extension Architecture](Extension-Architecture)
-- [Event Type Identity Contract](Event-Type-Identity-Contract)
-- [Listener Registry Contract](Listener-Registry-Contract)
-- [Implementing Event Transports](Implementing-Event-Transports)
-- [Serializable Event Registration](Serializable-Event-Registration)
-- [Adding Integration Bridges](Adding-Integration-Bridges)
-- [Testing Event Extensions](Testing-Event-Extensions)
+- [Extending Event](Extending-Event)
+- [Event Types and Identity](Event-Types-and-Identity#design-rule-for-extensions)
+- [Event Transport](Event-Transport#extension-rule)
+- [Memory and Performance](Memory-and-Performance)
+
+**Platform**
+- [ESPressio Development Platform](https://github.com/ESPressio-Development-Platform/ESPressio)

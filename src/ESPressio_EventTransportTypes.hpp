@@ -8,6 +8,7 @@
 
 namespace ESPressio::Event {
 
+/// <summary>Bit flags describing the directions in which an Event transport is registered.</summary>
 enum class EventTransportDirection : uint8_t {
     None = 0,
     Inbound = 1u << 0,
@@ -43,6 +44,7 @@ constexpr EventTransportDirection operator~(
     );
 }
 
+/// <summary>Returns a direction mask with the requested direction bits removed.</summary>
 constexpr EventTransportDirection RemoveDirection(
     EventTransportDirection value,
     EventTransportDirection remove
@@ -53,6 +55,7 @@ constexpr EventTransportDirection RemoveDirection(
     );
 }
 
+/// <summary>Tests whether every requested direction bit is present in a direction mask.</summary>
 constexpr bool HasDirection(
     EventTransportDirection value,
     EventTransportDirection test
@@ -63,11 +66,13 @@ constexpr bool HasDirection(
     ) == static_cast<uint8_t>(test);
 }
 
+/// <summary>Specifies whether pending work is completed or discarded when a transport direction is unregistered.</summary>
 enum class EventTransportPendingAction : uint8_t {
     Complete,
     Discard
 };
 
+/// <summary>Controls treatment of pending inbound and outbound work during transport unregistration.</summary>
 struct EventTransportUnregistrationOptions {
     EventTransportPendingAction PendingOutbound =
         EventTransportPendingAction::Complete;
@@ -76,11 +81,13 @@ struct EventTransportUnregistrationOptions {
         EventTransportPendingAction::Complete;
 };
 
+/// <summary>Identifies whether an Event originated locally or was received from a remote transport.</summary>
 enum class EventOrigin : uint8_t {
     Local,
     Remote
 };
 
+/// <summary>Routing metadata carried with an Event while it moves between local and remote dispatch paths.</summary>
 struct EventDispatchContext {
     EventOrigin Origin = EventOrigin::Local;
     uint64_t TransportMessageID = 0;
@@ -104,6 +111,7 @@ struct EventDispatchContext {
 };
 
 #pragma pack(push, 1)
+/// <summary>Fixed 32-byte wire envelope preceding a serialized transported Event payload.</summary>
 struct EventTransportEnvelope {
     static constexpr uint32_t MagicValue =
         0x45565454u; // EVTT
@@ -135,12 +143,14 @@ static_assert(
     "EventTransportEnvelope wire layout changed; increment protocol version deliberately."
 );
 
+/// <summary>Non-owning packet view handed to an Event transport for outbound delivery.</summary>
 struct EventTransportPacket {
     const uint8_t* Data = nullptr;
     std::size_t Size = 0;
     uint64_t MessageID = 0;
 };
 
+/// <summary>Outcome of registering or updating one Event transport.</summary>
 enum class EventTransportRegistrationResult : uint8_t {
     Registered,
     Updated,
@@ -149,6 +159,7 @@ enum class EventTransportRegistrationResult : uint8_t {
     InvalidTransport
 };
 
+/// <summary>Outcome of removing one or more directions from a registered Event transport.</summary>
 enum class EventTransportUnregistrationResult : uint8_t {
     Updated,
     Removed,
@@ -156,6 +167,7 @@ enum class EventTransportUnregistrationResult : uint8_t {
     InvalidTransport
 };
 
+/// <summary>Counts requested, changed, unchanged, and failed entries from a bulk transport operation.</summary>
 struct EventTransportBulkOperationResult {
     std::size_t Requested = 0;
     std::size_t Changed = 0;
@@ -166,6 +178,7 @@ struct EventTransportBulkOperationResult {
 class IEvent;
 class IEventTransport;
 
+/// <summary>Lifecycle stage reported for an Event transport transaction.</summary>
 enum class EventTransportTransactionStage : uint8_t {
     OutboundAccepted,
     OutboundSerialized,
@@ -177,6 +190,8 @@ enum class EventTransportTransactionStage : uint8_t {
     Failed
 };
 
+/// <summary>Diagnostic snapshot describing one stage of an inbound or outbound Event transport transaction.</summary>
+/// <remarks>Event, transport, and payload pointers are non-owning views valid for the duration of the notification.</remarks>
 struct EventTransportTransaction {
     EventTransportTransactionStage Stage =
         EventTransportTransactionStage::Failed;
@@ -207,11 +222,13 @@ struct EventTransportTransaction {
     bool TransportAccepted = false;
 };
 
+/// <summary>Customization point supplying the stable wire name for a concrete transported Event type.</summary>
 template<typename TEvent>
 struct EventTransportTypeTraits {
     static constexpr std::string_view Name{};
 };
 
+/// <summary>Computes the stable 64-bit FNV-1a identifier for a transport type name.</summary>
 constexpr uint64_t EventTransportTypeHash(
     std::string_view value
 ) noexcept {
@@ -229,6 +246,7 @@ constexpr uint64_t EventTransportTypeHash(
     return hash;
 }
 
+/// <summary>Returns the stable wire type identifier for a transported Event type.</summary>
 template<typename TEvent>
 constexpr uint64_t EventTransportTypeID()
     noexcept {

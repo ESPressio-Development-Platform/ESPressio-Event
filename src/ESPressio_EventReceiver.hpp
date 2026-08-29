@@ -5,7 +5,6 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
-#include <functional>
 #include <limits>
 #include <mutex>
 #include <typeindex>
@@ -354,13 +353,12 @@ namespace ESPressio {
                     }
                 }
 
+                template<typename TCallback>
                 void ProcessCollection(
                     EventCollection& collections,
                     EventPriority priority,
                     EventDispatchMethod method,
-                    const std::function<void(
-                        IEvent*, EventDispatchMethod, EventPriority
-                    )>& callback
+                    TCallback& callback
                 ) {
                     EventDispatchCollection pending;
                     const size_t priorityIndex =
@@ -458,13 +456,10 @@ namespace ESPressio {
                     _capacityAvailable.notify_all();
                 }
 
-                /// <summary>Drains pending events in priority order and invokes the callback for each retained event.</summary>
-                /// <remarks>For each priority, stacked events are drained before queued events. Stack order is LIFO and queue order is FIFO.</remarks>
-                void WithEvents(
-                    std::function<void(
-                        IEvent*, EventDispatchMethod, EventPriority
-                    )> callback
-                ) {
+                /// <summary>Drains pending events in priority order and invokes the supplied callback directly without type-erasing it through <c>std::function</c>.</summary>
+                /// <remarks>For each priority, stacked events are drained before queued events. Stack order is LIFO and queue order is FIFO. The callback is forwarded as its concrete callable type so receivers do not allocate or copy type-erased callable state while draining.</remarks>
+                template<typename TCallback>
+                void WithEvents(TCallback&& callback) {
                     for (int priorityID =
                             static_cast<int>(EventPriority::High);
                         priorityID >= 0; --priorityID) {

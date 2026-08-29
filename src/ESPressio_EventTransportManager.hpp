@@ -53,14 +53,21 @@ private:
     static constexpr auto ExternalPreferred =
         System::Memory::MemoryPolicy::ExternalPreferred;
 
+    using EventByteBuffer =
+        System::Memory::ByteVector<ExternalPreferred>;
+    using RuntimePropertyVector = System::Memory::Vector<
+        Serializable::PropertySchemaInfo,
+        ExternalPreferred
+    >;
+
     struct RuntimeRegistration {
         EventTypeKey EventType = nullptr;
         uint64_t TypeID = 0;
         std::string_view TypeName{};
         uint32_t SchemaVersion = 1;
-        std::function<bool(IEvent*, std::vector<uint8_t>&)> Serialize;
+        std::function<bool(IEvent*, EventByteBuffer&)> Serialize;
         std::function<IEvent*(const uint8_t*, std::size_t)> Deserialize;
-        std::vector<Serializable::PropertySchemaInfo> Properties;
+        RuntimePropertyVector Properties;
         std::function<SerializableEventConstructionResult(
             const Serializable::SerializationNode&,
             const Serializable::DeserializationOptions&)>
@@ -115,7 +122,7 @@ private:
         IEventTransport* Transport = nullptr;
         uint64_t TypeID = 0;
         RuntimeRegistrationPtr Runtime;
-        System::Memory::Vector<uint8_t, ExternalPreferred> Packet;
+        EventByteBuffer Packet;
     };
 
     using RegistrationMap = System::Memory::UnorderedMap<
@@ -275,7 +282,7 @@ private:
             return;
         }
 
-        std::vector<uint8_t> bytes(sizeof(EventTransportEnvelope));
+        EventByteBuffer bytes(sizeof(EventTransportEnvelope));
         if (!runtime->Serialize(work.Event, bytes)) {
             NotifyTransaction({
                 EventTransportTransactionStage::Failed,
@@ -599,10 +606,11 @@ private:
         runtime->TypeID = EventTransportTypeID<TEvent>();
         runtime->TypeName = EventTransportTypeTraits<TEvent>::Name;
         runtime->SchemaVersion = TEvent::GetSchemaVersion();
-        runtime->Properties = Serializable::SchemaInspector<TEvent>::Properties();
+        const auto properties = Serializable::SchemaInspector<TEvent>::Properties();
+        runtime->Properties.assign(properties.begin(), properties.end());
 
         runtime->Serialize =
-            [](IEvent* event, std::vector<uint8_t>& bytes) {
+            [](IEvent* event, EventByteBuffer& bytes) {
                 if (
                     event == nullptr ||
                     event->__getTypeKey() != EventTypeKeyOf<TEvent>()
@@ -1012,7 +1020,10 @@ public:
             descriptor.TypeName = std::string(runtime->TypeName);
             descriptor.SchemaVersion = runtime->SchemaVersion;
             descriptor.DefaultDirection = registration.DefaultDirection;
-            descriptor.Properties = runtime->Properties;
+            descriptor.Properties.assign(
+                runtime->Properties.begin(),
+                runtime->Properties.end()
+            );
             descriptor.CanConstruct = static_cast<bool>(runtime->ConstructFromNode);
             descriptors.push_back(std::move(descriptor));
         }
@@ -1043,7 +1054,10 @@ public:
         descriptor.TypeName = std::string(runtime->TypeName);
         descriptor.SchemaVersion = runtime->SchemaVersion;
         descriptor.DefaultDirection = registration.DefaultDirection;
-        descriptor.Properties = runtime->Properties;
+        descriptor.Properties.assign(
+            runtime->Properties.begin(),
+            runtime->Properties.end()
+        );
         descriptor.CanConstruct = static_cast<bool>(runtime->ConstructFromNode);
         return true;
     }
@@ -1063,7 +1077,10 @@ public:
             descriptor.TypeName = std::string(runtime->TypeName);
             descriptor.SchemaVersion = runtime->SchemaVersion;
             descriptor.DefaultDirection = registration.DefaultDirection;
-            descriptor.Properties = runtime->Properties;
+            descriptor.Properties.assign(
+                runtime->Properties.begin(),
+                runtime->Properties.end()
+            );
             descriptor.CanConstruct = static_cast<bool>(runtime->ConstructFromNode);
             return true;
         }

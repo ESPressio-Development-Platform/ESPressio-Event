@@ -1,6 +1,8 @@
 #pragma once
 
 #include <memory>
+
+#include <ESPressio_Memory.hpp>
 #include <ESPressio_ThreadSafeObservable.hpp>
 #include "ESPressio_IEventManagerObserver.hpp"
 
@@ -26,9 +28,12 @@ public:
     }
 };
 
-/// <summary>Creates a shared EventManager observable.</summary>
+/// <summary>Creates a shared EventManager observable whose object and control-block storage prefer external memory.</summary>
 inline std::shared_ptr<EventManagerObservable> CreateEventManagerObservable() {
-    return std::make_shared<EventManagerObservable>();
+    return System::Memory::MakeShared<
+        EventManagerObservable,
+        System::Memory::MemoryPolicy::ExternalPreferred
+    >();
 }
 
 }

@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <mutex>
-#include <vector>
+
+#include <ESPressio_Memory.hpp>
 
 #include "ESPressio_IEvent.hpp"
 #include "ESPressio_EventReceiver.hpp"
@@ -31,7 +32,7 @@ public:
 };
 
 /// <summary>Event receiver that redispatches queued events to receivers registered for each event type.</summary>
-/// <remarks>Receiver removal is safe during nested dispatch; inactive records are compacted when dispatch depth returns to zero.</remarks>
+/// <remarks>Receiver removal is safe during nested dispatch; inactive records are compacted when dispatch depth returns to zero. Receiver-registry backing storage prefers external memory.</remarks>
 class EventDispatcher : public EventReceiver, public IEventDispatcher {
 private:
     struct ReceiverRecord {
@@ -40,7 +41,12 @@ private:
         bool Active = false;
     };
 
-    std::vector<ReceiverRecord> _eventReceivers;
+    using ReceiverStorage = System::Memory::Vector<
+        ReceiverRecord,
+        System::Memory::MemoryPolicy::ExternalPreferred
+    >;
+
+    ReceiverStorage _eventReceivers;
     mutable std::recursive_mutex _eventReceiversMutex;
     std::size_t _dispatchDepth = 0;
     bool _needsCompaction = false;

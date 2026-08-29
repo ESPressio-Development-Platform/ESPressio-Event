@@ -6,11 +6,11 @@
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <new>
 #include <utility>
 
 #include <ESPressio_IObservable.hpp>
 #include <ESPressio_Memory.hpp>
+#include <ESPressio_PolymorphicMemory.hpp>
 #include <ESPressio_TimeTraits.hpp>
 
 #include "ESPressio_IEvent.hpp"
@@ -31,8 +31,9 @@ public:
     virtual bool IsRegistered() const = 0;
 };
 
-/// <summary>Owning pointer type for event-listener registration handles.</summary>
-using EventListenerHandlePtr = std::unique_ptr<IEventListenerHandle>;
+/// <summary>Owning pointer type for event-listener registration handles whose concrete storage is managed through ESPressio System memory policy.</summary>
+using EventListenerHandlePtr =
+    System::Memory::PolymorphicUniquePtr<IEventListenerHandle>;
 
 /// <summary>Contract for registering callbacks or typed observers against event type identities.</summary>
 class IEventListener {
@@ -133,7 +134,7 @@ protected:
     }
 };
 
-/// <summary>Concrete RAII listener handle allocated from ExternalPreferred memory.</summary>
+/// <summary>Concrete RAII listener handle whose allocation is supplied by ESPressio System polymorphic memory ownership.</summary>
 class EventListenerHandle final : public IEventListenerHandle {
 private:
     std::atomic<bool> _isRegistered{true};
@@ -141,22 +142,6 @@ private:
     IEventListener* _listener = nullptr;
 
 public:
-    static void* operator new(std::size_t bytes) {
-        return System::Memory::GetProvider().Allocate(
-            bytes,
-            alignof(EventListenerHandle),
-            System::Memory::MemoryPolicy::ExternalPreferred
-        );
-    }
-    static void operator delete(void* pointer) noexcept {
-        System::Memory::GetProvider().Deallocate(
-            pointer,
-            sizeof(EventListenerHandle),
-            alignof(EventListenerHandle),
-            System::Memory::MemoryPolicy::ExternalPreferred
-        );
-    }
-
     /// <summary>Creates a handle associated with one event type and listener owner.</summary>
     EventListenerHandle(EventTypeKey eventType, IEventListener* listener)
         : _eventType(eventType), _listener(listener) {}
@@ -254,7 +239,11 @@ protected:
         std::function<bool(IEvent*)> customInterestCallback
     ) override {
         if (eventType == nullptr || !callback) return {};
-        std::unique_ptr<EventListenerHandle> handler(new EventListenerHandle(eventType, this));
+        auto handler = System::Memory::MakePolymorphicUnique<
+            IEventListenerHandle,
+            EventListenerHandle,
+            System::Memory::MemoryPolicy::ExternalPreferred
+        >(eventType, this);
         bool firstListener = false;
         {
             std::lock_guard<std::recursive_mutex> lock(_listenersMutex);
@@ -270,7 +259,7 @@ protected:
             });
         }
         if (firstListener) OnListenerRegistered(eventType);
-        return EventListenerHandlePtr(handler.release());
+        return handler;
     }
 
     /// <summary>Unregisters every active listener and notifies derived types for each event type removed.</summary>

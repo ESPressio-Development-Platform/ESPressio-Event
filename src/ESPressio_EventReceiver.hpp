@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include <ESPressio_Memory.hpp>
+
 #include "ESPressio_EventEnums.hpp"
 #include "ESPressio_IEvent.hpp"
 
@@ -64,7 +66,15 @@ namespace ESPressio {
                     uint64_t sequence = 0;
                 };
 
-                using EventDispatchCollection = std::vector<PendingEvent>;
+                static constexpr auto ExternalPreferred =
+                    System::Memory::MemoryPolicy::ExternalPreferred;
+
+                // Pending Event metadata does not require DMA/internal-capable
+                // storage. Keep all queue/stack/drain backing allocations in
+                // external-preferred memory so burst traffic cannot consume
+                // the same internal heap required by WiFi, HTTP and DMA.
+                using EventDispatchCollection =
+                    System::Memory::Vector<PendingEvent, ExternalPreferred>;
 
                 static constexpr size_t PriorityCount =
                     static_cast<size_t>(EventPriority::High) + 1;

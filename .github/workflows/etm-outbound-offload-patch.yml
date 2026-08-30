@@ -19,7 +19,7 @@ jobs:
           ref: feature/57-rtti-free-memory-efficiency
           fetch-depth: 0
 
-      - name: Apply guarded ETM outbound offload
+      - name: Apply guarded ETM outbound offload refinement
         run: python3 .github/scripts/patch_etm_outbound_offload.py
 
       - name: Validate patch
@@ -32,5 +32,5 @@ jobs:
           git config user.name "ESPressio Automation"
           git config user.email "actions@users.noreply.github.com"
           git add src/ESPressio_EventTransportManager.hpp
-          git commit -m "refactor: offload Event transport outbound execution"
+          git commit -m "refactor: retain Event transport target storage"
           git push origin HEAD:feature/57-rtti-free-memory-efficiency

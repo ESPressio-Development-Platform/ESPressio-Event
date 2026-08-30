@@ -23,6 +23,7 @@
 #include <ESPressio_SchemaIntrospection.hpp>
 #include <ESPressio_SerializationTraits.hpp>
 #include <ESPressio_Synchronization.hpp>
+#include <ESPressio_TaskExecutor.hpp>
 #include <ESPressio_Thread.hpp>
 #include <ESPressio_TreeArchive.hpp>
 
@@ -48,6 +49,18 @@
 
 #ifndef ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_OUTBOUND_EVENTS
     #define ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_OUTBOUND_EVENTS 32
+#endif
+
+#ifndef ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_STACK_SIZE
+    #define ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_STACK_SIZE 6144
+#endif
+
+#ifndef ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_QUEUE_DEPTH
+    #define ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_QUEUE_DEPTH 16
+#endif
+
+#ifndef ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_PRIORITY
+    #define ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_PRIORITY 2
 #endif
 
 namespace ESPressio::Event {
@@ -135,6 +148,17 @@ private:
         EventTransportPacket Packet;
     };
 
+    struct OutboundWork {
+        IEvent* Event = nullptr;
+        EventDispatchMethod Method = EventDispatchMethod::Queue;
+        EventPriority Priority = EventPriority::Normal;
+    };
+
+    static_assert(
+        std::is_trivially_copyable<OutboundWork>::value,
+        "Event transport outbound work must remain trivially copyable"
+    );
+
     using RegistrationMap = System::Memory::UnorderedMap<
         uint64_t,
         Registration,
@@ -162,6 +186,18 @@ private:
         ExternalPreferred
     >;
 
+    static Task::TaskConfiguration CreateOutboundTaskConfiguration() {
+        Task::TaskConfiguration configuration;
+        configuration.Name = "eventTransportTx";
+        configuration.StackSize = ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_STACK_SIZE;
+        configuration.Priority = ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_PRIORITY;
+        configuration.Core = -1;
+        configuration.QueueDepth = ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_QUEUE_DEPTH;
+        configuration.OverflowPolicy = Task::TaskQueueOverflowPolicy::Reject;
+        configuration.MemoryPolicy = Task::TaskMemoryPolicy::PreferExternal;
+        return configuration;
+    }
+
     mutable System::Synchronization::Mutex _mutex;
     RegistrationMap _registrations;
     RuntimeTypeMap _runtimeTypes;
@@ -176,13 +212,19 @@ private:
     std::atomic<uint64_t> _rejectedInboundCount{0};
     std::atomic<uint64_t> _processedInboundCount{0};
     std::atomic<uint64_t> _processedOutboundCount{0};
+    std::atomic<uint64_t> _rejectedOutboundWorkCount{0};
     std::atomic<std::size_t> _peakInboundCount{0};
-    bool _initialized = false;
+    Task::TaskExecutor<OutboundWork> _outboundExecutor;
+    std::atomic<bool> _outboundExecutorInitialized{false};
+    std::atomic<bool> _outboundExecutorReady{false};
+    std::atomic<bool> _initialized{false};
 
     EventTransportManager()
-        : Threads::Thread(Threads::ThreadReleasePolicy::ExplicitRelease) {
+        : Threads::Thread(Threads::ThreadReleasePolicy::ExplicitRelease),
+          _outboundExecutor(CreateOutboundTaskConfiguration()) {
         SetPriority(ESPRESSIO_EVENT_TRANSPORT_MANAGER_PRIORITY);
         SetCoreID(ESPRESSIO_EVENT_TRANSPORT_MANAGER_CORE_ID);
+        SetStartOnInitialize(false);
         SetMaximumPendingEventCount(
             ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_OUTBOUND_EVENTS
         );
@@ -263,13 +305,13 @@ private:
             const bool subscribed = IsSubscribedLocked(type);
             if (required && !subscribed) {
                 _subscriptions.push_back(type);
-                registerReceiver = _initialized;
+                registerReceiver = _initialized.load(std::memory_order_acquire);
             } else if (!required && subscribed) {
                 _subscriptions.erase(
                     std::remove(_subscriptions.begin(), _subscriptions.end(), type),
                     _subscriptions.end()
                 );
-                unregisterReceiver = _initialized;
+                unregisterReceiver = _initialized.load(std::memory_order_acquire);
             }
         }
 
@@ -309,11 +351,27 @@ private:
         _registrations.erase(found);
     }
 
-    void ProcessOutboundEvent(
-        IEvent* event,
-        EventDispatchMethod method,
-        EventPriority priority
-    ) {
+    void ReleaseOutboundWork(const OutboundWork& work) noexcept {
+        if (work.Event != nullptr) work.Event->__unref();
+    }
+
+    void ProcessOutboundWork(const OutboundWork& work) {
+        class EventReferenceGuard final {
+        private:
+            IEvent* _event = nullptr;
+        public:
+            explicit EventReferenceGuard(IEvent* event) noexcept : _event(event) {}
+            ~EventReferenceGuard() {
+                if (_event != nullptr) _event->__unref();
+            }
+            void ReleaseNow() noexcept {
+                IEvent* event = _event;
+                _event = nullptr;
+                if (event != nullptr) event->__unref();
+            }
+        } eventReference(work.Event);
+
+        IEvent* event = work.Event;
         if (event == nullptr) return;
         const EventDispatchContext context = event->__getDispatchContext();
         if (context.Origin != EventOrigin::Local) return;
@@ -375,8 +433,8 @@ private:
                     event,
                     nullptr,
                     0,
-                    method,
-                    priority,
+                    work.Method,
+                    work.Priority,
                     EventOrigin::Local,
                     0,
                     false
@@ -390,8 +448,8 @@ private:
         envelope.EventTypeID = runtime->TypeID;
         envelope.SchemaVersion = runtime->SchemaVersion;
         envelope.MessageID = messageID;
-        envelope.DispatchMethod = static_cast<uint8_t>(method);
-        envelope.Priority = static_cast<uint8_t>(priority);
+        envelope.DispatchMethod = static_cast<uint8_t>(work.Method);
+        envelope.Priority = static_cast<uint8_t>(work.Priority);
         envelope.HopCount = 0;
         envelope.PayloadLength = static_cast<uint32_t>(payloadSize);
         std::memcpy(bytes.data(), &envelope, sizeof(envelope));
@@ -399,6 +457,9 @@ private:
         EventTransportPacket packet(std::move(bytes), messageID);
         const uint8_t* payload = packet.Data() + sizeof(EventTransportEnvelope);
 
+        // Event-aware notifications run before releasing asynchronous Event ownership.
+        // Once serialization is complete, downstream transport fanout needs only the
+        // immutable ExternalPreferred packet and no longer keeps the Event alive.
         for (IEventTransport* transport : targets) {
             if (_observable) {
                 _observable->Notify([&](IEventTransportManagerObserver* observer) {
@@ -409,7 +470,6 @@ private:
                     );
                 });
             }
-
             NotifyTransaction({
                 EventTransportTransactionStage::OutboundSerialized,
                 EventTransportDirection::Outbound,
@@ -421,15 +481,19 @@ private:
                 event,
                 payload,
                 payloadSize,
-                method,
-                priority,
+                work.Method,
+                work.Priority,
                 EventOrigin::Local,
                 0,
                 false
             });
+        }
 
+        eventReference.ReleaseNow();
+        event = nullptr;
+
+        for (IEventTransport* transport : targets) {
             const bool accepted = transport->Send(packet);
-
             if (_observable) {
                 _observable->Notify([&](IEventTransportManagerObserver* observer) {
                     observer->OnOutboundEventHandedToTransport(
@@ -440,7 +504,6 @@ private:
                     );
                 });
             }
-
             NotifyTransaction({
                 EventTransportTransactionStage::OutboundHandedToTransport,
                 EventTransportDirection::Outbound,
@@ -449,11 +512,11 @@ private:
                 runtime->SchemaVersion,
                 messageID,
                 transport,
-                event,
+                nullptr,
                 payload,
                 payloadSize,
-                method,
-                priority,
+                work.Method,
+                work.Priority,
                 EventOrigin::Local,
                 0,
                 accepted
@@ -461,6 +524,29 @@ private:
         }
 
         _processedOutboundCount.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void SubmitOutboundEvent(
+        IEvent* event,
+        EventDispatchMethod method,
+        EventPriority priority
+    ) noexcept {
+        if (
+            event == nullptr ||
+            !_outboundExecutorReady.load(std::memory_order_acquire)
+        ) return;
+
+        OutboundWork work;
+        work.Event = event;
+        work.Method = method;
+        work.Priority = priority;
+
+        event->__ref();
+        const auto status = _outboundExecutor.Submit(work);
+        if (status != Task::TaskExecutionStatus::Success) {
+            event->__unref();
+            _rejectedOutboundWorkCount.fetch_add(1, std::memory_order_relaxed);
+        }
     }
 
     bool PopInbound(InboundWork& work) {
@@ -603,7 +689,7 @@ private:
             if (GetPendingEventCount() != 0) {
                 WithEvents(
                     [&](IEvent* event, EventDispatchMethod method, EventPriority priority) {
-                        ProcessOutboundEvent(event, method, priority);
+                        SubmitOutboundEvent(event, method, priority);
                     }
                 );
                 didWork = true;
@@ -899,34 +985,39 @@ public:
     }
 
     Threads::ThreadInitializationStatus Initialize() override {
-        if (_initialized) {
+        if (_initialized.load(std::memory_order_acquire)) {
             return Threads::ThreadInitializationStatus::AlreadyInitialized;
+        }
+
+        if (!_outboundExecutorInitialized.load(std::memory_order_acquire)) {
+            const auto outboundInitialization = _outboundExecutor.Initialize(
+                [this](const OutboundWork& work) { ProcessOutboundWork(work); },
+                [this](const OutboundWork& work) { ReleaseOutboundWork(work); }
+            );
+            if (
+                outboundInitialization != Task::TaskExecutionStatus::Success &&
+                outboundInitialization != Task::TaskExecutionStatus::AlreadyInitialized
+            ) {
+                return Threads::ThreadInitializationStatus::TaskCreationFailed;
+            }
+            _outboundExecutorInitialized.store(true, std::memory_order_release);
         }
 
         const auto initializationStatus = Threads::Thread::Initialize();
         if (
             initializationStatus != Threads::ThreadInitializationStatus::Success &&
             initializationStatus != Threads::ThreadInitializationStatus::AlreadyInitialized
-        ) return initializationStatus;
-
-        if (
-            GetThreadState() == Threads::ThreadState::Initialized ||
-            GetThreadState() == Threads::ThreadState::Paused
         ) {
-            const auto startStatus = Threads::Thread::Start();
-            if (
-                startStatus != Threads::ThreadInitializationStatus::Success &&
-                startStatus != Threads::ThreadInitializationStatus::AlreadyInitialized
-            ) return startStatus;
-        }
-        if (GetThreadState() != Threads::ThreadState::Running) {
-            return Threads::ThreadInitializationStatus::InvalidState;
+            _outboundExecutor.Stop();
+            _outboundExecutorInitialized.store(false, std::memory_order_release);
+            _outboundExecutorReady.store(false, std::memory_order_release);
+            return initializationStatus;
         }
 
         SubscriptionVector subscriptions;
         {
             std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
-            _initialized = true;
+            _initialized.store(true, std::memory_order_release);
             subscriptions = _subscriptions;
         }
         for (EventTypeKey type : subscriptions) {
@@ -935,25 +1026,64 @@ public:
         return Threads::ThreadInitializationStatus::Success;
     }
 
-    bool IsInitialized() const noexcept { return _initialized; }
+    Threads::ThreadInitializationStatus Start() override {
+        if (!_initialized.load(std::memory_order_acquire)) {
+            const auto initialization = Initialize();
+            if (
+                initialization != Threads::ThreadInitializationStatus::Success &&
+                initialization != Threads::ThreadInitializationStatus::AlreadyInitialized
+            ) return initialization;
+        }
+
+        if (!_outboundExecutorReady.load(std::memory_order_acquire)) {
+            const auto outboundStart = _outboundExecutor.Start();
+            if (
+                outboundStart != Task::TaskExecutionStatus::Success &&
+                outboundStart != Task::TaskExecutionStatus::AlreadyStarted
+            ) {
+                return Threads::ThreadInitializationStatus::TaskCreationFailed;
+            }
+            _outboundExecutorReady.store(true, std::memory_order_release);
+        }
+
+        const auto threadStart = Threads::Thread::Start();
+        if (
+            threadStart != Threads::ThreadInitializationStatus::Success &&
+            threadStart != Threads::ThreadInitializationStatus::AlreadyInitialized
+        ) {
+            _outboundExecutorReady.store(false, std::memory_order_release);
+            _outboundExecutor.Stop();
+            _outboundExecutorInitialized.store(false, std::memory_order_release);
+        }
+        return threadStart;
+    }
+
+    bool IsInitialized() const noexcept {
+        return _initialized.load(std::memory_order_acquire);
+    }
 
     void Shutdown() {
         SubscriptionVector subscriptions;
         TransportVector transports;
+        const bool wasInitialized = _initialized.exchange(false, std::memory_order_acq_rel);
         {
             std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
-            if (!_initialized && _transports.empty()) return;
-            _initialized = false;
+            if (!wasInitialized && _transports.empty()) return;
             subscriptions = _subscriptions;
             transports = _transports;
             _transports.clear();
             _inbound.clear();
         }
 
+        _outboundExecutorReady.store(false, std::memory_order_release);
         for (EventTypeKey type : subscriptions) {
             EventManager::GetInstance()->UnregisterReceiver(type, this);
         }
+
         ClearPendingEvents();
+        _outboundExecutor.Stop();
+        _outboundExecutorInitialized.store(false, std::memory_order_release);
+
         for (IEventTransport* transport : transports) {
             if (transport != nullptr) transport->SetReceiver(nullptr);
         }
@@ -1510,7 +1640,7 @@ public:
         IEventTransport* transport,
         EventTransportPacket packet
     ) override {
-        if (!_initialized || transport == nullptr || !packet) return;
+        if (!IsInitialized() || transport == nullptr || !packet) return;
 
         EventTransportEnvelope envelope;
         const uint8_t* payload = nullptr;
@@ -1620,6 +1750,18 @@ public:
 
     uint64_t GetProcessedOutboundEventCount() const noexcept {
         return _processedOutboundCount.load(std::memory_order_relaxed);
+    }
+
+    uint64_t GetRejectedOutboundWorkCount() const noexcept {
+        return _rejectedOutboundWorkCount.load(std::memory_order_relaxed);
+    }
+
+    Task::TaskExecutionStatistics GetOutboundExecutionStatistics() const {
+        return _outboundExecutor.GetStatistics();
+    }
+
+    bool IsOutboundExecutorReady() const noexcept {
+        return _outboundExecutorReady.load(std::memory_order_acquire);
     }
 };
 

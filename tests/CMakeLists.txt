@@ -17,7 +17,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 target_compile_features(espressio_event_dispatch_context_tests PRIVATE cxx_std_17)
-target_include_directories(espressio_event_dispatch_context_tests PRIVATE ../src)
 target_compile_features(espressio_event_observer_tests PRIVATE cxx_std_17)
 target_compile_features(espressio_event_reference_tests PRIVATE cxx_std_17)
 target_compile_features(espressio_event_broker_nonblocking_tests PRIVATE cxx_std_17)
@@ -34,6 +33,7 @@ set(EVENT_HOST_TEST_INCLUDE_DIRS
     ../../ESPressio_Timing/tests/stubs
 )
 
+target_include_directories(espressio_event_dispatch_context_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})
 target_include_directories(espressio_event_observer_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})
 target_include_directories(espressio_event_reference_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})
 target_include_directories(espressio_event_broker_nonblocking_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})

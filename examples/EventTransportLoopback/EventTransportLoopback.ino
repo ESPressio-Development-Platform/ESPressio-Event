@@ -75,10 +75,18 @@ DemoListener listener;
 void setup() {
     Serial.begin(115200);
 
+    auto* eventManager = Event::EventManager::GetInstance();
     auto& transports = Event::EventTransportManager::GetInstance();
+
     transports.RegisterTransport(&loopback);
     transports.RegisterBidirectionalEvents<DistributedCounterEvent>();
+
+    // Construction, resource initialization, and execution are deliberately
+    // separate lifecycle phases for both managers.
+    eventManager->Initialize();
     transports.Initialize();
+    eventManager->Start();
+    transports.Start();
 
     auto* event = new DistributedCounterEvent();
     event->Counter = 42;

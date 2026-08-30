@@ -70,9 +70,10 @@ namespace ESPressio::Event {
 /// </summary>
 /// <remarks>
 /// EventTransportManager behaves like an ordinary Event receiver: EventManager fans one Event reference into this
-/// subscriber mailbox for each transport-enabled Serializable Event type. The Event is serialized once, then released
-/// by EventReceiver after this subscriber callback returns. Physical transports receive shared immutable ownership of
-/// the resulting ExternalPreferred packet and may move that handle into their own asynchronous execution contexts.
+/// subscriber mailbox for each transport-enabled Serializable Event type. Its coordinator Thread transfers outbound
+/// ownership into a bounded TaskExecutor and returns immediately; serialization, transport observation, and fanout execute
+/// off the coordinator stack. The executor serializes once into ExternalPreferred storage, releases Event ownership after
+/// Event-aware serialized-stage notifications, and then fans shared immutable packet ownership to physical transports.
 /// Inbound physical packets enter as owned buffers and are deserialized before being submitted to EventManager.
 /// </remarks>
 class EventTransportManager final :
@@ -215,6 +216,9 @@ private:
     std::atomic<uint64_t> _rejectedOutboundWorkCount{0};
     std::atomic<std::size_t> _peakInboundCount{0};
     Task::TaskExecutor<OutboundWork> _outboundExecutor;
+    // Single-worker scratch storage retains target-vector capacity in PSRAM
+    // rather than allocating a fresh vector for every outbound Event.
+    TransportVector _outboundTargets;
     std::atomic<bool> _outboundExecutorInitialized{false};
     std::atomic<bool> _outboundExecutorReady{false};
     std::atomic<bool> _initialized{false};
@@ -382,7 +386,8 @@ private:
         uint64_t typeID = 0;
         uint64_t messageID = 0;
         RuntimeRegistrationPtr runtime;
-        TransportVector targets;
+        TransportVector& targets = _outboundTargets;
+        targets.clear();
         {
             std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             const auto runtimeType = _runtimeTypes.find(eventType);
@@ -523,6 +528,7 @@ private:
             });
         }
 
+        targets.clear();
         _processedOutboundCount.fetch_add(1, std::memory_order_relaxed);
     }
 

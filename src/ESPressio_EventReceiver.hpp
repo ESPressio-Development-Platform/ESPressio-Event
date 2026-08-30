@@ -34,15 +34,44 @@ enum class EventCollectionCapacityPolicy : uint8_t {
     ReleaseAfterDrain
 };
 
+/// <summary>Contract for an object that can retain queued or stacked Event references.</summary>
 class IEventReceiver {
 public:
     virtual ~IEventReceiver() = default;
-    virtual void QueueEvent(IEvent* event, EventPriority priority = EventPriority::Normal) = 0;
-    virtual void StackEvent(IEvent* event, EventPriority priority = EventPriority::Normal) = 0;
+
+    /// <summary>Queues an Event using the receiver's configured producer-overflow policy.</summary>
+    virtual void QueueEvent(
+        IEvent* event,
+        EventPriority priority = EventPriority::Normal
+    ) = 0;
+
+    /// <summary>Stacks an Event using the receiver's configured producer-overflow policy.</summary>
+    virtual void StackEvent(
+        IEvent* event,
+        EventPriority priority = EventPriority::Normal
+    ) = 0;
+
+    /// <summary>Attempts to queue an Event without ever blocking the caller.</summary>
+    /// <returns>True when the Event was admitted; false when it was rejected.</returns>
+    virtual bool TryQueueEvent(
+        IEvent* event,
+        EventPriority priority = EventPriority::Normal
+    ) = 0;
+
+    /// <summary>Attempts to stack an Event without ever blocking the caller.</summary>
+    /// <returns>True when the Event was admitted; false when it was rejected.</returns>
+    virtual bool TryStackEvent(
+        IEvent* event,
+        EventPriority priority = EventPriority::Normal
+    ) = 0;
 };
 
 /// <summary>Thread-safe priority receiver retaining Event references until queued or stacked work is processed.</summary>
-/// <remarks>Mutable receiver state and producer-capacity signalling are routed entirely through ESPressio System synchronization. Queue entries are FIFO, stack entries LIFO, and higher priorities drain first. External-preferred backing capacity is retained by default.</remarks>
+/// <remarks>
+/// Direct QueueEvent/StackEvent calls honour the configured producer-overflow policy, including BlockProducer.
+/// Broker fan-out should use TryQueueEvent/TryStackEvent so a saturated consumer can never block a global dispatcher.
+/// Queue entries are FIFO, stack entries LIFO, higher priorities drain first, and backing storage prefers external memory.
+/// </remarks>
 class EventReceiver : public IEventReceiver {
 private:
     struct PendingEvent {
@@ -50,16 +79,17 @@ private:
         uint64_t sequence = 0;
     };
 
-    static constexpr auto ExternalPreferred = System::Memory::MemoryPolicy::ExternalPreferred;
+    static constexpr auto ExternalPreferred =
+        System::Memory::MemoryPolicy::ExternalPreferred;
     static constexpr uint32_t CapacityWaitRecheckMilliseconds = 10;
-    using EventDispatchCollection = System::Memory::Vector<PendingEvent, ExternalPreferred>;
-    static constexpr size_t PriorityCount = static_cast<size_t>(EventPriority::High) + 1;
-    using EventCollection = std::array<EventDispatchCollection, PriorityCount>;
+    static constexpr size_t PriorityCount =
+        static_cast<size_t>(EventPriority::High) + 1;
     static constexpr size_t CapacitySampleCount = 16;
 
-    static constexpr size_t PriorityIndex(EventPriority priority) {
-        return static_cast<size_t>(priority);
-    }
+    using EventDispatchCollection =
+        System::Memory::Vector<PendingEvent, ExternalPreferred>;
+    using EventCollection =
+        std::array<EventDispatchCollection, PriorityCount>;
 
     mutable System::Synchronization::Mutex _eventsMutex;
     std::unique_ptr<System::Synchronization::ISignal> _capacityAvailable =
@@ -82,8 +112,14 @@ private:
     uint64_t _droppedEventCount = 0;
     bool _acceptingPendingEvents = true;
 
+    static constexpr size_t PriorityIndex(EventPriority priority) {
+        return static_cast<size_t>(priority);
+    }
+
     void SignalCapacityChange() noexcept {
-        if (_capacityAvailable != nullptr) (void)_capacityAvailable->Give();
+        if (_capacityAvailable != nullptr) {
+            (void)_capacityAvailable->Give();
+        }
     }
 
     size_t RetainedEventCountLocked() const {
@@ -92,7 +128,9 @@ private:
 
     static uint64_t NextSequence(uint64_t& sequence) {
         const uint64_t result = sequence;
-        if (sequence != std::numeric_limits<uint64_t>::max()) ++sequence;
+        if (sequence != std::numeric_limits<uint64_t>::max()) {
+            ++sequence;
+        }
         return result;
     }
 
@@ -111,7 +149,10 @@ private:
     }
 
     void ApplyCapacityPolicyLocked(EventDispatchCollection& collection) {
-        if (_capacityPolicy == EventCollectionCapacityPolicy::Retain) return;
+        if (_capacityPolicy == EventCollectionCapacityPolicy::Retain) {
+            return;
+        }
+
         if (_capacityPolicy == EventCollectionCapacityPolicy::ReleaseAfterDrain) {
             if (collection.empty()) {
                 EventDispatchCollection replacement;
@@ -167,7 +208,9 @@ private:
 
         consider(_priorityQueues);
         consider(_priorityStacks);
-        if (selected == nullptr) return {};
+        if (selected == nullptr) {
+            return {};
+        }
 
         PendingEvent removed = (*selected)[selectedIndex];
         selected->erase(selected->begin() + selectedIndex);
@@ -179,23 +222,38 @@ private:
         for (size_t priorityID = 0; priorityID < PriorityCount; ++priorityID) {
             auto removeFrom = [&](EventCollection& collections) {
                 EventDispatchCollection& collection = collections[priorityID];
-                if (collection.empty()) return PendingEvent{};
+                if (collection.empty()) {
+                    return PendingEvent{};
+                }
                 PendingEvent result = collection.front();
                 collection.erase(collection.begin());
                 removed = true;
                 --_pendingEventCount;
                 return result;
             };
+
             PendingEvent result = removeFrom(_priorityQueues);
-            if (removed) return result;
+            if (removed) {
+                return result;
+            }
             result = removeFrom(_priorityStacks);
-            if (removed) return result;
+            if (removed) {
+                return result;
+            }
         }
         return {};
     }
 
-    void AddEvent(IEvent* event, EventPriority priority, EventDispatchMethod method) {
-        if (event == nullptr) return;
+    bool AddEvent(
+        IEvent* event,
+        EventPriority priority,
+        EventDispatchMethod method,
+        bool allowBlocking
+    ) {
+        if (event == nullptr) {
+            return false;
+        }
+
         event->__dispatch();
         event->__ref();
         IEvent* displacedEvent = nullptr;
@@ -207,7 +265,7 @@ private:
                 ++_rejectedEventCount;
                 lock.unlock();
                 event->__unref();
-                return;
+                return false;
             }
 
             while (
@@ -218,40 +276,52 @@ private:
                     ++_rejectedEventCount;
                     lock.unlock();
                     event->__unref();
-                    return;
+                    return false;
                 }
 
                 switch (_overflowPolicy) {
                     case EventQueueOverflowPolicy::BlockProducer:
+                        if (!allowBlocking) {
+                            ++_rejectedEventCount;
+                            lock.unlock();
+                            event->__unref();
+                            return false;
+                        }
                         lock.unlock();
                         if (_capacityAvailable != nullptr) {
-                            (void)_capacityAvailable->Wait(CapacityWaitRecheckMilliseconds);
+                            (void)_capacityAvailable->Wait(
+                                CapacityWaitRecheckMilliseconds
+                            );
                         }
                         lock.lock();
                         continue;
+
                     case EventQueueOverflowPolicy::RejectIncoming:
                         ++_rejectedEventCount;
                         lock.unlock();
                         event->__unref();
-                        return;
+                        return false;
+
                     case EventQueueOverflowPolicy::DropOldest:
                         displacedEvent = RemoveOldestLocked().event;
                         if (displacedEvent == nullptr) {
                             ++_rejectedEventCount;
                             lock.unlock();
                             event->__unref();
-                            return;
+                            return false;
                         }
                         ++_droppedEventCount;
                         break;
+
                     case EventQueueOverflowPolicy::DropLowestPriority: {
                         bool removed = false;
-                        PendingEvent displaced = RemoveLowestPriorityLocked(removed);
+                        PendingEvent displaced =
+                            RemoveLowestPriorityLocked(removed);
                         if (!removed) {
                             ++_rejectedEventCount;
                             lock.unlock();
                             event->__unref();
-                            return;
+                            return false;
                         }
                         displacedEvent = displaced.event;
                         ++_droppedEventCount;
@@ -261,9 +331,10 @@ private:
                 break;
             }
 
-            EventCollection& collections = method == EventDispatchMethod::Queue
-                ? _priorityQueues
-                : _priorityStacks;
+            EventCollection& collections =
+                method == EventDispatchMethod::Queue
+                    ? _priorityQueues
+                    : _priorityStacks;
             collections[PriorityIndex(priority)].push_back(
                 PendingEvent{event, NextSequence(_nextSequence)}
             );
@@ -275,12 +346,19 @@ private:
             accepted = true;
         } catch (...) {
             event->__unref();
-            if (displacedEvent != nullptr) displacedEvent->__unref();
+            if (displacedEvent != nullptr) {
+                displacedEvent->__unref();
+            }
             throw;
         }
 
-        if (displacedEvent != nullptr) displacedEvent->__unref();
-        if (accepted) EventAdded();
+        if (displacedEvent != nullptr) {
+            displacedEvent->__unref();
+        }
+        if (accepted) {
+            EventAdded();
+        }
+        return accepted;
     }
 
     template<typename TCallback>
@@ -295,7 +373,9 @@ private:
         {
             std::lock_guard<System::Synchronization::Mutex> lock(_eventsMutex);
             EventDispatchCollection& source = collections[priorityIndex];
-            if (source.empty()) return;
+            if (source.empty()) {
+                return;
+            }
             pending.swap(source);
             _pendingEventCount -= pending.size();
             _processingEventCount += pending.size();
@@ -322,15 +402,20 @@ private:
         class PendingReferences final {
             EventDispatchCollection& _events;
         public:
-            explicit PendingReferences(EventDispatchCollection& events) : _events(events) {}
+            explicit PendingReferences(EventDispatchCollection& events)
+                : _events(events) {}
             ~PendingReferences() {
                 for (PendingEvent& pending : _events) {
-                    if (pending.event != nullptr) pending.event->__unref();
+                    if (pending.event != nullptr) {
+                        pending.event->__unref();
+                    }
                 }
             }
             void Release(size_t index) {
-                _events[index].event->__unref();
-                _events[index].event = nullptr;
+                if (_events[index].event != nullptr) {
+                    _events[index].event->__unref();
+                    _events[index].event = nullptr;
+                }
             }
         } references(pending);
 
@@ -374,7 +459,11 @@ protected:
 
     template<typename TCallback>
     void WithEvents(TCallback&& callback) {
-        for (int priorityID = static_cast<int>(EventPriority::High); priorityID >= 0; --priorityID) {
+        for (
+            int priorityID = static_cast<int>(EventPriority::High);
+            priorityID >= 0;
+            --priorityID
+        ) {
             ProcessCollection(
                 _priorityStacks,
                 static_cast<EventPriority>(priorityID),
@@ -382,7 +471,11 @@ protected:
                 callback
             );
         }
-        for (int priorityID = static_cast<int>(EventPriority::High); priorityID >= 0; --priorityID) {
+        for (
+            int priorityID = static_cast<int>(EventPriority::High);
+            priorityID >= 0;
+            --priorityID
+        ) {
             ProcessCollection(
                 _priorityQueues,
                 static_cast<EventPriority>(priorityID),
@@ -402,9 +495,14 @@ protected:
             _pendingEventCount = 0;
         }
         SignalCapacityChange();
+
         auto release = [](EventCollection& collections) {
             for (auto& collection : collections) {
-                for (PendingEvent& pending : collection) pending.event->__unref();
+                for (PendingEvent& pending : collection) {
+                    if (pending.event != nullptr) {
+                        pending.event->__unref();
+                    }
+                }
             }
         };
         release(queues);
@@ -419,12 +517,32 @@ public:
         ClearPendingEvents();
     }
 
-    void QueueEvent(IEvent* event, EventPriority priority = EventPriority::Normal) override {
-        AddEvent(event, priority, EventDispatchMethod::Queue);
+    void QueueEvent(
+        IEvent* event,
+        EventPriority priority = EventPriority::Normal
+    ) override {
+        (void)AddEvent(event, priority, EventDispatchMethod::Queue, true);
     }
 
-    void StackEvent(IEvent* event, EventPriority priority = EventPriority::Normal) override {
-        AddEvent(event, priority, EventDispatchMethod::Stack);
+    void StackEvent(
+        IEvent* event,
+        EventPriority priority = EventPriority::Normal
+    ) override {
+        (void)AddEvent(event, priority, EventDispatchMethod::Stack, true);
+    }
+
+    bool TryQueueEvent(
+        IEvent* event,
+        EventPriority priority = EventPriority::Normal
+    ) override {
+        return AddEvent(event, priority, EventDispatchMethod::Queue, false);
+    }
+
+    bool TryStackEvent(
+        IEvent* event,
+        EventPriority priority = EventPriority::Normal
+    ) override {
+        return AddEvent(event, priority, EventDispatchMethod::Stack, false);
     }
 
     size_t GetMaximumPendingEventCount() const {
@@ -458,11 +576,15 @@ public:
         return _capacityPolicy;
     }
 
-    void SetEventCollectionCapacityPolicy(EventCollectionCapacityPolicy policy) {
+    void SetEventCollectionCapacityPolicy(
+        EventCollectionCapacityPolicy policy
+    ) {
         std::lock_guard<System::Synchronization::Mutex> lock(_eventsMutex);
         _capacityPolicy = policy;
         auto apply = [&](EventCollection& collections) {
-            for (auto& collection : collections) ApplyCapacityPolicyLocked(collection);
+            for (auto& collection : collections) {
+                ApplyCapacityPolicyLocked(collection);
+            }
         };
         apply(_priorityQueues);
         apply(_priorityStacks);
@@ -482,7 +604,9 @@ public:
         std::lock_guard<System::Synchronization::Mutex> lock(_eventsMutex);
         size_t capacity = 0;
         auto addCapacity = [&](const EventCollection& collections) {
-            for (const auto& collection : collections) capacity += collection.capacity();
+            for (const auto& collection : collections) {
+                capacity += collection.capacity();
+            }
         };
         addCapacity(_priorityQueues);
         addCapacity(_priorityStacks);

@@ -2,9 +2,9 @@
 
 #include <algorithm>
 #include <array>
-#include <condition_variable>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <mutex>
 #include <utility>
 
@@ -21,7 +21,6 @@
 namespace ESPressio {
 namespace Event {
 
-/// <summary>Defines how a receiver behaves when its retained event capacity is exhausted.</summary>
 enum class EventQueueOverflowPolicy : uint8_t {
     BlockProducer,
     RejectIncoming,
@@ -29,7 +28,6 @@ enum class EventQueueOverflowPolicy : uint8_t {
     DropLowestPriority
 };
 
-/// <summary>Controls how queue/stack backing capacity is retained after events are drained.</summary>
 enum class EventCollectionCapacityPolicy : uint8_t {
     Retain,
     ShrinkWhenUnderutilized,
@@ -44,7 +42,7 @@ public:
 };
 
 /// <summary>Thread-safe priority receiver retaining Event references until queued or stacked work is processed.</summary>
-/// <remarks>Mutable receiver state is serialized through ESPressio System synchronization. Queue entries are FIFO, stack entries LIFO, and higher priorities drain first. External-preferred backing capacity is retained by default.</remarks>
+/// <remarks>Mutable receiver state and producer-capacity signalling are routed entirely through ESPressio System synchronization. Queue entries are FIFO, stack entries LIFO, and higher priorities drain first. External-preferred backing capacity is retained by default.</remarks>
 class EventReceiver : public IEventReceiver {
 private:
     struct PendingEvent {
@@ -53,6 +51,7 @@ private:
     };
 
     static constexpr auto ExternalPreferred = System::Memory::MemoryPolicy::ExternalPreferred;
+    static constexpr uint32_t CapacityWaitRecheckMilliseconds = 10;
     using EventDispatchCollection = System::Memory::Vector<PendingEvent, ExternalPreferred>;
     static constexpr size_t PriorityCount = static_cast<size_t>(EventPriority::High) + 1;
     using EventCollection = std::array<EventDispatchCollection, PriorityCount>;
@@ -63,9 +62,8 @@ private:
     }
 
     mutable System::Synchronization::Mutex _eventsMutex;
-    // condition_variable_any is retained solely for the portable predicate-wait
-    // semantic; the lock it releases/reacquires is the System-provided mutex.
-    std::condition_variable_any _capacityAvailable;
+    std::unique_ptr<System::Synchronization::ISignal> _capacityAvailable =
+        System::Synchronization::CreateBinarySignal(false);
     EventCollection _priorityQueues;
     EventCollection _priorityStacks;
     size_t _pendingEventCount = 0;
@@ -83,6 +81,10 @@ private:
     uint64_t _rejectedEventCount = 0;
     uint64_t _droppedEventCount = 0;
     bool _acceptingPendingEvents = true;
+
+    void SignalCapacityChange() noexcept {
+        if (_capacityAvailable != nullptr) (void)_capacityAvailable->Give();
+    }
 
     size_t RetainedEventCountLocked() const {
         return _pendingEventCount + _processingEventCount;
@@ -221,12 +223,11 @@ private:
 
                 switch (_overflowPolicy) {
                     case EventQueueOverflowPolicy::BlockProducer:
-                        _capacityAvailable.wait(lock, [&]() {
-                            return _maximumPendingEventCount == 0 ||
-                                RetainedEventCountLocked() < _maximumPendingEventCount ||
-                                !_acceptingPendingEvents ||
-                                _overflowPolicy != EventQueueOverflowPolicy::BlockProducer;
-                        });
+                        lock.unlock();
+                        if (_capacityAvailable != nullptr) {
+                            (void)_capacityAvailable->Wait(CapacityWaitRecheckMilliseconds);
+                        }
+                        lock.lock();
                         continue;
                     case EventQueueOverflowPolicy::RejectIncoming:
                         ++_rejectedEventCount;
@@ -314,7 +315,7 @@ private:
                     );
                     _receiver._processingEventCount -= _count;
                 }
-                _receiver._capacityAvailable.notify_all();
+                _receiver.SignalCapacityChange();
             }
         } processing(*this, pending.size());
 
@@ -368,7 +369,7 @@ protected:
             std::lock_guard<System::Synchronization::Mutex> lock(_eventsMutex);
             _acceptingPendingEvents = false;
         }
-        _capacityAvailable.notify_all();
+        SignalCapacityChange();
     }
 
     template<typename TCallback>
@@ -400,7 +401,7 @@ protected:
             stacks.swap(_priorityStacks);
             _pendingEventCount = 0;
         }
-        _capacityAvailable.notify_all();
+        SignalCapacityChange();
         auto release = [](EventCollection& collections) {
             for (auto& collection : collections) {
                 for (PendingEvent& pending : collection) pending.event->__unref();
@@ -436,7 +437,7 @@ public:
             std::lock_guard<System::Synchronization::Mutex> lock(_eventsMutex);
             _maximumPendingEventCount = maximum;
         }
-        _capacityAvailable.notify_all();
+        SignalCapacityChange();
     }
 
     EventQueueOverflowPolicy GetEventQueueOverflowPolicy() const {
@@ -449,7 +450,7 @@ public:
             std::lock_guard<System::Synchronization::Mutex> lock(_eventsMutex);
             _overflowPolicy = policy;
         }
-        _capacityAvailable.notify_all();
+        SignalCapacityChange();
     }
 
     EventCollectionCapacityPolicy GetEventCollectionCapacityPolicy() const {

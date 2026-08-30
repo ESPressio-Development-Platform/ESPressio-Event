@@ -25,6 +25,11 @@
             "platforms": "*"
         },
         {
+            "name": "ESPressio-Task",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Task.git#feature/1-task-execution",
+            "platforms": "*"
+        },
+        {
             "name": "ESPressio-Threads",
             "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git#optimisation/69-resource-footprint",
             "platforms": "espressif32"

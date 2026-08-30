@@ -41,8 +41,8 @@ namespace Event {
 /// Constructing/accessing the singleton has no execution or ThreadManager-registration side effects. Initialize() registers
 /// and creates the broker and observer execution resources, and Start() explicitly releases them to run. Events may be queued
 /// before Start(); they remain pending until the broker starts. EventManager never executes observer callbacks. Dispatch
-/// observation is submitted to a bounded TaskExecutor that owns one additional intrusive Event reference until observer
-/// notification completes or the work item is discarded. Downstream receiver admission is non-blocking through EventDispatcher.
+/// observation is submitted to a bounded TaskExecutor only while observers are actually registered; otherwise no additional
+/// Event reference or observer work item is created. Downstream receiver admission is non-blocking through EventDispatcher.
 /// </remarks>
 class EventManager : public Thread, public EventDispatcher {
 private:
@@ -95,7 +95,7 @@ private:
             }
         } reference(work.Event);
 
-        if (work.Event == nullptr || !_observable) return;
+        if (work.Event == nullptr || !_observable || !_observable->HasObservers()) return;
         try {
             _observable->EventDispatched(
                 work.Event,
@@ -113,7 +113,9 @@ private:
     ) noexcept {
         if (
             event == nullptr ||
-            !_observerExecutorReady.load(std::memory_order_acquire)
+            !_observerExecutorReady.load(std::memory_order_acquire) ||
+            !_observable ||
+            !_observable->HasObservers()
         ) return;
 
         ObserverWork work;
@@ -139,7 +141,7 @@ private:
     }
 
 protected:
-    /// <summary>Waits for ingress work, fans it out, and schedules asynchronous dispatch observation.</summary>
+    /// <summary>Waits for ingress work, fans it out, and schedules asynchronous dispatch observation when required.</summary>
     void OnLoop() override {
         if (_eventSignal != nullptr) {
             if (GetPendingEventCount() == 0) {
@@ -244,6 +246,11 @@ public:
     /// <summary>Returns whether the asynchronous observer executor is available.</summary>
     bool IsObserverExecutorReady() const noexcept {
         return _observerExecutorReady.load(std::memory_order_acquire);
+    }
+
+    /// <summary>Returns whether any EventManager observer is currently registered.</summary>
+    bool HasObservers() const noexcept {
+        return _observable && _observable->HasObservers();
     }
 
     static EventManager* GetInstance() {

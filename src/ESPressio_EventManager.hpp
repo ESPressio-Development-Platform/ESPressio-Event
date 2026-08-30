@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <memory>
+#include <type_traits>
 
 #include <ESPressio_Synchronization.hpp>
 #include <ESPressio_TaskExecutor.hpp>
@@ -77,9 +78,7 @@ private:
     }
 
     void ReleaseObserverWork(const ObserverWork& work) noexcept {
-        if (work.Event != nullptr) {
-            work.Event->__unref();
-        }
+        if (work.Event != nullptr) work.Event->__unref();
     }
 
     void ProcessObserverWork(const ObserverWork& work) noexcept {
@@ -101,9 +100,7 @@ private:
                 work.Priority,
                 work.Context
             );
-        } catch (...) {
-            // Observation is isolated from both the broker and its executor.
-        }
+        } catch (...) {}
     }
 
     void SubmitObserverNotification(
@@ -114,9 +111,7 @@ private:
         if (
             event == nullptr ||
             !_observerExecutorReady.load(std::memory_order_acquire)
-        ) {
-            return;
-        }
+        ) return;
 
         ObserverWork work;
         work.Event = event;
@@ -126,9 +121,7 @@ private:
 
         event->__ref();
         const auto status = _observerExecutor.Submit(work);
-        if (status != Task::TaskExecutionStatus::Success) {
-            event->__unref();
-        }
+        if (status != Task::TaskExecutionStatus::Success) event->__unref();
     }
 
     EventManager()
@@ -138,12 +131,8 @@ private:
         SetCoreID(ESPRESSIO_EVENT_MANAGER_CORE_ID);
 
         const auto observerInitialization = _observerExecutor.Initialize(
-            [this](const ObserverWork& work) {
-                ProcessObserverWork(work);
-            },
-            [this](const ObserverWork& work) {
-                ReleaseObserverWork(work);
-            }
+            [this](const ObserverWork& work) { ProcessObserverWork(work); },
+            [this](const ObserverWork& work) { ReleaseObserverWork(work); }
         );
         if (
             observerInitialization == Task::TaskExecutionStatus::Success &&
@@ -179,9 +168,7 @@ protected:
     }
 
     void EventAdded() override {
-        if (_eventSignal != nullptr) {
-            (void)_eventSignal->Give();
-        }
+        if (_eventSignal != nullptr) (void)_eventSignal->Give();
     }
 
 public:

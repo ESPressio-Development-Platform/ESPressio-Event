@@ -57,7 +57,7 @@ namespace ESPressio {
         };
 
         /// <summary>Thread-safe priority receiver that retains Event references until queued or stacked work is processed.</summary>
-        /// <remarks>Queue entries are processed FIFO, stack entries LIFO, and higher priorities are drained before lower priorities. Capacity and overflow behavior are configurable.</remarks>
+        /// <remarks>Queue entries are processed FIFO, stack entries LIFO, and higher priorities are drained before lower priorities. Capacity and overflow behavior are configurable. External-preferred queue capacity is retained by default to avoid allocation churn; callers that need aggressive reclamation may select an explicit shrink policy.</remarks>
         class EventReceiver : public IEventReceiver {
             private:
                 struct PendingEvent {
@@ -104,7 +104,7 @@ namespace ESPressio {
                 EventQueueOverflowPolicy _overflowPolicy =
                     EventQueueOverflowPolicy::BlockProducer;
                 EventCollectionCapacityPolicy _capacityPolicy =
-                    EventCollectionCapacityPolicy::ShrinkWhenUnderutilized;
+                    EventCollectionCapacityPolicy::Retain;
                 size_t _minimumRetainedCapacity = 4;
                 size_t _capacityExcessFactor = 2;
                 std::array<size_t, CapacitySampleCount> _recentDrainSizes{};
@@ -154,8 +154,18 @@ namespace ESPressio {
                     }
                     if (_capacityPolicy ==
                         EventCollectionCapacityPolicy::ReleaseAfterDrain) {
-                        EventDispatchCollection replacement(collection);
-                        replacement.shrink_to_fit();
+                        if (collection.empty()) {
+                            EventDispatchCollection replacement;
+                            collection.swap(replacement);
+                            return;
+                        }
+                        EventDispatchCollection replacement;
+                        replacement.reserve(collection.size());
+                        replacement.insert(
+                            replacement.end(),
+                            std::make_move_iterator(collection.begin()),
+                            std::make_move_iterator(collection.end())
+                        );
                         collection.swap(replacement);
                         return;
                     }

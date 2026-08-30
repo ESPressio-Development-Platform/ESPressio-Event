@@ -38,8 +38,10 @@ namespace Event {
 
 /// <summary>Singleton non-blocking broker that drains the global Event ingress queue and fans references out to receivers.</summary>
 /// <remarks>
-/// EventManager never executes observer callbacks. Dispatch observation is submitted to a bounded TaskExecutor that owns
-/// one additional intrusive Event reference until observer notification completes or the work item is discarded.
+/// Constructing/accessing the singleton has no execution side effects. Initialize() creates the broker and observer execution
+/// resources, and Start() explicitly releases them to run. Events may be queued before Start(); they remain pending until the
+/// broker starts. EventManager never executes observer callbacks. Dispatch observation is submitted to a bounded TaskExecutor
+/// that owns one additional intrusive Event reference until observer notification completes or the work item is discarded.
 /// Downstream receiver admission is non-blocking through EventDispatcher.
 /// </remarks>
 class EventManager : public Thread, public EventDispatcher {
@@ -63,6 +65,7 @@ private:
         CreateEventManagerObservable();
 
     Task::TaskExecutor<ObserverWork> _observerExecutor;
+    std::atomic<bool> _observerExecutorInitialized{false};
     std::atomic<bool> _observerExecutorReady{false};
 
     static Task::TaskConfiguration CreateObserverTaskConfiguration() {
@@ -129,20 +132,6 @@ private:
           _observerExecutor(CreateObserverTaskConfiguration()) {
         SetPriority(ESPRESSIO_EVENT_MANAGER_PRIORITY);
         SetCoreID(ESPRESSIO_EVENT_MANAGER_CORE_ID);
-
-        const auto observerInitialization = _observerExecutor.Initialize(
-            [this](const ObserverWork& work) { ProcessObserverWork(work); },
-            [this](const ObserverWork& work) { ReleaseObserverWork(work); }
-        );
-        if (
-            observerInitialization == Task::TaskExecutionStatus::Success &&
-            _observerExecutor.Start() == Task::TaskExecutionStatus::Success
-        ) {
-            _observerExecutorReady.store(true, std::memory_order_release);
-        }
-
-        Initialize();
-        Start();
     }
 
 protected:
@@ -172,6 +161,67 @@ protected:
     }
 
 public:
+    /// <summary>Initializes broker and asynchronous observer execution resources without starting Event dispatch.</summary>
+    ThreadInitializationStatus Initialize() override {
+        if (!_observerExecutorInitialized.load(std::memory_order_acquire)) {
+            const auto observerInitialization = _observerExecutor.Initialize(
+                [this](const ObserverWork& work) { ProcessObserverWork(work); },
+                [this](const ObserverWork& work) { ReleaseObserverWork(work); }
+            );
+            if (
+                observerInitialization != Task::TaskExecutionStatus::Success &&
+                observerInitialization != Task::TaskExecutionStatus::AlreadyInitialized
+            ) {
+                return ThreadInitializationStatus::TaskCreationFailed;
+            }
+            _observerExecutorInitialized.store(true, std::memory_order_release);
+        }
+
+        const auto threadInitialization = Thread::Initialize();
+        if (
+            threadInitialization != ThreadInitializationStatus::Success &&
+            threadInitialization != ThreadInitializationStatus::AlreadyInitialized
+        ) {
+            _observerExecutor.Stop();
+            _observerExecutorInitialized.store(false, std::memory_order_release);
+            _observerExecutorReady.store(false, std::memory_order_release);
+        }
+        return threadInitialization;
+    }
+
+    /// <summary>Starts asynchronous observer execution and then releases the broker Thread to dispatch pending Events.</summary>
+    ThreadInitializationStatus Start() override {
+        if (!_observerExecutorInitialized.load(std::memory_order_acquire)) {
+            const auto initialization = Initialize();
+            if (
+                initialization != ThreadInitializationStatus::Success &&
+                initialization != ThreadInitializationStatus::AlreadyInitialized
+            ) return initialization;
+        }
+
+        if (!_observerExecutorReady.load(std::memory_order_acquire)) {
+            const auto observerStart = _observerExecutor.Start();
+            if (
+                observerStart != Task::TaskExecutionStatus::Success &&
+                observerStart != Task::TaskExecutionStatus::AlreadyStarted
+            ) {
+                return ThreadInitializationStatus::TaskCreationFailed;
+            }
+            _observerExecutorReady.store(true, std::memory_order_release);
+        }
+
+        const auto threadStart = Thread::Start();
+        if (
+            threadStart != ThreadInitializationStatus::Success &&
+            threadStart != ThreadInitializationStatus::AlreadyInitialized
+        ) {
+            _observerExecutorReady.store(false, std::memory_order_release);
+            _observerExecutor.Stop();
+            _observerExecutorInitialized.store(false, std::memory_order_release);
+        }
+        return threadStart;
+    }
+
     Observable::ObserverHandlePtr RegisterObserver(
         IEventManagerObserver* observer
     ) {
@@ -200,6 +250,7 @@ public:
     ~EventManager() override {
         _observerExecutorReady.store(false, std::memory_order_release);
         _observerExecutor.Stop();
+        _observerExecutorInitialized.store(false, std::memory_order_release);
     }
 };
 

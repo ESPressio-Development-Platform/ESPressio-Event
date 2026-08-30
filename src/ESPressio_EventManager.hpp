@@ -38,11 +38,11 @@ namespace Event {
 
 /// <summary>Singleton non-blocking broker that drains the global Event ingress queue and fans references out to receivers.</summary>
 /// <remarks>
-/// Constructing/accessing the singleton has no execution side effects. Initialize() creates the broker and observer execution
-/// resources, and Start() explicitly releases them to run. Events may be queued before Start(); they remain pending until the
-/// broker starts. EventManager never executes observer callbacks. Dispatch observation is submitted to a bounded TaskExecutor
-/// that owns one additional intrusive Event reference until observer notification completes or the work item is discarded.
-/// Downstream receiver admission is non-blocking through EventDispatcher.
+/// Constructing/accessing the singleton has no execution or ThreadManager-registration side effects. Initialize() registers
+/// and creates the broker and observer execution resources, and Start() explicitly releases them to run. Events may be queued
+/// before Start(); they remain pending until the broker starts. EventManager never executes observer callbacks. Dispatch
+/// observation is submitted to a bounded TaskExecutor that owns one additional intrusive Event reference until observer
+/// notification completes or the work item is discarded. Downstream receiver admission is non-blocking through EventDispatcher.
 /// </remarks>
 class EventManager : public Thread, public EventDispatcher {
 private:
@@ -128,7 +128,10 @@ private:
     }
 
     EventManager()
-        : Thread(ThreadReleasePolicy::ReleaseOnTerminate),
+        : Thread(
+              ThreadReleasePolicy::ReleaseOnTerminate,
+              ThreadRegistrationPolicy::DeferredUntilInitialize
+          ),
           _observerExecutor(CreateObserverTaskConfiguration()) {
         SetPriority(ESPRESSIO_EVENT_MANAGER_PRIORITY);
         SetCoreID(ESPRESSIO_EVENT_MANAGER_CORE_ID);

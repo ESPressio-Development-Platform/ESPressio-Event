@@ -130,7 +130,14 @@ jobs:
           #include <ESPressio_ThreadEventBridges.hpp>
           #include <ESPressio_SystemClockEventBridge_Serializable.hpp>
           #include <ESPressio_ThreadEventBridges_Serializable.hpp>
-          void setup() {}
+
+          void setup() {
+              auto& transportManager = ESPressio::Event::EventTransportManager::GetInstance();
+              (void)transportManager.Initialize();
+              (void)transportManager.Start();
+              (void)transportManager.GetOutboundExecutionStatistics();
+              (void)transportManager.GetRejectedOutboundWorkCount();
+          }
           void loop() {}
           EOF
       - name: Compile ESP32 Event mechanism and downstream bridges without RTTI

@@ -135,6 +135,7 @@ private:
           _observerExecutor(CreateObserverTaskConfiguration()) {
         SetPriority(ESPRESSIO_EVENT_MANAGER_PRIORITY);
         SetCoreID(ESPRESSIO_EVENT_MANAGER_CORE_ID);
+        SetStartOnInitialize(false);
     }
 
 protected:

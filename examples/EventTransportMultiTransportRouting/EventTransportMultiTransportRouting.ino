@@ -52,6 +52,7 @@ ExampleTransport udpTransport("UDP");
 void setup() {
     Serial.begin(115200);
 
+    auto* eventManager = Event::EventManager::GetInstance();
     auto& manager = Event::EventTransportManager::GetInstance();
     manager.RegisterTransport(&espNowTransport);
     manager.RegisterTransport(&udpTransport);
@@ -67,7 +68,13 @@ void setup() {
     options.PendingOutbound = Event::EventTransportPendingAction::Discard;
     manager.UnregisterOutboundEvent<TelemetryEvent>(&udpTransport, options);
 
+    // Register/configure first, allocate resources second, then explicitly
+    // release the broker and transport coordinator to execute.
+    eventManager->Initialize();
     manager.Initialize();
+    eventManager->Start();
+    manager.Start();
+
     (new TelemetryEvent(42))->Queue();
 }
 

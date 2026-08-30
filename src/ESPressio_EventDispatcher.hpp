@@ -26,7 +26,12 @@ public:
 };
 
 /// <summary>Event receiver that redispatches queued events to receivers registered for each event type.</summary>
-/// <remarks>Receiver removal is safe during nested dispatch; inactive records are compacted when dispatch depth returns to zero. Receiver-registry backing storage prefers external memory. Downstream receiver calls execute without the registry lock held so receiver backpressure or nested routing cannot deadlock registry mutation.</remarks>
+/// <remarks>
+/// Receiver removal is safe during nested dispatch; inactive records are compacted when dispatch depth returns to zero.
+/// Receiver-registry backing storage prefers external memory. Downstream admission is always non-blocking so one saturated
+/// consumer cannot stall the global dispatcher. Receiver calls execute without the registry lock held so nested routing
+/// and registry mutation cannot deadlock the registry.
+/// </remarks>
 class EventDispatcher : public EventReceiver, public IEventDispatcher {
 private:
     struct ReceiverRecord {
@@ -58,19 +63,31 @@ private:
     }
 
     void FinishReceiverDispatchLocked() {
-        if (_dispatchDepth > 0) --_dispatchDepth;
-        if (_dispatchDepth == 0 && _needsCompaction) CompactReceiversLocked();
+        if (_dispatchDepth > 0) {
+            --_dispatchDepth;
+        }
+        if (_dispatchDepth == 0 && _needsCompaction) {
+            CompactReceiversLocked();
+        }
     }
 
 protected:
     /// <summary>Hook invoked after an event has been marked dispatched and before it is routed to typed receivers.</summary>
-    virtual void OnEventDispatched(IEvent*, EventDispatchMethod, EventPriority) {}
+    virtual void OnEventDispatched(
+        IEvent*,
+        EventDispatchMethod,
+        EventPriority
+    ) {}
 
     /// <summary>Removes all registered typed receivers, deferring physical compaction during active dispatch.</summary>
     void ClearEventReceivers() {
-        std::lock_guard<System::Synchronization::RecursiveMutex> lock(_eventReceiversMutex);
+        std::lock_guard<System::Synchronization::RecursiveMutex> lock(
+            _eventReceiversMutex
+        );
         if (_dispatchDepth > 0) {
-            for (auto& record : _eventReceivers) record.Active = false;
+            for (auto& record : _eventReceivers) {
+                record.Active = false;
+            }
             _needsCompaction = true;
         } else {
             _eventReceivers.clear();
@@ -85,7 +102,9 @@ protected:
                 OnEventDispatched(event, dispatchMethod, priority);
 
                 const EventTypeKey eventType = event->__getTypeKey();
-                if (eventType == nullptr) return;
+                if (eventType == nullptr) {
+                    return;
+                }
 
                 std::size_t receiverCount = 0;
                 {
@@ -103,20 +122,27 @@ protected:
                             std::lock_guard<System::Synchronization::RecursiveMutex> lock(
                                 _eventReceiversMutex
                             );
-                            if (index >= _eventReceivers.size()) continue;
+                            if (index >= _eventReceivers.size()) {
+                                continue;
+                            }
                             const ReceiverRecord& record = _eventReceivers[index];
                             if (
                                 record.Active &&
                                 record.Receiver != nullptr &&
                                 record.Type == eventType
-                            ) receiver = record.Receiver;
+                            ) {
+                                receiver = record.Receiver;
+                            }
                         }
 
-                        if (receiver == nullptr) continue;
+                        if (receiver == nullptr) {
+                            continue;
+                        }
+
                         if (dispatchMethod == EventDispatchMethod::Queue) {
-                            receiver->QueueEvent(event, priority);
+                            (void)receiver->TryQueueEvent(event, priority);
                         } else {
-                            receiver->StackEvent(event, priority);
+                            (void)receiver->TryStackEvent(event, priority);
                         }
                     }
                 } catch (...) {
@@ -137,24 +163,51 @@ protected:
 
 public:
     EventDispatcher() = default;
-    ~EventDispatcher() override { ClearEventReceivers(); }
+    ~EventDispatcher() override {
+        ClearEventReceivers();
+    }
 
-    void RegisterReceiver(EventTypeKey type, IEventReceiver* receiver) override {
-        if (type == nullptr || receiver == nullptr) return;
-        std::lock_guard<System::Synchronization::RecursiveMutex> lock(_eventReceiversMutex);
+    void RegisterReceiver(
+        EventTypeKey type,
+        IEventReceiver* receiver
+    ) override {
+        if (type == nullptr || receiver == nullptr) {
+            return;
+        }
+        std::lock_guard<System::Synchronization::RecursiveMutex> lock(
+            _eventReceiversMutex
+        );
         for (const auto& record : _eventReceivers) {
-            if (record.Active && record.Type == type && record.Receiver == receiver) return;
+            if (
+                record.Active &&
+                record.Type == type &&
+                record.Receiver == receiver
+            ) {
+                return;
+            }
         }
         _eventReceivers.emplace_back(ReceiverRecord{type, receiver, true});
     }
 
-    void UnregisterReceiver(EventTypeKey type, IEventReceiver* receiver) override {
-        std::lock_guard<System::Synchronization::RecursiveMutex> lock(_eventReceiversMutex);
+    void UnregisterReceiver(
+        EventTypeKey type,
+        IEventReceiver* receiver
+    ) override {
+        std::lock_guard<System::Synchronization::RecursiveMutex> lock(
+            _eventReceiversMutex
+        );
         for (auto& record : _eventReceivers) {
-            if (record.Active && record.Type == type && record.Receiver == receiver) {
+            if (
+                record.Active &&
+                record.Type == type &&
+                record.Receiver == receiver
+            ) {
                 record.Active = false;
-                if (_dispatchDepth > 0) _needsCompaction = true;
-                else CompactReceiversLocked();
+                if (_dispatchDepth > 0) {
+                    _needsCompaction = true;
+                } else {
+                    CompactReceiversLocked();
+                }
                 return;
             }
         }

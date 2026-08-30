@@ -9,6 +9,7 @@ add_executable(espressio_event_observer_tests test_event_observer.cpp)
 add_executable(espressio_event_reference_tests test_event_references.cpp)
 add_executable(espressio_event_dispatch_context_tests test_event_dispatch_context.cpp)
 add_executable(espressio_event_broker_nonblocking_tests test_event_broker_nonblocking.cpp)
+add_executable(espressio_event_dispatch_completion_tests test_event_dispatch_completion.cpp)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_executable(espressio_event_observer_no_rtti_tests test_event_observer.cpp)
@@ -16,14 +17,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 target_compile_features(espressio_event_dispatch_context_tests PRIVATE cxx_std_17)
-target_include_directories(espressio_event_dispatch_context_tests PRIVATE
-    ../src
-)
+target_include_directories(espressio_event_dispatch_context_tests PRIVATE ../src)
 target_compile_features(espressio_event_observer_tests PRIVATE cxx_std_17)
 target_compile_features(espressio_event_reference_tests PRIVATE cxx_std_17)
 target_compile_features(espressio_event_broker_nonblocking_tests PRIVATE cxx_std_17)
+target_compile_features(espressio_event_dispatch_completion_tests PRIVATE cxx_std_17)
 target_link_libraries(espressio_event_reference_tests PRIVATE Threads::Threads)
-target_include_directories(espressio_event_observer_tests PRIVATE
+
+set(EVENT_HOST_TEST_INCLUDE_DIRS
     stubs
     ../src
     ../../ESPressio-System/src
@@ -32,82 +33,52 @@ target_include_directories(espressio_event_observer_tests PRIVATE
     ../../ESPressio-Units/src
     ../../ESPressio_Timing/tests/stubs
 )
-target_include_directories(espressio_event_reference_tests PRIVATE
-    stubs
-    ../src
-    ../../ESPressio-System/src
-    ../../ESPressio-Observable/src
-    ../../ESPressio_Timing/src
-    ../../ESPressio-Units/src
-    ../../ESPressio_Timing/tests/stubs
-)
-target_include_directories(espressio_event_broker_nonblocking_tests PRIVATE
-    stubs
-    ../src
-    ../../ESPressio-System/src
-    ../../ESPressio-Observable/src
-    ../../ESPressio_Timing/src
-    ../../ESPressio-Units/src
-    ../../ESPressio_Timing/tests/stubs
-)
+
+target_include_directories(espressio_event_observer_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})
+target_include_directories(espressio_event_reference_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})
+target_include_directories(espressio_event_broker_nonblocking_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})
+target_include_directories(espressio_event_dispatch_completion_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})
 
 if(TARGET espressio_event_observer_no_rtti_tests)
     target_compile_features(espressio_event_observer_no_rtti_tests PRIVATE cxx_std_17)
-    target_include_directories(espressio_event_observer_no_rtti_tests PRIVATE
-        stubs
-        ../src
-        ../../ESPressio-System/src
-        ../../ESPressio-Observable/src
-        ../../ESPressio_Timing/src
-        ../../ESPressio-Units/src
-        ../../ESPressio_Timing/tests/stubs
-    )
+    target_include_directories(espressio_event_observer_no_rtti_tests PRIVATE ${EVENT_HOST_TEST_INCLUDE_DIRS})
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(espressio_event_observer_tests PRIVATE
-        -Wall -Wextra -Wpedantic -Werror
+    foreach(target
+        espressio_event_observer_tests
+        espressio_event_reference_tests
+        espressio_event_dispatch_context_tests
+        espressio_event_broker_nonblocking_tests
+        espressio_event_dispatch_completion_tests
     )
-    target_compile_options(espressio_event_reference_tests PRIVATE
-        -Wall -Wextra -Wpedantic -Werror
-    )
-    target_compile_options(espressio_event_dispatch_context_tests PRIVATE
-        -Wall -Wextra -Wpedantic -Werror
-    )
-    target_compile_options(espressio_event_broker_nonblocking_tests PRIVATE
-        -Wall -Wextra -Wpedantic -Werror
-    )
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    endforeach()
     if(TARGET espressio_event_observer_no_rtti_tests)
-        target_compile_options(espressio_event_observer_no_rtti_tests PRIVATE
-            -Wall -Wextra -Wpedantic -Werror
-        )
+        target_compile_options(espressio_event_observer_no_rtti_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
 elseif(MSVC)
-    target_compile_options(espressio_event_observer_tests PRIVATE /W4 /WX)
-    target_compile_options(espressio_event_reference_tests PRIVATE /W4 /WX)
-    target_compile_options(espressio_event_dispatch_context_tests PRIVATE /W4 /WX)
-    target_compile_options(espressio_event_broker_nonblocking_tests PRIVATE /W4 /WX)
+    foreach(target
+        espressio_event_observer_tests
+        espressio_event_reference_tests
+        espressio_event_dispatch_context_tests
+        espressio_event_broker_nonblocking_tests
+        espressio_event_dispatch_completion_tests
+    )
+        target_compile_options(${target} PRIVATE /W4 /WX)
+    endforeach()
 endif()
 
 if(ESPRESSIO_ENABLE_SANITIZERS AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(espressio_event_observer_tests PRIVATE
-        -fsanitize=address,undefined -fno-omit-frame-pointer
+    foreach(target
+        espressio_event_observer_tests
+        espressio_event_reference_tests
+        espressio_event_broker_nonblocking_tests
+        espressio_event_dispatch_completion_tests
     )
-    target_link_options(espressio_event_observer_tests PRIVATE
-        -fsanitize=address,undefined
-    )
-    target_compile_options(espressio_event_reference_tests PRIVATE
-        -fsanitize=address,undefined -fno-omit-frame-pointer
-    )
-    target_link_options(espressio_event_reference_tests PRIVATE
-        -fsanitize=address,undefined
-    )
-    target_compile_options(espressio_event_broker_nonblocking_tests PRIVATE
-        -fsanitize=address,undefined -fno-omit-frame-pointer
-    )
-    target_link_options(espressio_event_broker_nonblocking_tests PRIVATE
-        -fsanitize=address,undefined
-    )
+        target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(${target} PRIVATE -fsanitize=address,undefined)
+    endforeach()
 endif()
 
 enable_testing()
@@ -115,6 +86,7 @@ add_test(NAME espressio_event_observer_tests COMMAND espressio_event_observer_te
 add_test(NAME espressio_event_reference_tests COMMAND espressio_event_reference_tests)
 add_test(NAME espressio_event_dispatch_context_tests COMMAND espressio_event_dispatch_context_tests)
 add_test(NAME espressio_event_broker_nonblocking_tests COMMAND espressio_event_broker_nonblocking_tests)
+add_test(NAME espressio_event_dispatch_completion_tests COMMAND espressio_event_dispatch_completion_tests)
 if(TARGET espressio_event_observer_no_rtti_tests)
     add_test(NAME espressio_event_observer_no_rtti_tests COMMAND espressio_event_observer_no_rtti_tests)
 endif()

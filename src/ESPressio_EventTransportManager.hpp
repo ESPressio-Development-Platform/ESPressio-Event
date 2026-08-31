@@ -1356,6 +1356,8 @@ public:
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
+        EventTypeKey subscriptionType = nullptr;
+        bool outboundRequired = false;
         bool remains = false;
         {
             std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
@@ -1380,10 +1382,16 @@ public:
                 );
             }
             remains = found->second.HasAnyDirection();
+            if (found->second.Runtime) {
+                subscriptionType = found->second.Runtime->EventType;
+                outboundRequired = found->second.HasOutboundDirection();
+            }
             RemoveRegistrationIfUnusedLocked(typeID);
         }
 
-        RefreshOutboundSubscription(typeID);
+        if (subscriptionType != nullptr) {
+            SetOutboundSubscription(subscriptionType, outboundRequired);
+        }
         if (_observable) {
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnEventTransportTypeUnregistered(typeID, before, after);
@@ -1408,6 +1416,8 @@ public:
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
+        EventTypeKey subscriptionType = nullptr;
+        bool outboundRequired = false;
         bool remains = false;
         {
             std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
@@ -1433,10 +1443,16 @@ public:
                 found->second.TransportDirections.erase(transport);
             }
             remains = found->second.HasAnyDirection();
+            if (found->second.Runtime) {
+                subscriptionType = found->second.Runtime->EventType;
+                outboundRequired = found->second.HasOutboundDirection();
+            }
             RemoveRegistrationIfUnusedLocked(typeID);
         }
 
-        RefreshOutboundSubscription(typeID);
+        if (subscriptionType != nullptr) {
+            SetOutboundSubscription(subscriptionType, outboundRequired);
+        }
         if (_observable) {
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnEventTransportTypeRouteUnregistered(
@@ -1503,6 +1519,8 @@ public:
         for (uint64_t typeID : typeIDs) {
             EventTransportDirection before = EventTransportDirection::None;
             EventTransportDirection after = EventTransportDirection::None;
+            EventTypeKey subscriptionType = nullptr;
+            bool outboundRequired = false;
             bool changed = false;
             {
                 std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
@@ -1524,10 +1542,16 @@ public:
                         )
                     );
                 }
+                if (found->second.Runtime) {
+                    subscriptionType = found->second.Runtime->EventType;
+                    outboundRequired = found->second.HasOutboundDirection();
+                }
                 RemoveRegistrationIfUnusedLocked(typeID);
                 changed = true;
             }
-            RefreshOutboundSubscription(typeID);
+            if (subscriptionType != nullptr) {
+                SetOutboundSubscription(subscriptionType, outboundRequired);
+            }
             if (changed) {
                 ++result.Changed;
                 if (_observable) {
@@ -1557,6 +1581,8 @@ public:
         for (uint64_t typeID : typeIDs) {
             EventTransportDirection before = EventTransportDirection::None;
             EventTransportDirection after = EventTransportDirection::None;
+            EventTypeKey subscriptionType = nullptr;
+            bool outboundRequired = false;
             bool changed = false;
             {
                 std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
@@ -1577,10 +1603,16 @@ public:
                     after == EventTransportDirection::None &&
                     found->second.DefaultDirection == EventTransportDirection::None
                 ) found->second.TransportDirections.erase(transport);
+                if (found->second.Runtime) {
+                    subscriptionType = found->second.Runtime->EventType;
+                    outboundRequired = found->second.HasOutboundDirection();
+                }
                 RemoveRegistrationIfUnusedLocked(typeID);
                 changed = true;
             }
-            RefreshOutboundSubscription(typeID);
+            if (subscriptionType != nullptr) {
+                SetOutboundSubscription(subscriptionType, outboundRequired);
+            }
             if (changed) {
                 ++result.Changed;
                 if (_observable) {

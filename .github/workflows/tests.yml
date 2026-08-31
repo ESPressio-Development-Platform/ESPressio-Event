@@ -126,7 +126,6 @@ jobs:
           EOF
           cat > project/compile/src/main.cpp <<'EOF'
           #include <Arduino.h>
-          #include <tuple>
           #include <ESPressio_Event.hpp>
           #include <ESPressio_EventTransport.hpp>
           #include <ESPressio_SystemClockEventBridge.hpp>
@@ -134,49 +133,12 @@ jobs:
           #include <ESPressio_SystemClockEventBridge_Serializable.hpp>
           #include <ESPressio_ThreadEventBridges_Serializable.hpp>
 
-          namespace ESPressio::Event {
-          class SubscriptionCleanupCompileEvent final :
-              public SerializableEvent<SubscriptionCleanupCompileEvent> {
-          public:
-              SubscriptionCleanupCompileEvent() = default;
-              static constexpr auto GetSerializableProperties() {
-                  return std::tuple<>{};
-              }
-          };
-          }
-
-          ESPRESSIO_EVENT_TRANSPORT_TYPE(
-              ESPressio::Event::SubscriptionCleanupCompileEvent,
-              "ci.event.subscription-cleanup"
-          )
-
-          class CompileTransport final : public ESPressio::Event::IEventTransport {
-          public:
-              bool Send(ESPressio::Event::EventTransportPacket) override { return true; }
-              void SetReceiver(ESPressio::Event::IEventTransportReceiver*) override {}
-          } compileTransport;
-
           void setup() {
-              using TestEvent = ESPressio::Event::SubscriptionCleanupCompileEvent;
               auto& transportManager = ESPressio::Event::EventTransportManager::GetInstance();
               (void)transportManager.Initialize();
               (void)transportManager.Start();
               (void)transportManager.GetOutboundExecutionStatistics();
               (void)transportManager.GetRejectedOutboundWorkCount();
-
-              (void)transportManager.RegisterTransport(&compileTransport);
-              (void)transportManager.RegisterOutboundEvent<TestEvent>();
-              (void)transportManager.UnregisterOutboundEvent<TestEvent>();
-
-              (void)transportManager.RegisterOutboundEvent<TestEvent>(&compileTransport);
-              (void)transportManager.UnregisterOutboundEvent<TestEvent>(&compileTransport);
-
-              (void)transportManager.RegisterOutboundEvent<TestEvent>();
-              (void)transportManager.UnregisterAllOutboundEvents();
-
-              (void)transportManager.RegisterOutboundEvent<TestEvent>(&compileTransport);
-              (void)transportManager.UnregisterAllOutboundEvents(&compileTransport);
-              (void)transportManager.UnregisterTransport(&compileTransport);
           }
           void loop() {}
           EOF

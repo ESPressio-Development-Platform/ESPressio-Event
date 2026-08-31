@@ -133,6 +133,24 @@ jobs:
           #include <ESPressio_SystemClockEventBridge_Serializable.hpp>
           #include <ESPressio_ThreadEventBridges_Serializable.hpp>
 
+          namespace ESPressio::Event {
+          class SubscriptionCleanupCompileEvent final :
+              public SerializableEvent<SubscriptionCleanupCompileEvent> {
+          public:
+              uint32_t Value = 0;
+              ESPRESSIO_SERIALIZABLE_TYPE(SubscriptionCleanupCompileEvent)
+              ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
+              ESPRESSIO_SERIALIZABLE_PROPERTIES(
+                  ESPRESSIO_PROPERTY("value", Value)
+              )
+          };
+          }
+
+          ESPRESSIO_EVENT_TRANSPORT_TYPE(
+              ESPressio::Event::SubscriptionCleanupCompileEvent,
+              "ci.event.subscription-cleanup"
+          )
+
           class CompileTransport final : public ESPressio::Event::IEventTransport {
           public:
               bool Send(ESPressio::Event::EventTransportPacket) override { return true; }
@@ -140,6 +158,7 @@ jobs:
           } compileTransport;
 
           void setup() {
+              using TestEvent = ESPressio::Event::SubscriptionCleanupCompileEvent;
               auto& transportManager = ESPressio::Event::EventTransportManager::GetInstance();
               (void)transportManager.Initialize();
               (void)transportManager.Start();
@@ -147,16 +166,16 @@ jobs:
               (void)transportManager.GetRejectedOutboundWorkCount();
 
               (void)transportManager.RegisterTransport(&compileTransport);
-              (void)transportManager.RegisterOutboundEvent<ESPressio::Event::SerializableThreadRegisteredEvent>();
-              (void)transportManager.UnregisterOutboundEvent<ESPressio::Event::SerializableThreadRegisteredEvent>();
+              (void)transportManager.RegisterOutboundEvent<TestEvent>();
+              (void)transportManager.UnregisterOutboundEvent<TestEvent>();
 
-              (void)transportManager.RegisterOutboundEvent<ESPressio::Event::SerializableThreadRegisteredEvent>(&compileTransport);
-              (void)transportManager.UnregisterOutboundEvent<ESPressio::Event::SerializableThreadRegisteredEvent>(&compileTransport);
+              (void)transportManager.RegisterOutboundEvent<TestEvent>(&compileTransport);
+              (void)transportManager.UnregisterOutboundEvent<TestEvent>(&compileTransport);
 
-              (void)transportManager.RegisterOutboundEvent<ESPressio::Event::SerializableThreadRegisteredEvent>();
+              (void)transportManager.RegisterOutboundEvent<TestEvent>();
               (void)transportManager.UnregisterAllOutboundEvents();
 
-              (void)transportManager.RegisterOutboundEvent<ESPressio::Event::SerializableThreadRegisteredEvent>(&compileTransport);
+              (void)transportManager.RegisterOutboundEvent<TestEvent>(&compileTransport);
               (void)transportManager.UnregisterAllOutboundEvents(&compileTransport);
               (void)transportManager.UnregisterTransport(&compileTransport);
           }

@@ -126,6 +126,7 @@ jobs:
           EOF
           cat > project/compile/src/main.cpp <<'EOF'
           #include <Arduino.h>
+          #include <tuple>
           #include <ESPressio_Event.hpp>
           #include <ESPressio_EventTransport.hpp>
           #include <ESPressio_SystemClockEventBridge.hpp>
@@ -137,12 +138,10 @@ jobs:
           class SubscriptionCleanupCompileEvent final :
               public SerializableEvent<SubscriptionCleanupCompileEvent> {
           public:
-              uint32_t Value = 0;
-              ESPRESSIO_SERIALIZABLE_TYPE(SubscriptionCleanupCompileEvent)
-              ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
-              ESPRESSIO_SERIALIZABLE_PROPERTIES(
-                  ESPRESSIO_PROPERTY("value", Value)
-              )
+              explicit SubscriptionCleanupCompileEvent(uint32_t) {}
+              static constexpr auto GetSerializableProperties() {
+                  return std::tuple<>{};
+              }
           };
           }
 

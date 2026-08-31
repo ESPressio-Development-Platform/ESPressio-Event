@@ -66,3 +66,5 @@ replacement = '''              (void)transportManager.GetOutboundExecutionStatis
 assert needle in w
 w = w.replace(needle, replacement, 1)
 workflow.write_text(w)
+
+# trigger

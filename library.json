@@ -21,27 +21,27 @@
     "dependencies": [
         {
             "name": "ESPressio-System",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#main",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-System.git#structural_realignment",
             "platforms": "*"
         },
         {
             "name": "ESPressio-Task",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Task.git#main",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Task.git#structural_realignment",
             "platforms": "*"
         },
         {
             "name": "ESPressio-Threads",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git#main",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git#structural_realignment",
             "platforms": "espressif32"
         },
         {
             "name": "ESPressio-Observable",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#main",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#structural_realignment",
             "platforms": "*"
         },
         {
             "name": "ESPressio-Timing",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Timing.git#main",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Timing.git#structural_realignment",
             "platforms": "*"
         }
     ]

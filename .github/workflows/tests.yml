@@ -26,17 +26,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-System
-          ref: feature/1-system-memory-policy
+          ref: main
           path: ESPressio-System
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: feature/16-rtti-free-observer-registry
+          ref: main
           path: ESPressio-Observable
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: feature/29-platform-clock-abstractions
+          ref: main
           path: ESPressio_Timing
       - uses: actions/checkout@v4
         with:
@@ -59,17 +59,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-System
-          ref: feature/1-system-memory-policy
+          ref: main
           path: project/dependencies/ESPressio-System
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Task
-          ref: feature/1-task-execution
+          ref: main
           path: project/dependencies/ESPressio-Task
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: feature/16-rtti-free-observer-registry
+          ref: main
           path: project/dependencies/ESPressio-Observable
       - uses: actions/checkout@v4
         with:
@@ -79,17 +79,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: feature/29-platform-clock-abstractions
+          ref: main
           path: project/dependencies/ESPressio-Timing
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Threads
-          ref: optimisation/69-resource-footprint
+          ref: main
           path: project/dependencies/ESPressio-Threads
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: optimisation/25-psram-buffers
+          ref: main
           path: project/dependencies/ESPressio-Serializable
       - uses: actions/setup-python@v5
         with:

@@ -323,14 +323,12 @@ Optional Serializable Event/Event Transport support consumes ESPressio Serializa
 
 # Installation
 
-Released PlatformIO usage remains:
+During the release restructuring, consume Event directly from `main`:
 
 ```ini
 lib_deps =
-    espressio-development-platform/ESPressio-Event@^6.0.3
+    https://github.com/ESPressio-Development-Platform/ESPressio-Event.git#main
 ```
-
-For development against this unreleased branch, consume the branch directly with PlatformIO/Git.
 
 # Examples
 

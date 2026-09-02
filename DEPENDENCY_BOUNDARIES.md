@@ -14,28 +14,28 @@ Observer-to-Event bridge for another ESPressio library.
 ### ESPressio Threads — required
 
 EventManager and EventThread use ESPressio Threads directly for asynchronous
-execution. This is a genuine core dependency. Event 6.0.3 requires Threads
-`>=3.1.7 <4.0.0`.
+execution. This is a genuine core dependency. Event consumes ESPressio Threads
+from `main`.
 
 ### ESPressio Timing — required
 
 Event lifecycle timestamps use ESPressio SystemClock and TimeTraits directly.
 This is a genuine core dependency. Timing/SystemClock Event bridges remain in
 Event because Event is already the legitimate downstream consumer of Timing.
-Event 6.0.3 requires Timing `>=2.2.8 <3.0.0`.
+Event consumes ESPressio Timing from `main`.
 
 ### ESPressio Observable — required
 
 Event exposes synchronous lifecycle observation through Observable-backed
 manager and transport-manager Observer contracts. This is a genuine direct
-dependency. Event 6.0.3 retains Observable `>=3.0.2 <4.0.0`.
+dependency. Event consumes ESPressio Observable from `main`.
 
 ### ESPressio Serializable — optional
 
 Serializable Event definitions and Event Transport payload serialization use
 ESPressio Serializable only when those features are selected. Local ordinary
-Events do not require Serializable. Event 6.0.3 CI validates this optional
-surface against released Serializable 0.11.3.
+Events do not require Serializable. Event validates this optional surface
+against ESPressio Serializable `main`.
 
 ## Domain integrations that must not be owned by Event
 

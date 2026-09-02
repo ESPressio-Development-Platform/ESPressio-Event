@@ -8,30 +8,30 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
-#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <tuple>
+#include <string>
+#include <string_view>
 #include <type_traits>
-#include <typeindex>
-#include <unordered_map>
+#include <utility>
 #include <vector>
-
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 
 #include <ESPressio_BinaryArchive.hpp>
 #include <ESPressio_DirectBinaryArchive.hpp>
-#include <ESPressio_TreeArchive.hpp>
+#include <ESPressio_Memory.hpp>
 #include <ESPressio_SchemaIntrospection.hpp>
 #include <ESPressio_SerializationTraits.hpp>
+#include <ESPressio_Synchronization.hpp>
+#include <ESPressio_TaskExecutor.hpp>
 #include <ESPressio_Thread.hpp>
+#include <ESPressio_TreeArchive.hpp>
 
 #include "ESPressio_EventManager.hpp"
+#include "ESPressio_EventReceiver.hpp"
 #include "ESPressio_EventTransportManagerObservable.hpp"
 #include "ESPressio_EventTransportTypes.hpp"
-#include "ESPressio_IEventManagerObserver.hpp"
+#include "ESPressio_EventTypeKey.hpp"
 #include "ESPressio_IEventTransport.hpp"
 #include "ESPressio_SerializableEventDescriptor.hpp"
 
@@ -43,33 +43,78 @@
     #define ESPRESSIO_EVENT_TRANSPORT_MANAGER_CORE_ID 0
 #endif
 
+#ifndef ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_INBOUND
+    #define ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_INBOUND 32
+#endif
+
+#ifndef ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_OUTBOUND_EVENTS
+    #define ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_OUTBOUND_EVENTS 32
+#endif
+
+#ifndef ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_STACK_SIZE
+    #define ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_STACK_SIZE 6144
+#endif
+
+#ifndef ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_QUEUE_DEPTH
+    #define ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_QUEUE_DEPTH 16
+#endif
+
+#ifndef ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_PRIORITY
+    #define ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_PRIORITY 2
+#endif
+
 namespace ESPressio::Event {
 
+/// <summary>
+/// Serializable Event subscriber that converts Event ownership into owned serialized transport payloads.
+/// </summary>
+/// <remarks>
+/// EventTransportManager behaves like an ordinary Event receiver: EventManager fans one Event reference into this
+/// subscriber mailbox for each transport-enabled Serializable Event type. Its coordinator Thread transfers outbound
+/// ownership into a bounded TaskExecutor and returns immediately; serialization, transport observation, and fanout execute
+/// off the coordinator stack. The executor serializes once into ExternalPreferred storage, releases Event ownership after
+/// Event-aware serialized-stage notifications, and then fans shared immutable packet ownership to physical transports.
+/// Inbound physical packets enter as owned buffers and are deserialized before being submitted to EventManager.
+/// </remarks>
 class EventTransportManager final :
     public Threads::Thread,
-    public IEventTransportReceiver,
-    public IEventManagerObserver {
-
+    public EventReceiver,
+    public IEventTransportReceiver {
 private:
-    struct Registration {
+    static constexpr auto ExternalPreferred =
+        System::Memory::MemoryPolicy::ExternalPreferred;
+
+    using RuntimePropertyVector = System::Memory::Vector<
+        Serializable::PropertySchemaInfo,
+        ExternalPreferred
+    >;
+
+    struct RuntimeRegistration {
+        EventTypeKey EventType = nullptr;
         uint64_t TypeID = 0;
         std::string_view TypeName{};
         uint32_t SchemaVersion = 1;
-        std::type_index RuntimeType = std::type_index(typeid(void));
-        EventTransportDirection DefaultDirection = EventTransportDirection::None;
-        std::unordered_map<IEventTransport*, EventTransportDirection>
-            TransportDirections;
-        std::function<bool(IEvent*, std::vector<uint8_t>&)> Serialize;
+        std::function<bool(IEvent*, EventTransportBuffer&)> Serialize;
         std::function<IEvent*(const uint8_t*, std::size_t)> Deserialize;
-        std::vector<Serializable::PropertySchemaInfo> Properties;
+        RuntimePropertyVector Properties;
         std::function<SerializableEventConstructionResult(
             const Serializable::SerializationNode&,
             const Serializable::DeserializationOptions&)>
             ConstructFromNode;
+    };
 
-        EventTransportDirection EffectiveDirection(
-            IEventTransport* transport
-        ) const {
+    using RuntimeRegistrationPtr = std::shared_ptr<const RuntimeRegistration>;
+
+    struct Registration {
+        RuntimeRegistrationPtr Runtime;
+        EventTransportDirection DefaultDirection = EventTransportDirection::None;
+        System::Memory::UnorderedMap<
+            IEventTransport*,
+            EventTransportDirection,
+            ExternalPreferred
+        > TransportDirections;
+
+        EventTransportDirection EffectiveDirection(IEventTransport* transport) const {
             const auto found = TransportDirections.find(transport);
             return found == TransportDirections.end()
                 ? DefaultDirection
@@ -77,11 +122,19 @@ private:
         }
 
         bool HasAnyDirection() const {
-            if (DefaultDirection != EventTransportDirection::None) {
+            if (DefaultDirection != EventTransportDirection::None) return true;
+            for (const auto& entry : TransportDirections) {
+                if (entry.second != EventTransportDirection::None) return true;
+            }
+            return false;
+        }
+
+        bool HasOutboundDirection() const {
+            if (HasDirection(DefaultDirection, EventTransportDirection::Outbound)) {
                 return true;
             }
             for (const auto& entry : TransportDirections) {
-                if (entry.second != EventTransportDirection::None) {
+                if (HasDirection(entry.second, EventTransportDirection::Outbound)) {
                     return true;
                 }
             }
@@ -89,113 +142,156 @@ private:
         }
     };
 
-    struct OutboundWork {
-        IEvent* Event = nullptr;
-        IEventTransport* Transport = nullptr;
-        uint64_t TypeID = 0;
-        Registration RegistrationSnapshot;
-        EventDispatchMethod Method = EventDispatchMethod::Queue;
-        EventPriority Priority = EventPriority::Normal;
-        uint64_t MessageID = 0;
-    };
-
     struct InboundWork {
         IEventTransport* Transport = nullptr;
         uint64_t TypeID = 0;
-        Registration RegistrationSnapshot;
-        std::vector<uint8_t> Packet;
+        RuntimeRegistrationPtr Runtime;
+        EventTransportPacket Packet;
     };
 
-    mutable std::mutex _mutex;
-    std::unordered_map<uint64_t, Registration> _registrations;
-    std::unordered_map<std::type_index, uint64_t> _runtimeTypes;
-    std::vector<IEventTransport*> _transports;
-    std::deque<OutboundWork> _outbound;
-    std::deque<InboundWork> _inbound;
-    std::atomic<TaskHandle_t> _notificationTask{nullptr};
-    Observable::ObserverHandlePtr _eventManagerObserverHandle;
+    struct OutboundWork {
+        IEvent* Event = nullptr;
+        EventDispatchMethod Method = EventDispatchMethod::Queue;
+        EventPriority Priority = EventPriority::Normal;
+    };
+
+    static_assert(
+        std::is_trivially_copyable<OutboundWork>::value,
+        "Event transport outbound work must remain trivially copyable"
+    );
+
+    using RegistrationMap = System::Memory::UnorderedMap<
+        uint64_t,
+        Registration,
+        ExternalPreferred
+    >;
+    using RuntimeTypeMap = System::Memory::UnorderedMap<
+        EventTypeKey,
+        uint64_t,
+        ExternalPreferred
+    >;
+    using TransportVector = System::Memory::Vector<
+        IEventTransport*,
+        ExternalPreferred
+    >;
+    using SubscriptionVector = System::Memory::Vector<
+        EventTypeKey,
+        ExternalPreferred
+    >;
+    using InboundQueue = System::Memory::Deque<
+        InboundWork,
+        ExternalPreferred
+    >;
+    using TypeIdVector = System::Memory::Vector<
+        uint64_t,
+        ExternalPreferred
+    >;
+
+    static Task::TaskConfiguration CreateOutboundTaskConfiguration() {
+        Task::TaskConfiguration configuration;
+        configuration.Name = "eventTransportTx";
+        configuration.StackSize = ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_STACK_SIZE;
+        configuration.Priority = ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_PRIORITY;
+        configuration.Core = -1;
+        configuration.QueueDepth = ESPRESSIO_EVENT_TRANSPORT_OUTBOUND_TASK_QUEUE_DEPTH;
+        configuration.OverflowPolicy = Task::TaskQueueOverflowPolicy::Reject;
+        configuration.MemoryPolicy = Task::TaskMemoryPolicy::PreferExternal;
+        return configuration;
+    }
+
+    mutable System::Synchronization::Mutex _mutex;
+    RegistrationMap _registrations;
+    RuntimeTypeMap _runtimeTypes;
+    TransportVector _transports;
+    SubscriptionVector _subscriptions;
+    InboundQueue _inbound;
+    std::unique_ptr<System::Synchronization::ISignal> _workSignal =
+        System::Synchronization::CreateBinarySignal();
     std::shared_ptr<EventTransportManagerObservable> _observable =
         CreateEventTransportManagerObservable();
     std::atomic<uint64_t> _nextMessageID{1};
-    bool _initialized = false;
+    std::atomic<uint64_t> _rejectedInboundCount{0};
+    std::atomic<uint64_t> _processedInboundCount{0};
+    std::atomic<uint64_t> _processedOutboundCount{0};
+    std::atomic<uint64_t> _rejectedOutboundWorkCount{0};
+    std::atomic<std::size_t> _peakInboundCount{0};
+    Task::TaskExecutor<OutboundWork> _outboundExecutor;
+    // Single-worker scratch storage retains target-vector capacity in PSRAM
+    // rather than allocating a fresh vector for every outbound Event.
+    TransportVector _outboundTargets;
+    std::atomic<bool> _outboundExecutorInitialized{false};
+    std::atomic<bool> _outboundExecutorReady{false};
+    std::atomic<bool> _initialized{false};
 
-    EventTransportManager() : Threads::Thread(false) {
+    EventTransportManager()
+        : Threads::Thread(Threads::ThreadReleasePolicy::ExplicitRelease),
+          _outboundExecutor(CreateOutboundTaskConfiguration()) {
         SetPriority(ESPRESSIO_EVENT_TRANSPORT_MANAGER_PRIORITY);
         SetCoreID(ESPRESSIO_EVENT_TRANSPORT_MANAGER_CORE_ID);
+        SetStartOnInitialize(false);
+        SetMaximumPendingEventCount(
+            ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_OUTBOUND_EVENTS
+        );
+        SetEventQueueOverflowPolicy(EventQueueOverflowPolicy::RejectIncoming);
     }
 
     static bool ParseEnvelope(
-        const uint8_t* data,
-        std::size_t size,
+        const EventTransportPacket& packet,
         EventTransportEnvelope& envelope,
         const uint8_t*& payload
     ) {
-        if (data == nullptr || size < sizeof(EventTransportEnvelope)) {
-            return false;
-        }
-        std::memcpy(&envelope, data, sizeof(envelope));
+        if (!packet || packet.Size() < sizeof(EventTransportEnvelope)) return false;
+        std::memcpy(&envelope, packet.Data(), sizeof(envelope));
         if (
             envelope.Magic != EventTransportEnvelope::MagicValue ||
             envelope.Version != EventTransportEnvelope::CurrentVersion ||
-            envelope.PayloadLength != size - sizeof(EventTransportEnvelope)
+            envelope.PayloadLength != packet.Size() - sizeof(EventTransportEnvelope)
         ) {
             return false;
         }
-        payload = data + sizeof(EventTransportEnvelope);
+        payload = packet.Data() + sizeof(EventTransportEnvelope);
         return true;
     }
 
-    bool HasPendingWork() const {
-        std::lock_guard<std::mutex> lock(_mutex);
-        return !_inbound.empty() || !_outbound.empty();
-    }
-
-    void Wake() {
-        const TaskHandle_t task =
-            _notificationTask.load(std::memory_order_acquire);
-        if (task != nullptr) {
-            xTaskNotifyGive(task);
-        }
-    }
-
-    void ReleaseOutbound(OutboundWork& work) noexcept {
-        if (work.Event != nullptr) {
-            work.Event->__unref();
-            work.Event = nullptr;
-        }
-    }
-
     bool IsTransportRegisteredLocked(IEventTransport* transport) const {
-        return std::find(
-            _transports.begin(),
-            _transports.end(),
-            transport
-        ) != _transports.end();
+        return std::find(_transports.begin(), _transports.end(), transport) !=
+            _transports.end();
     }
 
-    void RemoveRegistrationIfUnusedLocked(uint64_t typeID) {
-        auto found = _registrations.find(typeID);
-        if (found == _registrations.end() || found->second.HasAnyDirection()) {
-            return;
-        }
-        /*
-         * A registration whose default/overrides are all None may still be a
-         * deliberate local-only runtime registration used by EventConsole.
-         * Keep it while it retains its construction factory/schema metadata.
-         */
-        if (
-            found->second.ConstructFromNode ||
-            !found->second.Properties.empty()
-        ) {
-            return;
-        }
-        _runtimeTypes.erase(found->second.RuntimeType);
-        _registrations.erase(found);
+    bool IsSubscribedLocked(EventTypeKey type) const {
+        return std::find(_subscriptions.begin(), _subscriptions.end(), type) !=
+            _subscriptions.end();
     }
 
-    void NotifyTransaction(
-        const EventTransportTransaction& transaction
-    ) {
+    void Wake() noexcept {
+        if (_workSignal != nullptr) (void)_workSignal->Give();
+    }
+
+    void EventAdded() override {
+        Wake();
+    }
+
+    bool HasPendingWork() const {
+        if (GetPendingEventCount() != 0) return true;
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+        return !_inbound.empty();
+    }
+
+    void UpdatePeakInbound(std::size_t value) noexcept {
+        std::size_t current = _peakInboundCount.load(std::memory_order_relaxed);
+        while (
+            value > current &&
+            !_peakInboundCount.compare_exchange_weak(
+                current,
+                value,
+                std::memory_order_relaxed,
+                std::memory_order_relaxed
+            )
+        ) {}
+    }
+
+    void NotifyTransaction(const EventTransportTransaction& transaction) {
+        if (!_observable) return;
         _observable->Notify(
             [&](IEventTransportManagerObserver* observer) {
                 observer->OnEventTransportTransaction(transaction);
@@ -203,161 +299,292 @@ private:
         );
     }
 
-    void ProcessOutbound(OutboundWork work) {
-        if (
-            work.Transport == nullptr ||
-            !work.RegistrationSnapshot.Serialize
-        ) {
-            NotifyTransaction({
-                EventTransportTransactionStage::Failed,
-                EventTransportDirection::Outbound,
-                work.TypeID,
-                work.RegistrationSnapshot.TypeName,
-                work.RegistrationSnapshot.SchemaVersion,
-                work.MessageID,
-                work.Transport,
-                work.Event,
-                nullptr,
-                0,
-                work.Method,
-                work.Priority,
-                EventOrigin::Local,
-                0,
-                false
-            });
-            ReleaseOutbound(work);
+    void SetOutboundSubscription(EventTypeKey type, bool required) {
+        if (type == nullptr) return;
+
+        bool registerReceiver = false;
+        bool unregisterReceiver = false;
+        {
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+            const bool subscribed = IsSubscribedLocked(type);
+            if (required && !subscribed) {
+                _subscriptions.push_back(type);
+                registerReceiver = _initialized.load(std::memory_order_acquire);
+            } else if (!required && subscribed) {
+                _subscriptions.erase(
+                    std::remove(_subscriptions.begin(), _subscriptions.end(), type),
+                    _subscriptions.end()
+                );
+                unregisterReceiver = _initialized.load(std::memory_order_acquire);
+            }
+        }
+
+        if (registerReceiver) {
+            EventManager::GetInstance()->RegisterReceiver(type, this);
+        } else if (unregisterReceiver) {
+            EventManager::GetInstance()->UnregisterReceiver(type, this);
+        }
+    }
+
+    void RefreshOutboundSubscription(uint64_t typeID) {
+        EventTypeKey type = nullptr;
+        bool required = false;
+        {
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+            const auto found = _registrations.find(typeID);
+            if (found != _registrations.end() && found->second.Runtime) {
+                type = found->second.Runtime->EventType;
+                required = found->second.HasOutboundDirection();
+            }
+        }
+        if (type != nullptr) SetOutboundSubscription(type, required);
+    }
+
+    void RemoveRegistrationIfUnusedLocked(uint64_t typeID) {
+        auto found = _registrations.find(typeID);
+        if (found == _registrations.end() || found->second.HasAnyDirection()) return;
+
+        const RuntimeRegistrationPtr runtime = found->second.Runtime;
+        if (runtime && (runtime->ConstructFromNode || !runtime->Properties.empty())) {
             return;
         }
 
-        /*
-         * Allocate the final packet once. The serializer appends the ESPB
-         * payload directly after the envelope, removing the old payload-vector
-         * allocation followed by BuildPacket() and a second payload copy.
-         */
-        std::vector<uint8_t> bytes(sizeof(EventTransportEnvelope));
-        if (!work.RegistrationSnapshot.Serialize(work.Event, bytes)) {
-            NotifyTransaction({
-                EventTransportTransactionStage::Failed,
-                EventTransportDirection::Outbound,
-                work.TypeID,
-                work.RegistrationSnapshot.TypeName,
-                work.RegistrationSnapshot.SchemaVersion,
-                work.MessageID,
-                work.Transport,
-                work.Event,
-                nullptr,
-                0,
-                work.Method,
-                work.Priority,
-                EventOrigin::Local,
-                0,
-                false
+        if (runtime && runtime->EventType != nullptr) {
+            _runtimeTypes.erase(runtime->EventType);
+        }
+        _registrations.erase(found);
+    }
+
+    void ReleaseOutboundWork(const OutboundWork& work) noexcept {
+        if (work.Event != nullptr) work.Event->__unref();
+    }
+
+    void ProcessOutboundWork(const OutboundWork& work) {
+        class EventReferenceGuard final {
+        private:
+            IEvent* _event = nullptr;
+        public:
+            explicit EventReferenceGuard(IEvent* event) noexcept : _event(event) {}
+            ~EventReferenceGuard() {
+                if (_event != nullptr) _event->__unref();
+            }
+            void ReleaseNow() noexcept {
+                IEvent* event = _event;
+                _event = nullptr;
+                if (event != nullptr) event->__unref();
+            }
+        } eventReference(work.Event);
+
+        IEvent* event = work.Event;
+        if (event == nullptr) return;
+        const EventDispatchContext context = event->__getDispatchContext();
+        if (context.Origin != EventOrigin::Local) return;
+
+        const EventTypeKey eventType = event->__getTypeKey();
+        if (eventType == nullptr) return;
+
+        uint64_t typeID = 0;
+        uint64_t messageID = 0;
+        RuntimeRegistrationPtr runtime;
+        TransportVector& targets = _outboundTargets;
+        targets.clear();
+        {
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+            const auto runtimeType = _runtimeTypes.find(eventType);
+            if (runtimeType == _runtimeTypes.end()) return;
+            const auto registration = _registrations.find(runtimeType->second);
+            if (registration == _registrations.end() || !registration->second.Runtime) {
+                return;
+            }
+
+            targets.reserve(_transports.size());
+            for (IEventTransport* transport : _transports) {
+                if (
+                    transport != nullptr &&
+                    HasDirection(
+                        registration->second.EffectiveDirection(transport),
+                        EventTransportDirection::Outbound
+                    )
+                ) {
+                    targets.push_back(transport);
+                }
+            }
+            if (targets.empty()) return;
+
+            typeID = runtimeType->second;
+            runtime = registration->second.Runtime;
+            messageID = _nextMessageID.fetch_add(1, std::memory_order_relaxed);
+        }
+
+        if (!runtime || !runtime->Serialize) return;
+
+        if (_observable) {
+            _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                observer->OnOutboundEventAccepted(typeID, messageID);
             });
-            ReleaseOutbound(work);
+        }
+
+        EventTransportBuffer bytes(sizeof(EventTransportEnvelope));
+        if (!runtime->Serialize(event, bytes)) {
+            for (IEventTransport* transport : targets) {
+                NotifyTransaction({
+                    EventTransportTransactionStage::Failed,
+                    EventTransportDirection::Outbound,
+                    typeID,
+                    runtime->TypeName,
+                    runtime->SchemaVersion,
+                    messageID,
+                    transport,
+                    event,
+                    nullptr,
+                    0,
+                    work.Method,
+                    work.Priority,
+                    EventOrigin::Local,
+                    0,
+                    false
+                });
+            }
             return;
         }
 
-        const std::size_t payloadSize =
-            bytes.size() - sizeof(EventTransportEnvelope);
-        uint8_t* payload =
-            bytes.data() + sizeof(EventTransportEnvelope);
-
-        NotifyTransaction({
-            EventTransportTransactionStage::OutboundSerialized,
-            EventTransportDirection::Outbound,
-            work.TypeID,
-            work.RegistrationSnapshot.TypeName,
-            work.RegistrationSnapshot.SchemaVersion,
-            work.MessageID,
-            work.Transport,
-            work.Event,
-            payload,
-            payloadSize,
-            work.Method,
-            work.Priority,
-            EventOrigin::Local,
-            0,
-            false
-        });
-
+        const std::size_t payloadSize = bytes.size() - sizeof(EventTransportEnvelope);
         EventTransportEnvelope envelope;
-        envelope.EventTypeID = work.RegistrationSnapshot.TypeID;
-        envelope.SchemaVersion = work.RegistrationSnapshot.SchemaVersion;
-        envelope.MessageID = work.MessageID;
+        envelope.EventTypeID = runtime->TypeID;
+        envelope.SchemaVersion = runtime->SchemaVersion;
+        envelope.MessageID = messageID;
         envelope.DispatchMethod = static_cast<uint8_t>(work.Method);
         envelope.Priority = static_cast<uint8_t>(work.Priority);
         envelope.HopCount = 0;
         envelope.PayloadLength = static_cast<uint32_t>(payloadSize);
         std::memcpy(bytes.data(), &envelope, sizeof(envelope));
 
-        EventTransportPacket packet{
-            bytes.data(),
-            bytes.size(),
-            work.MessageID
-        };
+        EventTransportPacket packet(std::move(bytes), messageID);
+        const uint8_t* payload = packet.Data() + sizeof(EventTransportEnvelope);
 
-        const bool accepted = work.Transport->Send(packet);
-
-        _observable->Notify(
-            [&](IEventTransportManagerObserver* observer) {
-                observer->OnOutboundEventHandedToTransport(
-                    work.TypeID,
-                    work.MessageID,
-                    work.Transport,
-                    accepted
-                );
+        // Event-aware notifications run before releasing asynchronous Event ownership.
+        // Once serialization is complete, downstream transport fanout needs only the
+        // immutable ExternalPreferred packet and no longer keeps the Event alive.
+        for (IEventTransport* transport : targets) {
+            if (_observable) {
+                _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                    observer->OnOutboundEventAcceptedForTransport(
+                        typeID,
+                        messageID,
+                        transport
+                    );
+                });
             }
-        );
+            NotifyTransaction({
+                EventTransportTransactionStage::OutboundSerialized,
+                EventTransportDirection::Outbound,
+                typeID,
+                runtime->TypeName,
+                runtime->SchemaVersion,
+                messageID,
+                transport,
+                event,
+                payload,
+                payloadSize,
+                work.Method,
+                work.Priority,
+                EventOrigin::Local,
+                0,
+                false
+            });
+        }
 
-        NotifyTransaction({
-            EventTransportTransactionStage::OutboundHandedToTransport,
-            EventTransportDirection::Outbound,
-            work.TypeID,
-            work.RegistrationSnapshot.TypeName,
-            work.RegistrationSnapshot.SchemaVersion,
-            work.MessageID,
-            work.Transport,
-            work.Event,
-            payload,
-            payloadSize,
-            work.Method,
-            work.Priority,
-            EventOrigin::Local,
-            0,
-            accepted
-        });
+        eventReference.ReleaseNow();
+        event = nullptr;
 
-        ReleaseOutbound(work);
+        for (IEventTransport* transport : targets) {
+            const bool accepted = transport->Send(packet);
+            if (_observable) {
+                _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                    observer->OnOutboundEventHandedToTransport(
+                        typeID,
+                        messageID,
+                        transport,
+                        accepted
+                    );
+                });
+            }
+            NotifyTransaction({
+                EventTransportTransactionStage::OutboundHandedToTransport,
+                EventTransportDirection::Outbound,
+                typeID,
+                runtime->TypeName,
+                runtime->SchemaVersion,
+                messageID,
+                transport,
+                nullptr,
+                payload,
+                payloadSize,
+                work.Method,
+                work.Priority,
+                EventOrigin::Local,
+                0,
+                accepted
+            });
+        }
+
+        targets.clear();
+        _processedOutboundCount.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void SubmitOutboundEvent(
+        IEvent* event,
+        EventDispatchMethod method,
+        EventPriority priority
+    ) noexcept {
+        if (
+            event == nullptr ||
+            !_outboundExecutorReady.load(std::memory_order_acquire)
+        ) return;
+
+        OutboundWork work;
+        work.Event = event;
+        work.Method = method;
+        work.Priority = priority;
+
+        event->__ref();
+        const auto status = _outboundExecutor.Submit(work);
+        if (status != Task::TaskExecutionStatus::Success) {
+            event->__unref();
+            _rejectedOutboundWorkCount.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+
+    bool PopInbound(InboundWork& work) {
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+        if (_inbound.empty()) return false;
+        work = std::move(_inbound.front());
+        _inbound.pop_front();
+        return true;
     }
 
     void ProcessInbound(InboundWork work) {
         EventTransportEnvelope envelope;
         const uint8_t* payload = nullptr;
-        if (!ParseEnvelope(
-            work.Packet.data(),
-            work.Packet.size(),
-            envelope,
-            payload
-        )) {
+        if (!ParseEnvelope(work.Packet, envelope, payload)) return;
+
+        if (
+            envelope.DispatchMethod > static_cast<uint8_t>(EventDispatchMethod::Queue) ||
+            envelope.Priority > static_cast<uint8_t>(EventPriority::High)
+        ) {
             return;
         }
 
-        const Registration& registration = work.RegistrationSnapshot;
-        if (!registration.Deserialize) {
-            return;
-        }
+        const RuntimeRegistrationPtr& runtime = work.Runtime;
+        if (!runtime || !runtime->Deserialize) return;
 
-        IEvent* event = registration.Deserialize(
-            payload,
-            envelope.PayloadLength
-        );
-
+        IEvent* event = runtime->Deserialize(payload, envelope.PayloadLength);
         if (event == nullptr) {
             NotifyTransaction({
                 EventTransportTransactionStage::Failed,
                 EventTransportDirection::Inbound,
                 envelope.EventTypeID,
-                registration.TypeName,
+                runtime->TypeName,
                 envelope.SchemaVersion,
                 envelope.MessageID,
                 work.Transport,
@@ -373,32 +600,14 @@ private:
             return;
         }
 
-        _observable->Notify(
-            [&](IEventTransportManagerObserver* observer) {
+        if (_observable) {
+            _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnInboundEventDeserialized(
                     envelope.EventTypeID,
                     envelope.MessageID
                 );
-            }
-        );
-
-        NotifyTransaction({
-            EventTransportTransactionStage::InboundDeserialized,
-            EventTransportDirection::Inbound,
-            envelope.EventTypeID,
-            registration.TypeName,
-            envelope.SchemaVersion,
-            envelope.MessageID,
-            work.Transport,
-            event,
-            payload,
-            envelope.PayloadLength,
-            static_cast<EventDispatchMethod>(envelope.DispatchMethod),
-            static_cast<EventPriority>(envelope.Priority),
-            EventOrigin::Remote,
-            envelope.HopCount,
-            true
-        });
+            });
+        }
 
         EventDispatchContext context;
         context.Origin = EventOrigin::Remote;
@@ -406,41 +615,48 @@ private:
         context.HopCount = envelope.HopCount;
         event->__setDispatchContext(context);
 
-        if (
-            envelope.DispatchMethod >
-                static_cast<uint8_t>(EventDispatchMethod::Queue) ||
-            envelope.Priority >
-                static_cast<uint8_t>(EventPriority::High)
-        ) {
-            delete event;
+        const auto method = static_cast<EventDispatchMethod>(envelope.DispatchMethod);
+        const auto priority = static_cast<EventPriority>(envelope.Priority);
+
+        const bool accepted = method == EventDispatchMethod::Stack
+            ? EventManager::GetInstance()->TryStackEvent(event, priority)
+            : EventManager::GetInstance()->TryQueueEvent(event, priority);
+
+        if (!accepted) {
+            NotifyTransaction({
+                EventTransportTransactionStage::Failed,
+                EventTransportDirection::Inbound,
+                envelope.EventTypeID,
+                runtime->TypeName,
+                envelope.SchemaVersion,
+                envelope.MessageID,
+                work.Transport,
+                nullptr,
+                payload,
+                envelope.PayloadLength,
+                method,
+                priority,
+                EventOrigin::Remote,
+                envelope.HopCount,
+                false
+            });
             return;
         }
 
-        const auto method =
-            static_cast<EventDispatchMethod>(envelope.DispatchMethod);
-        const auto priority =
-            static_cast<EventPriority>(envelope.Priority);
-
-        if (method == EventDispatchMethod::Stack) {
-            event->Stack(priority);
-        } else {
-            event->Queue(priority);
-        }
-
-        _observable->Notify(
-            [&](IEventTransportManagerObserver* observer) {
+        if (_observable) {
+            _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnInboundEventDispatched(
                     envelope.EventTypeID,
                     envelope.MessageID
                 );
-            }
-        );
+            });
+        }
 
         NotifyTransaction({
             EventTransportTransactionStage::InboundDispatched,
             EventTransportDirection::Inbound,
             envelope.EventTypeID,
-            registration.TypeName,
+            runtime->TypeName,
             envelope.SchemaVersion,
             envelope.MessageID,
             work.Transport,
@@ -453,184 +669,111 @@ private:
             envelope.HopCount,
             true
         });
+        _processedInboundCount.fetch_add(1, std::memory_order_relaxed);
     }
 
     void OnLoop() override {
-        _notificationTask.store(
-            xTaskGetCurrentTaskHandle(),
-            std::memory_order_release
-        );
-
-        if (!HasPendingWork()) {
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        } else {
-            ulTaskNotifyTake(pdTRUE, 0);
-        }
-
-        for (;;) {
-            OutboundWork outbound;
-            InboundWork inbound;
-            bool hasOutbound = false;
-            bool hasInbound = false;
-
-            {
-                std::lock_guard<std::mutex> lock(_mutex);
-                if (!_inbound.empty()) {
-                    inbound = std::move(_inbound.front());
-                    _inbound.pop_front();
-                    hasInbound = true;
-                } else if (!_outbound.empty()) {
-                    outbound = std::move(_outbound.front());
-                    _outbound.pop_front();
-                    hasOutbound = true;
-                }
-            }
-
-            if (hasInbound) {
-                ProcessInbound(std::move(inbound));
-            } else if (hasOutbound) {
-                ProcessOutbound(std::move(outbound));
+        if (_workSignal != nullptr) {
+            if (!HasPendingWork()) {
+                (void)_workSignal->Wait(System::Synchronization::WaitForever);
             } else {
-                break;
-            }
-        }
-    }
-
-    void DropPendingForTransportLocked(
-        uint64_t typeID,
-        IEventTransport* transport,
-        EventTransportDirection removedDirection,
-        const EventTransportUnregistrationOptions& options,
-        bool outboundStillAllowed,
-        bool inboundStillAllowed,
-        std::vector<OutboundWork>& discardedOutbound,
-        std::size_t& discardedInbound
-    ) {
-        if (
-            HasDirection(removedDirection, EventTransportDirection::Outbound) &&
-            !outboundStillAllowed &&
-            options.PendingOutbound == EventTransportPendingAction::Discard
-        ) {
-            auto current = _outbound.begin();
-            while (current != _outbound.end()) {
-                if (
-                    current->TypeID == typeID &&
-                    current->Transport == transport
-                ) {
-                    discardedOutbound.push_back(std::move(*current));
-                    current = _outbound.erase(current);
-                } else {
-                    ++current;
-                }
+                (void)_workSignal->Wait(0);
             }
         }
 
-        if (
-            HasDirection(removedDirection, EventTransportDirection::Inbound) &&
-            !inboundStillAllowed &&
-            options.PendingInbound == EventTransportPendingAction::Discard
-        ) {
-            const auto before = _inbound.size();
-            _inbound.erase(
-                std::remove_if(
-                    _inbound.begin(),
-                    _inbound.end(),
-                    [&](const InboundWork& work) {
-                        return
-                            work.TypeID == typeID &&
-                            work.Transport == transport;
+        // Always service one inbound packet, then one bounded snapshot of outbound
+        // Event mailbox work. Neither direction can indefinitely exclude the other.
+        for (;;) {
+            bool didWork = false;
+
+            InboundWork inbound;
+            if (PopInbound(inbound)) {
+                ProcessInbound(std::move(inbound));
+                didWork = true;
+            }
+
+            if (GetPendingEventCount() != 0) {
+                WithEvents(
+                    [&](IEvent* event, EventDispatchMethod method, EventPriority priority) {
+                        SubmitOutboundEvent(event, method, priority);
                     }
-                ),
-                _inbound.end()
-            );
-            discardedInbound += before - _inbound.size();
+                );
+                didWork = true;
+            }
+
+            if (!didWork) break;
         }
     }
 
     template<typename TEvent>
-    static Registration CreateRegistration(
-        EventTransportDirection defaultDirection
-    ) {
-        Registration proposed;
-        proposed.TypeID = EventTransportTypeID<TEvent>();
-        proposed.TypeName = EventTransportTypeTraits<TEvent>::Name;
-        proposed.SchemaVersion = TEvent::GetSchemaVersion();
-        proposed.RuntimeType = std::type_index(typeid(TEvent));
-        proposed.DefaultDirection = defaultDirection;
-        proposed.Properties = Serializable::SchemaInspector<TEvent>::Properties();
+    static Registration CreateRegistration(EventTransportDirection defaultDirection) {
+        auto runtime = System::Memory::MakeShared<
+            RuntimeRegistration,
+            ExternalPreferred
+        >();
+        runtime->EventType = EventTypeKeyOf<TEvent>();
+        runtime->TypeID = EventTransportTypeID<TEvent>();
+        runtime->TypeName = EventTransportTypeTraits<TEvent>::Name;
+        runtime->SchemaVersion = TEvent::GetSchemaVersion();
+        const auto properties = Serializable::SchemaInspector<TEvent>::Properties();
+        runtime->Properties.assign(properties.begin(), properties.end());
 
-        proposed.Serialize =
-            [](IEvent* event, std::vector<uint8_t>& bytes) {
-                auto* typed = dynamic_cast<TEvent*>(event);
-                if (typed == nullptr) {
-                    return false;
-                }
+        runtime->Serialize = [](IEvent* event, EventTransportBuffer& bytes) {
+            if (
+                event == nullptr ||
+                event->__getTypeKey() != EventTypeKeyOf<TEvent>()
+            ) return false;
 
-                const std::size_t prefix = bytes.size();
-                if (Serializable::AppendDirectBinary(*typed, bytes)) {
-                    return bytes.size() > prefix;
-                }
+            auto* typed = static_cast<TEvent*>(event);
+            const std::size_t prefix = bytes.size();
+            if (Serializable::AppendDirectBinary(*typed, bytes)) {
+                return bytes.size() > prefix;
+            }
 
-                /* Compatibility fallback for an adapter/type not supported by
-                 * the direct writer. */
-                bytes.resize(prefix);
-                Serializable::BinaryArchive archive;
-                typed->Serialize(archive);
-                const auto payload = archive.GetData();
-                if (payload.empty()) {
-                    return false;
-                }
-                bytes.insert(bytes.end(), payload.begin(), payload.end());
-                return true;
-            };
+            bytes.resize(prefix);
+            Serializable::BinaryArchive archive;
+            typed->Serialize(archive);
+            const auto& payload = archive.GetData();
+            if (payload.empty()) return false;
+            bytes.insert(bytes.end(), payload.begin(), payload.end());
+            return true;
+        };
 
         if constexpr (std::is_default_constructible_v<TEvent>) {
-            proposed.Deserialize =
-                [](const uint8_t* data, std::size_t size) -> IEvent* {
-                    auto event = std::make_unique<TEvent>();
-                    const auto direct =
-                        Serializable::DeserializeDirectBinary(
-                            data,
-                            size,
-                            *event
-                        );
-                    if (direct.Success()) {
-                        return event.release();
-                    }
+            runtime->Deserialize = [](const uint8_t* data, std::size_t size) -> IEvent* {
+                auto event = std::make_unique<TEvent>();
+                const auto direct = Serializable::DeserializeDirectBinary(data, size, *event);
+                if (direct.Success()) return event.release();
 
-                    /* Preserve migrations/legacy behaviour through BinaryArchive
-                     * if the direct same-schema path cannot decode the payload. */
-                    Serializable::BinaryArchive archive;
-                    if (!archive.Load(data, size)) {
-                        return nullptr;
-                    }
-                    event = std::make_unique<TEvent>();
-                    if (!event->Deserialize(archive)) {
-                        return nullptr;
-                    }
-                    return event.release();
-                };
+                Serializable::BinaryArchive archive;
+                if (!archive.Load(data, size)) return nullptr;
+                event = std::make_unique<TEvent>();
+                if (!event->Deserialize(archive)) return nullptr;
+                return event.release();
+            };
 
-            proposed.ConstructFromNode =
-                [](const Serializable::SerializationNode& node,
-                   const Serializable::DeserializationOptions& options)
-                    -> SerializableEventConstructionResult {
-                    SerializableEventConstructionResult result;
-                    result.TypeRegistered = true;
-                    result.Constructible = true;
-                    auto event = std::make_unique<TEvent>();
-                    Serializable::TreeArchive archive;
-                    archive.GetNode() = node;
-                    result.Deserialization =
-                        event->DeserializeDetailed(archive, options);
-                    if (result.Deserialization.Success()) {
-                        result.Event = std::move(event);
-                    }
-                    return result;
-                };
+            runtime->ConstructFromNode = [](
+                const Serializable::SerializationNode& node,
+                const Serializable::DeserializationOptions& options
+            ) -> SerializableEventConstructionResult {
+                SerializableEventConstructionResult result;
+                result.TypeRegistered = true;
+                result.Constructible = true;
+                auto event = std::make_unique<TEvent>();
+                Serializable::TreeArchive archive;
+                archive.GetNode() = node;
+                result.Deserialization = event->DeserializeDetailed(archive, options);
+                if (result.Deserialization.Success()) {
+                    result.Event = std::move(event);
+                }
+                return result;
+            };
         }
 
-        return proposed;
+        Registration registration;
+        registration.Runtime = std::move(runtime);
+        registration.DefaultDirection = defaultDirection;
+        return registration;
     }
 
     template<typename TEvent>
@@ -661,19 +804,23 @@ private:
 
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
         Registration proposed = CreateRegistration<TEvent>(direction);
+        const EventTypeKey eventType = proposed.Runtime->EventType;
         EventTransportRegistrationResult result;
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
 
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             auto found = _registrations.find(typeID);
             if (found == _registrations.end()) {
-                _registrations.emplace(typeID, proposed);
-                _runtimeTypes[proposed.RuntimeType] = typeID;
+                _registrations.emplace(typeID, std::move(proposed));
+                _runtimeTypes[eventType] = typeID;
                 result = EventTransportRegistrationResult::Registered;
                 after = direction;
-            } else if (found->second.RuntimeType != proposed.RuntimeType) {
+            } else if (
+                !found->second.Runtime ||
+                found->second.Runtime->EventType != eventType
+            ) {
                 return EventTransportRegistrationResult::TypeConflict;
             } else {
                 before = found->second.DefaultDirection;
@@ -682,30 +829,23 @@ private:
                     return EventTransportRegistrationResult::AlreadyRegistered;
                 }
                 found->second.DefaultDirection = after;
-                if (!found->second.Deserialize && proposed.Deserialize) {
-                    found->second.Deserialize = proposed.Deserialize;
-                }
-                if (found->second.Properties.empty() && !proposed.Properties.empty()) {
-                    found->second.Properties = proposed.Properties;
-                }
-                if (!found->second.ConstructFromNode && proposed.ConstructFromNode) {
-                    found->second.ConstructFromNode = proposed.ConstructFromNode;
-                }
-                _runtimeTypes[proposed.RuntimeType] = typeID;
+                _runtimeTypes[eventType] = typeID;
                 result = EventTransportRegistrationResult::Updated;
             }
         }
 
-        if (result == EventTransportRegistrationResult::Registered) {
-            _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                observer->OnEventTransportTypeRegistered(typeID, after);
-            });
-        } else {
-            _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                observer->OnEventTransportTypeRegistrationChanged(
-                    typeID, before, after
-                );
-            });
+        RefreshOutboundSubscription(typeID);
+
+        if (_observable) {
+            if (result == EventTransportRegistrationResult::Registered) {
+                _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                    observer->OnEventTransportTypeRegistered(typeID, after);
+                });
+            } else {
+                _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                    observer->OnEventTransportTypeRegistrationChanged(typeID, before, after);
+                });
+            }
         }
         return result;
     }
@@ -717,30 +857,31 @@ private:
         bool requireInboundFactory
     ) {
         ValidateTransportEventType<TEvent>();
-        if (transport == nullptr) {
-            return EventTransportRegistrationResult::InvalidTransport;
-        }
+        if (transport == nullptr) return EventTransportRegistrationResult::InvalidTransport;
         if (requireInboundFactory && !std::is_default_constructible_v<TEvent>) {
             return EventTransportRegistrationResult::TypeConflict;
         }
 
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
-        Registration proposed =
-            CreateRegistration<TEvent>(EventTransportDirection::None);
+        Registration proposed = CreateRegistration<TEvent>(EventTransportDirection::None);
+        const EventTypeKey eventType = proposed.Runtime->EventType;
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
-        bool createdOverride = false;
+        bool newRoute = false;
 
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             auto found = _registrations.find(typeID);
             if (found == _registrations.end()) {
                 proposed.TransportDirections[transport] = direction;
-                _registrations.emplace(typeID, proposed);
-                _runtimeTypes[proposed.RuntimeType] = typeID;
+                _registrations.emplace(typeID, std::move(proposed));
+                _runtimeTypes[eventType] = typeID;
                 after = direction;
-                createdOverride = true;
-            } else if (found->second.RuntimeType != proposed.RuntimeType) {
+                newRoute = true;
+            } else if (
+                !found->second.Runtime ||
+                found->second.Runtime->EventType != eventType
+            ) {
                 return EventTransportRegistrationResult::TypeConflict;
             } else {
                 auto route = found->second.TransportDirections.find(transport);
@@ -748,7 +889,7 @@ private:
                     before = found->second.EffectiveDirection(transport);
                     after = before | direction;
                     found->second.TransportDirections[transport] = after;
-                    createdOverride = true;
+                    newRoute = true;
                 } else {
                     before = route->second;
                     after = before | direction;
@@ -757,33 +898,26 @@ private:
                     }
                     route->second = after;
                 }
-                if (!found->second.Deserialize && proposed.Deserialize) {
-                    found->second.Deserialize = proposed.Deserialize;
-                }
-                if (found->second.Properties.empty() && !proposed.Properties.empty()) {
-                    found->second.Properties = proposed.Properties;
-                }
-                if (!found->second.ConstructFromNode && proposed.ConstructFromNode) {
-                    found->second.ConstructFromNode = proposed.ConstructFromNode;
-                }
-                _runtimeTypes[proposed.RuntimeType] = typeID;
+                _runtimeTypes[eventType] = typeID;
             }
         }
 
-        if (createdOverride) {
+        RefreshOutboundSubscription(typeID);
+
+        if (_observable) {
+            if (newRoute) {
+                _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                    observer->OnEventTransportTypeRouteRegistered(typeID, transport, after);
+                });
+                return EventTransportRegistrationResult::Registered;
+            }
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                observer->OnEventTransportTypeRouteRegistered(
-                    typeID, transport, after
-                );
+                observer->OnEventTransportTypeRouteChanged(typeID, transport, before, after);
             });
-            return EventTransportRegistrationResult::Registered;
         }
-        _observable->Notify([&](IEventTransportManagerObserver* observer) {
-            observer->OnEventTransportTypeRouteChanged(
-                typeID, transport, before, after
-            );
-        });
-        return EventTransportRegistrationResult::Updated;
+        return newRoute
+            ? EventTransportRegistrationResult::Registered
+            : EventTransportRegistrationResult::Updated;
     }
 
     template<typename TOperation>
@@ -817,15 +951,39 @@ private:
         }
     }
 
+    void DiscardInboundLocked(
+        uint64_t typeID,
+        IEventTransport* transport,
+        EventTransportDirection removedDirection,
+        const EventTransportUnregistrationOptions& options,
+        bool inboundStillAllowed
+    ) {
+        if (
+            !HasDirection(removedDirection, EventTransportDirection::Inbound) ||
+            inboundStillAllowed ||
+            options.PendingInbound != EventTransportPendingAction::Discard
+        ) return;
+
+        _inbound.erase(
+            std::remove_if(
+                _inbound.begin(),
+                _inbound.end(),
+                [&](const InboundWork& work) {
+                    return work.TypeID == typeID && work.Transport == transport;
+                }
+            ),
+            _inbound.end()
+        );
+    }
+
 public:
+    EventTransportManager(const EventTransportManager&) = delete;
+    EventTransportManager& operator=(const EventTransportManager&) = delete;
+
     ~EventTransportManager() override {
         Shutdown();
         Threads::Thread::Shutdown();
-        _notificationTask.store(nullptr, std::memory_order_release);
     }
-
-    EventTransportManager(const EventTransportManager&) = delete;
-    EventTransportManager& operator=(const EventTransportManager&) = delete;
 
     static EventTransportManager& GetInstance() {
         static EventTransportManager instance;
@@ -833,78 +991,115 @@ public:
     }
 
     Threads::ThreadInitializationStatus Initialize() override {
-        if (_initialized) {
+        if (_initialized.load(std::memory_order_acquire)) {
             return Threads::ThreadInitializationStatus::AlreadyInitialized;
         }
-        _eventManagerObserverHandle =
-            EventManager::GetInstance()->RegisterObserver(this);
-        if (!_eventManagerObserverHandle) {
-            return Threads::ThreadInitializationStatus::InitializationException;
+
+        if (!_outboundExecutorInitialized.load(std::memory_order_acquire)) {
+            const auto outboundInitialization = _outboundExecutor.Initialize(
+                [this](const OutboundWork& work) { ProcessOutboundWork(work); },
+                [this](const OutboundWork& work) { ReleaseOutboundWork(work); }
+            );
+            if (
+                outboundInitialization != Task::TaskExecutionStatus::Success &&
+                outboundInitialization != Task::TaskExecutionStatus::AlreadyInitialized
+            ) {
+                return Threads::ThreadInitializationStatus::TaskCreationFailed;
+            }
+            _outboundExecutorInitialized.store(true, std::memory_order_release);
         }
+
         const auto initializationStatus = Threads::Thread::Initialize();
         if (
             initializationStatus != Threads::ThreadInitializationStatus::Success &&
             initializationStatus != Threads::ThreadInitializationStatus::AlreadyInitialized
         ) {
-            _eventManagerObserverHandle.reset();
+            _outboundExecutor.Stop();
+            _outboundExecutorInitialized.store(false, std::memory_order_release);
+            _outboundExecutorReady.store(false, std::memory_order_release);
             return initializationStatus;
         }
-        if (
-            GetThreadState() == Threads::ThreadState::Initialized ||
-            GetThreadState() == Threads::ThreadState::Paused
-        ) {
-            const auto startStatus = Threads::Thread::Start();
-            if (
-                startStatus != Threads::ThreadInitializationStatus::Success &&
-                startStatus != Threads::ThreadInitializationStatus::AlreadyInitialized
-            ) {
-                _eventManagerObserverHandle.reset();
-                return startStatus;
-            }
+
+        SubscriptionVector subscriptions;
+        {
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+            _initialized.store(true, std::memory_order_release);
+            subscriptions = _subscriptions;
         }
-        if (GetThreadState() != Threads::ThreadState::Running) {
-            _eventManagerObserverHandle.reset();
-            return Threads::ThreadInitializationStatus::InvalidState;
+        for (EventTypeKey type : subscriptions) {
+            EventManager::GetInstance()->RegisterReceiver(type, this);
         }
-        _initialized = true;
         return Threads::ThreadInitializationStatus::Success;
     }
 
+    Threads::ThreadInitializationStatus Start() override {
+        if (!_initialized.load(std::memory_order_acquire)) {
+            const auto initialization = Initialize();
+            if (
+                initialization != Threads::ThreadInitializationStatus::Success &&
+                initialization != Threads::ThreadInitializationStatus::AlreadyInitialized
+            ) return initialization;
+        }
+
+        if (!_outboundExecutorReady.load(std::memory_order_acquire)) {
+            const auto outboundStart = _outboundExecutor.Start();
+            if (
+                outboundStart != Task::TaskExecutionStatus::Success &&
+                outboundStart != Task::TaskExecutionStatus::AlreadyStarted
+            ) {
+                return Threads::ThreadInitializationStatus::TaskCreationFailed;
+            }
+            _outboundExecutorReady.store(true, std::memory_order_release);
+        }
+
+        const auto threadStart = Threads::Thread::Start();
+        if (
+            threadStart != Threads::ThreadInitializationStatus::Success &&
+            threadStart != Threads::ThreadInitializationStatus::AlreadyInitialized
+        ) {
+            _outboundExecutorReady.store(false, std::memory_order_release);
+            _outboundExecutor.Stop();
+            _outboundExecutorInitialized.store(false, std::memory_order_release);
+        }
+        return threadStart;
+    }
+
     bool IsInitialized() const noexcept {
-        return _initialized;
+        return _initialized.load(std::memory_order_acquire);
     }
 
     void Shutdown() {
-        if (!_initialized) {
-            return;
-        }
-        _eventManagerObserverHandle.reset();
-        std::deque<OutboundWork> outbound;
-        std::vector<IEventTransport*> transports;
+        SubscriptionVector subscriptions;
+        TransportVector transports;
+        const bool wasInitialized = _initialized.exchange(false, std::memory_order_acq_rel);
         {
-            std::lock_guard<std::mutex> lock(_mutex);
-            outbound.swap(_outbound);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+            if (!wasInitialized && _transports.empty()) return;
+            subscriptions = _subscriptions;
+            transports = _transports;
+            _transports.clear();
             _inbound.clear();
-            transports.swap(_transports);
-            _initialized = false;
         }
-        for (auto& work : outbound) {
-            ReleaseOutbound(work);
+
+        _outboundExecutorReady.store(false, std::memory_order_release);
+        for (EventTypeKey type : subscriptions) {
+            EventManager::GetInstance()->UnregisterReceiver(type, this);
         }
-        for (auto* transport : transports) {
-            if (transport != nullptr) {
-                transport->SetReceiver(nullptr);
-            }
+
+        ClearPendingEvents();
+        _outboundExecutor.Stop();
+        _outboundExecutorInitialized.store(false, std::memory_order_release);
+
+        for (IEventTransport* transport : transports) {
+            if (transport != nullptr) transport->SetReceiver(nullptr);
         }
     }
 
     bool RegisterTransport(IEventTransport* transport) {
-        if (transport == nullptr) {
-            return false;
-        }
+        if (transport == nullptr) return false;
         bool added = false;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             if (!IsTransportRegisteredLocked(transport)) {
                 _transports.push_back(transport);
                 added = true;
@@ -912,81 +1107,75 @@ public:
         }
         if (added) {
             transport->SetReceiver(this);
-            _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                observer->OnEventTransportRegistered(transport);
-            });
+            if (_observable) {
+                _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                    observer->OnEventTransportRegistered(transport);
+                });
+            }
         }
         return true;
     }
 
     void UnregisterTransport(IEventTransport* transport) {
-        if (transport == nullptr) {
-            return;
-        }
+        if (transport == nullptr) return;
         bool removed = false;
-        std::vector<OutboundWork> discardedOutbound;
+        TypeIdVector refreshTypes;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             const auto oldSize = _transports.size();
             _transports.erase(
                 std::remove(_transports.begin(), _transports.end(), transport),
                 _transports.end()
             );
             removed = _transports.size() != oldSize;
-            if (removed) {
-                auto current = _outbound.begin();
-                while (current != _outbound.end()) {
-                    if (current->Transport == transport) {
-                        discardedOutbound.push_back(std::move(*current));
-                        current = _outbound.erase(current);
-                    } else {
-                        ++current;
-                    }
-                }
-                _inbound.erase(
-                    std::remove_if(
-                        _inbound.begin(), _inbound.end(),
-                        [&](const InboundWork& work) {
-                            return work.Transport == transport;
-                        }
-                    ),
-                    _inbound.end()
-                );
+            if (!removed) return;
+
+            _inbound.erase(
+                std::remove_if(
+                    _inbound.begin(),
+                    _inbound.end(),
+                    [&](const InboundWork& work) { return work.Transport == transport; }
+                ),
+                _inbound.end()
+            );
+
+            for (auto& entry : _registrations) {
+                entry.second.TransportDirections.erase(transport);
+                refreshTypes.push_back(entry.first);
             }
         }
-        for (auto& work : discardedOutbound) {
-            ReleaseOutbound(work);
-        }
-        if (removed) {
-            transport->SetReceiver(nullptr);
+
+        transport->SetReceiver(nullptr);
+        for (uint64_t typeID : refreshTypes) RefreshOutboundSubscription(typeID);
+        if (_observable) {
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnEventTransportUnregistered(transport);
             });
         }
     }
 
-    std::vector<SerializableEventDescriptor>
-    GetRegisteredSerializableEvents() const {
+    std::vector<SerializableEventDescriptor> GetRegisteredSerializableEvents() const {
         std::vector<SerializableEventDescriptor> descriptors;
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
         descriptors.reserve(_registrations.size());
         for (const auto& entry : _registrations) {
-            const auto& registration = entry.second;
+            const Registration& registration = entry.second;
+            if (!registration.Runtime) continue;
             SerializableEventDescriptor descriptor;
-            descriptor.TypeID = registration.TypeID;
-            descriptor.TypeName = std::string(registration.TypeName);
-            descriptor.SchemaVersion = registration.SchemaVersion;
+            descriptor.TypeID = registration.Runtime->TypeID;
+            descriptor.TypeName = std::string(registration.Runtime->TypeName);
+            descriptor.SchemaVersion = registration.Runtime->SchemaVersion;
             descriptor.DefaultDirection = registration.DefaultDirection;
-            descriptor.Properties = registration.Properties;
-            descriptor.CanConstruct = static_cast<bool>(registration.ConstructFromNode);
+            descriptor.Properties.assign(
+                registration.Runtime->Properties.begin(),
+                registration.Runtime->Properties.end()
+            );
+            descriptor.CanConstruct = static_cast<bool>(registration.Runtime->ConstructFromNode);
             descriptors.push_back(std::move(descriptor));
         }
-        std::sort(
-            descriptors.begin(), descriptors.end(),
-            [](const auto& a, const auto& b) {
-                return a.TypeName < b.TypeName;
-            }
-        );
+        std::sort(descriptors.begin(), descriptors.end(), [](const auto& a, const auto& b) {
+            return a.TypeName < b.TypeName;
+        });
         return descriptors;
     }
 
@@ -994,18 +1183,16 @@ public:
         uint64_t typeID,
         SerializableEventDescriptor& descriptor
     ) const {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
         const auto found = _registrations.find(typeID);
-        if (found == _registrations.end()) {
-            return false;
-        }
-        const auto& registration = found->second;
-        descriptor.TypeID = registration.TypeID;
-        descriptor.TypeName = std::string(registration.TypeName);
-        descriptor.SchemaVersion = registration.SchemaVersion;
-        descriptor.DefaultDirection = registration.DefaultDirection;
-        descriptor.Properties = registration.Properties;
-        descriptor.CanConstruct = static_cast<bool>(registration.ConstructFromNode);
+        if (found == _registrations.end() || !found->second.Runtime) return false;
+        const auto& runtime = found->second.Runtime;
+        descriptor.TypeID = runtime->TypeID;
+        descriptor.TypeName = std::string(runtime->TypeName);
+        descriptor.SchemaVersion = runtime->SchemaVersion;
+        descriptor.DefaultDirection = found->second.DefaultDirection;
+        descriptor.Properties.assign(runtime->Properties.begin(), runtime->Properties.end());
+        descriptor.CanConstruct = static_cast<bool>(runtime->ConstructFromNode);
         return true;
     }
 
@@ -1013,18 +1200,16 @@ public:
         std::string_view typeName,
         SerializableEventDescriptor& descriptor
     ) const {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
         for (const auto& entry : _registrations) {
-            const auto& registration = entry.second;
-            if (registration.TypeName != typeName) {
-                continue;
-            }
-            descriptor.TypeID = registration.TypeID;
-            descriptor.TypeName = std::string(registration.TypeName);
-            descriptor.SchemaVersion = registration.SchemaVersion;
-            descriptor.DefaultDirection = registration.DefaultDirection;
-            descriptor.Properties = registration.Properties;
-            descriptor.CanConstruct = static_cast<bool>(registration.ConstructFromNode);
+            if (!entry.second.Runtime || entry.second.Runtime->TypeName != typeName) continue;
+            const auto& runtime = entry.second.Runtime;
+            descriptor.TypeID = runtime->TypeID;
+            descriptor.TypeName = std::string(runtime->TypeName);
+            descriptor.SchemaVersion = runtime->SchemaVersion;
+            descriptor.DefaultDirection = entry.second.DefaultDirection;
+            descriptor.Properties.assign(runtime->Properties.begin(), runtime->Properties.end());
+            descriptor.CanConstruct = static_cast<bool>(runtime->ConstructFromNode);
             return true;
         }
         return false;
@@ -1035,23 +1220,20 @@ public:
         const Serializable::SerializationNode& node,
         const Serializable::DeserializationOptions& options = {}
     ) const {
-        std::function<SerializableEventConstructionResult(
-            const Serializable::SerializationNode&,
-            const Serializable::DeserializationOptions&)> factory;
+        RuntimeRegistrationPtr runtime;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             const auto found = _registrations.find(typeID);
-            if (found == _registrations.end()) {
-                return {};
-            }
-            if (!found->second.ConstructFromNode) {
-                SerializableEventConstructionResult result;
-                result.TypeRegistered = true;
-                return result;
-            }
-            factory = found->second.ConstructFromNode;
+            if (found == _registrations.end()) return {};
+            runtime = found->second.Runtime;
         }
-        return factory(node, options);
+        if (!runtime) return {};
+        if (!runtime->ConstructFromNode) {
+            SerializableEventConstructionResult result;
+            result.TypeRegistered = true;
+            return result;
+        }
+        return runtime->ConstructFromNode(node, options);
     }
 
     SerializableEventConstructionResult CreateSerializableEvent(
@@ -1059,25 +1241,23 @@ public:
         const Serializable::SerializationNode& node,
         const Serializable::DeserializationOptions& options = {}
     ) const {
-        std::function<SerializableEventConstructionResult(
-            const Serializable::SerializationNode&,
-            const Serializable::DeserializationOptions&)> factory;
+        RuntimeRegistrationPtr runtime;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             for (const auto& entry : _registrations) {
-                if (entry.second.TypeName != typeName) {
-                    continue;
+                if (entry.second.Runtime && entry.second.Runtime->TypeName == typeName) {
+                    runtime = entry.second.Runtime;
+                    break;
                 }
-                if (!entry.second.ConstructFromNode) {
-                    SerializableEventConstructionResult result;
-                    result.TypeRegistered = true;
-                    return result;
-                }
-                factory = entry.second.ConstructFromNode;
-                break;
             }
         }
-        return factory ? factory(node, options) : SerializableEventConstructionResult{};
+        if (!runtime) return {};
+        if (!runtime->ConstructFromNode) {
+            SerializableEventConstructionResult result;
+            result.TypeRegistered = true;
+            return result;
+        }
+        return runtime->ConstructFromNode(node, options);
     }
 
     static RuntimeEventDispatchResult DispatchSerializableEvent(
@@ -1085,9 +1265,7 @@ public:
         EventDispatchMethod method = EventDispatchMethod::Queue,
         EventPriority priority = EventPriority::Normal
     ) {
-        if (!event) {
-            return RuntimeEventDispatchResult::NullEvent;
-        }
+        if (!event) return RuntimeEventDispatchResult::NullEvent;
         IEvent* released = event.release();
         switch (method) {
             case EventDispatchMethod::Queue:
@@ -1103,9 +1281,7 @@ public:
     }
 
     template<typename TEvent>
-    EventTransportRegistrationResult RegisterEvent(
-        EventTransportDirection direction
-    ) {
+    EventTransportRegistrationResult RegisterEvent(EventTransportDirection direction) {
         if (HasDirection(direction, EventTransportDirection::Inbound)) {
             static_assert(
                 std::is_default_constructible_v<TEvent>,
@@ -1137,15 +1313,10 @@ public:
     }
 
     template<typename... TEvents>
-    EventTransportBulkOperationResult RegisterEvents(
-        EventTransportDirection direction
-    ) {
+    EventTransportBulkOperationResult RegisterEvents(EventTransportDirection direction) {
         EventTransportBulkOperationResult result;
         result.Requested = sizeof...(TEvents);
-        (AccumulateBulkResult(
-            result,
-            [&]() { return RegisterEvent<TEvents>(direction); }
-        ), ...);
+        (AccumulateBulkResult(result, [&]() { return RegisterEvent<TEvents>(direction); }), ...);
         return result;
     }
 
@@ -1156,70 +1327,22 @@ public:
     ) {
         EventTransportBulkOperationResult result;
         result.Requested = sizeof...(TEvents);
-        (AccumulateBulkResult(
-            result,
-            [&]() { return RegisterEvent<TEvents>(transport, direction); }
-        ), ...);
+        (AccumulateBulkResult(result, [&]() { return RegisterEvent<TEvents>(transport, direction); }), ...);
         return result;
     }
 
-    template<typename TEvent>
-    EventTransportRegistrationResult RegisterInboundEvent() {
-        static_assert(std::is_default_constructible_v<TEvent>,
-            "Inbound transported Events must be default constructible.");
-        return RegisterGlobalEventImpl<TEvent>(EventTransportDirection::Inbound, true);
-    }
-    template<typename TEvent>
-    EventTransportRegistrationResult RegisterOutboundEvent() {
-        return RegisterGlobalEventImpl<TEvent>(EventTransportDirection::Outbound, false);
-    }
-    template<typename TEvent>
-    EventTransportRegistrationResult RegisterBidirectionalEvent() {
-        static_assert(std::is_default_constructible_v<TEvent>,
-            "Bidirectionally transported Events must be default constructible.");
-        return RegisterGlobalEventImpl<TEvent>(EventTransportDirection::Bidirectional, true);
-    }
-    template<typename TEvent>
-    EventTransportRegistrationResult RegisterInboundEvent(IEventTransport* transport) {
-        static_assert(std::is_default_constructible_v<TEvent>,
-            "Inbound transported Events must be default constructible.");
-        return RegisterTransportEventImpl<TEvent>(transport, EventTransportDirection::Inbound, true);
-    }
-    template<typename TEvent>
-    EventTransportRegistrationResult RegisterOutboundEvent(IEventTransport* transport) {
-        return RegisterTransportEventImpl<TEvent>(transport, EventTransportDirection::Outbound, false);
-    }
-    template<typename TEvent>
-    EventTransportRegistrationResult RegisterBidirectionalEvent(IEventTransport* transport) {
-        static_assert(std::is_default_constructible_v<TEvent>,
-            "Bidirectionally transported Events must be default constructible.");
-        return RegisterTransportEventImpl<TEvent>(transport, EventTransportDirection::Bidirectional, true);
-    }
-
-    template<typename... TEvents>
-    EventTransportBulkOperationResult RegisterInboundEvents() {
-        return RegisterEvents<TEvents...>(EventTransportDirection::Inbound);
-    }
-    template<typename... TEvents>
-    EventTransportBulkOperationResult RegisterOutboundEvents() {
-        return RegisterEvents<TEvents...>(EventTransportDirection::Outbound);
-    }
-    template<typename... TEvents>
-    EventTransportBulkOperationResult RegisterBidirectionalEvents() {
-        return RegisterEvents<TEvents...>(EventTransportDirection::Bidirectional);
-    }
-    template<typename... TEvents>
-    EventTransportBulkOperationResult RegisterInboundEvents(IEventTransport* transport) {
-        return RegisterEvents<TEvents...>(transport, EventTransportDirection::Inbound);
-    }
-    template<typename... TEvents>
-    EventTransportBulkOperationResult RegisterOutboundEvents(IEventTransport* transport) {
-        return RegisterEvents<TEvents...>(transport, EventTransportDirection::Outbound);
-    }
-    template<typename... TEvents>
-    EventTransportBulkOperationResult RegisterBidirectionalEvents(IEventTransport* transport) {
-        return RegisterEvents<TEvents...>(transport, EventTransportDirection::Bidirectional);
-    }
+    template<typename TEvent> EventTransportRegistrationResult RegisterInboundEvent() { return RegisterEvent<TEvent>(EventTransportDirection::Inbound); }
+    template<typename TEvent> EventTransportRegistrationResult RegisterOutboundEvent() { return RegisterEvent<TEvent>(EventTransportDirection::Outbound); }
+    template<typename TEvent> EventTransportRegistrationResult RegisterBidirectionalEvent() { return RegisterEvent<TEvent>(EventTransportDirection::Bidirectional); }
+    template<typename TEvent> EventTransportRegistrationResult RegisterInboundEvent(IEventTransport* t) { return RegisterEvent<TEvent>(t, EventTransportDirection::Inbound); }
+    template<typename TEvent> EventTransportRegistrationResult RegisterOutboundEvent(IEventTransport* t) { return RegisterEvent<TEvent>(t, EventTransportDirection::Outbound); }
+    template<typename TEvent> EventTransportRegistrationResult RegisterBidirectionalEvent(IEventTransport* t) { return RegisterEvent<TEvent>(t, EventTransportDirection::Bidirectional); }
+    template<typename... TEvents> EventTransportBulkOperationResult RegisterInboundEvents() { return RegisterEvents<TEvents...>(EventTransportDirection::Inbound); }
+    template<typename... TEvents> EventTransportBulkOperationResult RegisterOutboundEvents() { return RegisterEvents<TEvents...>(EventTransportDirection::Outbound); }
+    template<typename... TEvents> EventTransportBulkOperationResult RegisterBidirectionalEvents() { return RegisterEvents<TEvents...>(EventTransportDirection::Bidirectional); }
+    template<typename... TEvents> EventTransportBulkOperationResult RegisterInboundEvents(IEventTransport* t) { return RegisterEvents<TEvents...>(t, EventTransportDirection::Inbound); }
+    template<typename... TEvents> EventTransportBulkOperationResult RegisterOutboundEvents(IEventTransport* t) { return RegisterEvents<TEvents...>(t, EventTransportDirection::Outbound); }
+    template<typename... TEvents> EventTransportBulkOperationResult RegisterBidirectionalEvents(IEventTransport* t) { return RegisterEvents<TEvents...>(t, EventTransportDirection::Bidirectional); }
 
     template<typename TEvent>
     EventTransportUnregistrationResult UnregisterEvent(
@@ -1233,44 +1356,50 @@ public:
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
-        EventTransportUnregistrationResult result;
-        std::vector<OutboundWork> discardedOutbound;
-        std::size_t discardedInbound = 0;
+        EventTypeKey subscriptionType = nullptr;
+        bool outboundRequired = false;
+        bool remains = false;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             auto found = _registrations.find(typeID);
             if (found == _registrations.end()) {
                 return EventTransportUnregistrationResult::NotRegistered;
             }
             before = found->second.DefaultDirection;
             after = RemoveDirection(before, direction);
+            if (after == before) return EventTransportUnregistrationResult::NotRegistered;
             found->second.DefaultDirection = after;
             for (IEventTransport* transport : _transports) {
-                const auto effectiveAfter = found->second.EffectiveDirection(transport);
-                DropPendingForTransportLocked(
+                DiscardInboundLocked(
                     typeID,
                     transport,
                     direction,
                     options,
-                    HasDirection(effectiveAfter, EventTransportDirection::Outbound),
-                    HasDirection(effectiveAfter, EventTransportDirection::Inbound),
-                    discardedOutbound,
-                    discardedInbound
+                    HasDirection(
+                        found->second.EffectiveDirection(transport),
+                        EventTransportDirection::Inbound
+                    )
                 );
             }
-            result = found->second.HasAnyDirection()
-                ? EventTransportUnregistrationResult::Updated
-                : EventTransportUnregistrationResult::Removed;
+            remains = found->second.HasAnyDirection();
+            if (found->second.Runtime) {
+                subscriptionType = found->second.Runtime->EventType;
+                outboundRequired = found->second.HasOutboundDirection();
+            }
             RemoveRegistrationIfUnusedLocked(typeID);
         }
-        for (auto& work : discardedOutbound) {
-            ReleaseOutbound(work);
+
+        if (subscriptionType != nullptr) {
+            SetOutboundSubscription(subscriptionType, outboundRequired);
         }
-        (void)discardedInbound;
-        _observable->Notify([&](IEventTransportManagerObserver* observer) {
-            observer->OnEventTransportTypeUnregistered(typeID, before, after);
-        });
-        return result;
+        if (_observable) {
+            _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                observer->OnEventTransportTypeUnregistered(typeID, before, after);
+            });
+        }
+        return remains
+            ? EventTransportUnregistrationResult::Updated
+            : EventTransportUnregistrationResult::Removed;
     }
 
     template<typename TEvent>
@@ -1283,36 +1412,29 @@ public:
             EventTransportTypeTraits<TEvent>::Name.size() != 0,
             "Unregistering a transported Event requires its stable transport type trait."
         );
-        if (transport == nullptr) {
-            return EventTransportUnregistrationResult::InvalidTransport;
-        }
+        if (transport == nullptr) return EventTransportUnregistrationResult::InvalidTransport;
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
-        EventTransportUnregistrationResult result =
-            EventTransportUnregistrationResult::NotRegistered;
-        std::vector<OutboundWork> discardedOutbound;
-        std::size_t discardedInbound = 0;
+        EventTypeKey subscriptionType = nullptr;
+        bool outboundRequired = false;
+        bool remains = false;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             auto found = _registrations.find(typeID);
             if (found == _registrations.end()) {
                 return EventTransportUnregistrationResult::NotRegistered;
             }
             before = found->second.EffectiveDirection(transport);
-            if (
-                !HasDirection(before, direction) &&
-                direction != EventTransportDirection::Bidirectional
-            ) {
-                return EventTransportUnregistrationResult::NotRegistered;
-            }
             after = RemoveDirection(before, direction);
+            if (after == before) return EventTransportUnregistrationResult::NotRegistered;
             found->second.TransportDirections[transport] = after;
-            DropPendingForTransportLocked(
-                typeID, transport, direction, options,
-                HasDirection(after, EventTransportDirection::Outbound),
-                HasDirection(after, EventTransportDirection::Inbound),
-                discardedOutbound, discardedInbound
+            DiscardInboundLocked(
+                typeID,
+                transport,
+                direction,
+                options,
+                HasDirection(after, EventTransportDirection::Inbound)
             );
             if (
                 after == EventTransportDirection::None &&
@@ -1320,23 +1442,30 @@ public:
             ) {
                 found->second.TransportDirections.erase(transport);
             }
-            result = found->second.HasAnyDirection()
-                ? (after == EventTransportDirection::None
-                    ? EventTransportUnregistrationResult::Removed
-                    : EventTransportUnregistrationResult::Updated)
-                : EventTransportUnregistrationResult::Removed;
+            remains = found->second.HasAnyDirection();
+            if (found->second.Runtime) {
+                subscriptionType = found->second.Runtime->EventType;
+                outboundRequired = found->second.HasOutboundDirection();
+            }
             RemoveRegistrationIfUnusedLocked(typeID);
         }
-        for (auto& work : discardedOutbound) {
-            ReleaseOutbound(work);
+
+        if (subscriptionType != nullptr) {
+            SetOutboundSubscription(subscriptionType, outboundRequired);
         }
-        (void)discardedInbound;
-        _observable->Notify([&](IEventTransportManagerObserver* observer) {
-            observer->OnEventTransportTypeRouteUnregistered(
-                typeID, transport, before, after
-            );
-        });
-        return result;
+        if (_observable) {
+            _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                observer->OnEventTransportTypeRouteUnregistered(
+                    typeID,
+                    transport,
+                    before,
+                    after
+                );
+            });
+        }
+        return remains && after != EventTransportDirection::None
+            ? EventTransportUnregistrationResult::Updated
+            : EventTransportUnregistrationResult::Removed;
     }
 
     template<typename... TEvents>
@@ -1346,12 +1475,10 @@ public:
     ) {
         EventTransportBulkOperationResult result;
         result.Requested = sizeof...(TEvents);
-        (AccumulateBulkResult(
-            result,
-            [&]() { return UnregisterEvent<TEvents>(direction, options); }
-        ), ...);
+        (AccumulateBulkResult(result, [&]() { return UnregisterEvent<TEvents>(direction, options); }), ...);
         return result;
     }
+
     template<typename... TEvents>
     EventTransportBulkOperationResult UnregisterEvents(
         IEventTransport* transport,
@@ -1360,81 +1487,78 @@ public:
     ) {
         EventTransportBulkOperationResult result;
         result.Requested = sizeof...(TEvents);
-        (AccumulateBulkResult(
-            result,
-            [&]() { return UnregisterEvent<TEvents>(transport, direction, options); }
-        ), ...);
+        (AccumulateBulkResult(result, [&]() { return UnregisterEvent<TEvents>(transport, direction, options); }), ...);
         return result;
     }
 
-    template<typename TEvent> auto UnregisterInboundEvent(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(EventTransportDirection::Inbound,o); }
-    template<typename TEvent> auto UnregisterOutboundEvent(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(EventTransportDirection::Outbound,o); }
-    template<typename TEvent> auto UnregisterBidirectionalEvent(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(EventTransportDirection::Bidirectional,o); }
-    template<typename TEvent> auto UnregisterInboundEvent(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(t,EventTransportDirection::Inbound,o); }
-    template<typename TEvent> auto UnregisterOutboundEvent(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(t,EventTransportDirection::Outbound,o); }
-    template<typename TEvent> auto UnregisterBidirectionalEvent(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(t,EventTransportDirection::Bidirectional,o); }
-    template<typename... TEvents> auto UnregisterInboundEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(EventTransportDirection::Inbound,o); }
-    template<typename... TEvents> auto UnregisterOutboundEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(EventTransportDirection::Outbound,o); }
-    template<typename... TEvents> auto UnregisterBidirectionalEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(EventTransportDirection::Bidirectional,o); }
-    template<typename... TEvents> auto UnregisterInboundEvents(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(t,EventTransportDirection::Inbound,o); }
-    template<typename... TEvents> auto UnregisterOutboundEvents(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(t,EventTransportDirection::Outbound,o); }
-    template<typename... TEvents> auto UnregisterBidirectionalEvents(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(t,EventTransportDirection::Bidirectional,o); }
+    template<typename TEvent> auto UnregisterInboundEvent(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(EventTransportDirection::Inbound, o); }
+    template<typename TEvent> auto UnregisterOutboundEvent(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(EventTransportDirection::Outbound, o); }
+    template<typename TEvent> auto UnregisterBidirectionalEvent(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(EventTransportDirection::Bidirectional, o); }
+    template<typename TEvent> auto UnregisterInboundEvent(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(t, EventTransportDirection::Inbound, o); }
+    template<typename TEvent> auto UnregisterOutboundEvent(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(t, EventTransportDirection::Outbound, o); }
+    template<typename TEvent> auto UnregisterBidirectionalEvent(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvent<TEvent>(t, EventTransportDirection::Bidirectional, o); }
+    template<typename... TEvents> auto UnregisterInboundEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(EventTransportDirection::Inbound, o); }
+    template<typename... TEvents> auto UnregisterOutboundEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(EventTransportDirection::Outbound, o); }
+    template<typename... TEvents> auto UnregisterBidirectionalEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(EventTransportDirection::Bidirectional, o); }
+    template<typename... TEvents> auto UnregisterInboundEvents(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(t, EventTransportDirection::Inbound, o); }
+    template<typename... TEvents> auto UnregisterOutboundEvents(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(t, EventTransportDirection::Outbound, o); }
+    template<typename... TEvents> auto UnregisterBidirectionalEvents(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterEvents<TEvents...>(t, EventTransportDirection::Bidirectional, o); }
 
     EventTransportBulkOperationResult UnregisterAllEvents(
         EventTransportDirection direction,
         const EventTransportUnregistrationOptions& options = {}
     ) {
         EventTransportBulkOperationResult result;
-        std::vector<uint64_t> typeIDs;
+        TypeIdVector typeIDs;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             typeIDs.reserve(_registrations.size());
-            for (const auto& entry : _registrations) {
-                typeIDs.push_back(entry.first);
-            }
+            for (const auto& entry : _registrations) typeIDs.push_back(entry.first);
         }
         result.Requested = typeIDs.size();
         for (uint64_t typeID : typeIDs) {
             EventTransportDirection before = EventTransportDirection::None;
             EventTransportDirection after = EventTransportDirection::None;
-            std::vector<OutboundWork> discardedOutbound;
-            std::size_t discardedInbound = 0;
+            EventTypeKey subscriptionType = nullptr;
+            bool outboundRequired = false;
             bool changed = false;
             {
-                std::lock_guard<std::mutex> lock(_mutex);
+                std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
                 auto found = _registrations.find(typeID);
-                if (found == _registrations.end()) {
-                    ++result.Unchanged;
-                    continue;
-                }
+                if (found == _registrations.end()) { ++result.Unchanged; continue; }
                 before = found->second.DefaultDirection;
                 after = RemoveDirection(before, direction);
-                if (before == after) {
-                    ++result.Unchanged;
-                    continue;
-                }
+                if (after == before) { ++result.Unchanged; continue; }
                 found->second.DefaultDirection = after;
                 for (IEventTransport* transport : _transports) {
-                    const auto effectiveAfter = found->second.EffectiveDirection(transport);
-                    DropPendingForTransportLocked(
-                        typeID, transport, direction, options,
-                        HasDirection(effectiveAfter, EventTransportDirection::Outbound),
-                        HasDirection(effectiveAfter, EventTransportDirection::Inbound),
-                        discardedOutbound, discardedInbound
+                    DiscardInboundLocked(
+                        typeID,
+                        transport,
+                        direction,
+                        options,
+                        HasDirection(
+                            found->second.EffectiveDirection(transport),
+                            EventTransportDirection::Inbound
+                        )
                     );
+                }
+                if (found->second.Runtime) {
+                    subscriptionType = found->second.Runtime->EventType;
+                    outboundRequired = found->second.HasOutboundDirection();
                 }
                 RemoveRegistrationIfUnusedLocked(typeID);
                 changed = true;
             }
-            for (auto& work : discardedOutbound) {
-                ReleaseOutbound(work);
+            if (subscriptionType != nullptr) {
+                SetOutboundSubscription(subscriptionType, outboundRequired);
             }
-            (void)discardedInbound;
             if (changed) {
                 ++result.Changed;
-                _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                    observer->OnEventTransportTypeUnregistered(typeID,before,after);
-                });
+                if (_observable) {
+                    _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                        observer->OnEventTransportTypeUnregistered(typeID, before, after);
+                    });
+                }
             }
         }
         return result;
@@ -1446,76 +1570,72 @@ public:
         const EventTransportUnregistrationOptions& options = {}
     ) {
         EventTransportBulkOperationResult result;
-        if (transport == nullptr) {
-            result.Failed = 1;
-            return result;
-        }
-        std::vector<uint64_t> typeIDs;
+        if (transport == nullptr) { result.Failed = 1; return result; }
+        TypeIdVector typeIDs;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
             typeIDs.reserve(_registrations.size());
-            for (const auto& entry : _registrations) {
-                typeIDs.push_back(entry.first);
-            }
+            for (const auto& entry : _registrations) typeIDs.push_back(entry.first);
         }
         result.Requested = typeIDs.size();
         for (uint64_t typeID : typeIDs) {
             EventTransportDirection before = EventTransportDirection::None;
             EventTransportDirection after = EventTransportDirection::None;
-            std::vector<OutboundWork> discardedOutbound;
-            std::size_t discardedInbound = 0;
+            EventTypeKey subscriptionType = nullptr;
+            bool outboundRequired = false;
             bool changed = false;
             {
-                std::lock_guard<std::mutex> lock(_mutex);
+                std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
                 auto found = _registrations.find(typeID);
-                if (found == _registrations.end()) {
-                    ++result.Unchanged;
-                    continue;
-                }
+                if (found == _registrations.end()) { ++result.Unchanged; continue; }
                 before = found->second.EffectiveDirection(transport);
                 after = RemoveDirection(before, direction);
-                if (before == after) {
-                    ++result.Unchanged;
-                    continue;
-                }
+                if (after == before) { ++result.Unchanged; continue; }
                 found->second.TransportDirections[transport] = after;
-                DropPendingForTransportLocked(
-                    typeID, transport, direction, options,
-                    HasDirection(after, EventTransportDirection::Outbound),
-                    HasDirection(after, EventTransportDirection::Inbound),
-                    discardedOutbound, discardedInbound
+                DiscardInboundLocked(
+                    typeID,
+                    transport,
+                    direction,
+                    options,
+                    HasDirection(after, EventTransportDirection::Inbound)
                 );
                 if (
                     after == EventTransportDirection::None &&
                     found->second.DefaultDirection == EventTransportDirection::None
-                ) {
-                    found->second.TransportDirections.erase(transport);
+                ) found->second.TransportDirections.erase(transport);
+                if (found->second.Runtime) {
+                    subscriptionType = found->second.Runtime->EventType;
+                    outboundRequired = found->second.HasOutboundDirection();
                 }
                 RemoveRegistrationIfUnusedLocked(typeID);
                 changed = true;
             }
-            for (auto& work : discardedOutbound) {
-                ReleaseOutbound(work);
+            if (subscriptionType != nullptr) {
+                SetOutboundSubscription(subscriptionType, outboundRequired);
             }
-            (void)discardedInbound;
             if (changed) {
                 ++result.Changed;
-                _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                    observer->OnEventTransportTypeRouteUnregistered(
-                        typeID,transport,before,after
-                    );
-                });
+                if (_observable) {
+                    _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                        observer->OnEventTransportTypeRouteUnregistered(
+                            typeID,
+                            transport,
+                            before,
+                            after
+                        );
+                    });
+                }
             }
         }
         return result;
     }
 
-    EventTransportBulkOperationResult UnregisterAllInboundEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(EventTransportDirection::Inbound,o); }
-    EventTransportBulkOperationResult UnregisterAllOutboundEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(EventTransportDirection::Outbound,o); }
-    EventTransportBulkOperationResult UnregisterAllBidirectionalEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(EventTransportDirection::Bidirectional,o); }
-    EventTransportBulkOperationResult UnregisterAllInboundEvents(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(t,EventTransportDirection::Inbound,o); }
-    EventTransportBulkOperationResult UnregisterAllOutboundEvents(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(t,EventTransportDirection::Outbound,o); }
-    EventTransportBulkOperationResult UnregisterAllBidirectionalEvents(IEventTransport* t,const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(t,EventTransportDirection::Bidirectional,o); }
+    EventTransportBulkOperationResult UnregisterAllInboundEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(EventTransportDirection::Inbound, o); }
+    EventTransportBulkOperationResult UnregisterAllOutboundEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(EventTransportDirection::Outbound, o); }
+    EventTransportBulkOperationResult UnregisterAllBidirectionalEvents(const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(EventTransportDirection::Bidirectional, o); }
+    EventTransportBulkOperationResult UnregisterAllInboundEvents(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(t, EventTransportDirection::Inbound, o); }
+    EventTransportBulkOperationResult UnregisterAllOutboundEvents(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(t, EventTransportDirection::Outbound, o); }
+    EventTransportBulkOperationResult UnregisterAllBidirectionalEvents(IEventTransport* t, const EventTransportUnregistrationOptions& o = {}) { return UnregisterAllEvents(t, EventTransportDirection::Bidirectional, o); }
 
     template<typename TEvent>
     EventTransportDirection GetEventTransportDirection() const {
@@ -1524,7 +1644,7 @@ public:
             "Querying a transported Event requires its stable transport type trait."
         );
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
         const auto found = _registrations.find(typeID);
         return found == _registrations.end()
             ? EventTransportDirection::None
@@ -1532,27 +1652,21 @@ public:
     }
 
     template<typename TEvent>
-    EventTransportDirection GetEventTransportDirection(
-        IEventTransport* transport
-    ) const {
+    EventTransportDirection GetEventTransportDirection(IEventTransport* transport) const {
         static_assert(
             EventTransportTypeTraits<TEvent>::Name.size() != 0,
             "Querying a transported Event requires its stable transport type trait."
         );
-        if (transport == nullptr) {
-            return EventTransportDirection::None;
-        }
+        if (transport == nullptr) return EventTransportDirection::None;
         constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
         const auto found = _registrations.find(typeID);
         return found == _registrations.end()
             ? EventTransportDirection::None
             : found->second.EffectiveDirection(transport);
     }
 
-    Observable::ObserverHandlePtr RegisterObserver(
-        IEventTransportManagerObserver* observer
-    ) {
+    Observable::ObserverHandlePtr RegisterObserver(IEventTransportManagerObserver* observer) {
         return _observable->RegisterObserver(observer);
     }
 
@@ -1560,162 +1674,70 @@ public:
         _observable->UnregisterObserver(observer);
     }
 
-    void OnEventDispatched(
-        IEvent* event,
-        EventDispatchMethod method,
-        EventPriority priority,
-        const EventDispatchContext& context
-    ) override {
-        if (
-            !_initialized ||
-            event == nullptr ||
-            context.Origin != EventOrigin::Local
-        ) {
-            return;
-        }
-
-        uint64_t typeID = 0;
-        uint64_t messageID = 0;
-        std::vector<IEventTransport*> targetTransports;
-        Registration registrationSnapshot;
-
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            auto runtime = _runtimeTypes.find(std::type_index(typeid(*event)));
-            if (runtime == _runtimeTypes.end()) {
-                return;
-            }
-            auto registration = _registrations.find(runtime->second);
-            if (registration == _registrations.end()) {
-                return;
-            }
-            for (IEventTransport* transport : _transports) {
-                if (HasDirection(
-                    registration->second.EffectiveDirection(transport),
-                    EventTransportDirection::Outbound
-                )) {
-                    targetTransports.push_back(transport);
-                }
-            }
-            if (targetTransports.empty()) {
-                return;
-            }
-            typeID = runtime->second;
-            messageID = _nextMessageID.fetch_add(1);
-            registrationSnapshot = registration->second;
-            for (IEventTransport* transport : targetTransports) {
-                event->__ref();
-                _outbound.push_back({
-                    event,
-                    transport,
-                    typeID,
-                    registrationSnapshot,
-                    method,
-                    priority,
-                    messageID
-                });
-            }
-        }
-
-        _observable->Notify([&](IEventTransportManagerObserver* observer) {
-            observer->OnOutboundEventAccepted(typeID, messageID);
-        });
-
-        for (IEventTransport* transport : targetTransports) {
-            _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                observer->OnOutboundEventAcceptedForTransport(
-                    typeID, messageID, transport
-                );
-            });
-            NotifyTransaction({
-                EventTransportTransactionStage::OutboundAccepted,
-                EventTransportDirection::Outbound,
-                typeID,
-                registrationSnapshot.TypeName,
-                registrationSnapshot.SchemaVersion,
-                messageID,
-                transport,
-                event,
-                nullptr,
-                0,
-                method,
-                priority,
-                EventOrigin::Local,
-                0,
-                false
-            });
-        }
-        Wake();
-    }
-
     void ReceiveEventTransportPacket(
         IEventTransport* transport,
-        const uint8_t* data,
-        std::size_t size
+        EventTransportPacket packet
     ) override {
-        if (
-            !_initialized ||
-            transport == nullptr ||
-            data == nullptr ||
-            size < sizeof(EventTransportEnvelope)
-        ) {
-            return;
-        }
+        if (!IsInitialized() || transport == nullptr || !packet) return;
 
         EventTransportEnvelope envelope;
         const uint8_t* payload = nullptr;
-        if (!ParseEnvelope(data, size, envelope, payload)) {
-            _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                observer->OnInboundPacketRejected(0,0,transport);
-            });
-            NotifyTransaction({
-                EventTransportTransactionStage::InboundRejected,
-                EventTransportDirection::Inbound,
-                0,{},0,0,transport,nullptr,nullptr,0,
-                EventDispatchMethod::Queue,
-                EventPriority::Normal,
-                EventOrigin::Remote,
-                0,false
-            });
+        if (!ParseEnvelope(packet, envelope, payload)) {
+            _rejectedInboundCount.fetch_add(1, std::memory_order_relaxed);
+            if (_observable) {
+                _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                    observer->OnInboundPacketRejected(0, 0, transport);
+                });
+            }
             return;
         }
 
         bool accepted = false;
+        RuntimeRegistrationPtr runtime;
         std::string_view typeName{};
         uint32_t schemaVersion = envelope.SchemaVersion;
+        std::size_t inboundDepth = 0;
         {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (IsTransportRegisteredLocked(transport)) {
-                auto found = _registrations.find(envelope.EventTypeID);
-                if (found != _registrations.end()) {
-                    typeName = found->second.TypeName;
-                    schemaVersion = found->second.SchemaVersion;
+            std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+            if (
+                IsTransportRegisteredLocked(transport) &&
+                _inbound.size() < ESPRESSIO_EVENT_TRANSPORT_MAX_PENDING_INBOUND
+            ) {
+                const auto found = _registrations.find(envelope.EventTypeID);
+                if (found != _registrations.end() && found->second.Runtime) {
+                    runtime = found->second.Runtime;
+                    typeName = runtime->TypeName;
+                    schemaVersion = runtime->SchemaVersion;
                     if (HasDirection(
                         found->second.EffectiveDirection(transport),
                         EventTransportDirection::Inbound
                     )) {
-                        _inbound.push_back({
+                        _inbound.push_back(InboundWork{
                             transport,
                             envelope.EventTypeID,
-                            found->second,
-                            std::vector<uint8_t>(data, data + size)
+                            runtime,
+                            std::move(packet)
                         });
+                        inboundDepth = _inbound.size();
                         accepted = true;
                     }
                 }
             }
         }
 
-        if (accepted) {
-            _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                observer->OnInboundPacketAccepted(
-                    envelope.EventTypeID,
-                    envelope.MessageID,
-                    transport
-                );
-            });
+        if (!accepted) {
+            _rejectedInboundCount.fetch_add(1, std::memory_order_relaxed);
+            if (_observable) {
+                _observable->Notify([&](IEventTransportManagerObserver* observer) {
+                    observer->OnInboundPacketRejected(
+                        envelope.EventTypeID,
+                        envelope.MessageID,
+                        transport
+                    );
+                });
+            }
             NotifyTransaction({
-                EventTransportTransactionStage::InboundAccepted,
+                EventTransportTransactionStage::InboundRejected,
                 EventTransportDirection::Inbound,
                 envelope.EventTypeID,
                 typeName,
@@ -1729,35 +1751,55 @@ public:
                 static_cast<EventPriority>(envelope.Priority),
                 EventOrigin::Remote,
                 envelope.HopCount,
-                true
+                false
             });
-            Wake();
-        } else {
+            return;
+        }
+
+        UpdatePeakInbound(inboundDepth);
+        if (_observable) {
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                observer->OnInboundPacketRejected(
+                observer->OnInboundPacketAccepted(
                     envelope.EventTypeID,
                     envelope.MessageID,
                     transport
                 );
             });
-            NotifyTransaction({
-                EventTransportTransactionStage::InboundRejected,
-                EventTransportDirection::Inbound,
-                envelope.EventTypeID,
-                typeName,
-                envelope.SchemaVersion,
-                envelope.MessageID,
-                transport,
-                nullptr,
-                payload,
-                envelope.PayloadLength,
-                static_cast<EventDispatchMethod>(envelope.DispatchMethod),
-                static_cast<EventPriority>(envelope.Priority),
-                EventOrigin::Remote,
-                envelope.HopCount,
-                false
-            });
         }
+        Wake();
+    }
+
+    std::size_t GetPendingInboundPacketCount() const {
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+        return _inbound.size();
+    }
+
+    std::size_t GetPeakInboundPacketCount() const noexcept {
+        return _peakInboundCount.load(std::memory_order_relaxed);
+    }
+
+    uint64_t GetRejectedInboundPacketCount() const noexcept {
+        return _rejectedInboundCount.load(std::memory_order_relaxed);
+    }
+
+    uint64_t GetProcessedInboundPacketCount() const noexcept {
+        return _processedInboundCount.load(std::memory_order_relaxed);
+    }
+
+    uint64_t GetProcessedOutboundEventCount() const noexcept {
+        return _processedOutboundCount.load(std::memory_order_relaxed);
+    }
+
+    uint64_t GetRejectedOutboundWorkCount() const noexcept {
+        return _rejectedOutboundWorkCount.load(std::memory_order_relaxed);
+    }
+
+    Task::TaskExecutionStatistics GetOutboundExecutionStatistics() const {
+        return _outboundExecutor.GetStatistics();
+    }
+
+    bool IsOutboundExecutorReady() const noexcept {
+        return _outboundExecutorReady.load(std::memory_order_acquire);
     }
 };
 

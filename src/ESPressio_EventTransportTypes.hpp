@@ -2,7 +2,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string_view>
+#include <utility>
+
+#include <ESPressio_Memory.hpp>
 
 #include "ESPressio_EventEnums.hpp"
 
@@ -15,113 +19,55 @@ enum class EventTransportDirection : uint8_t {
     Bidirectional = (1u << 0) | (1u << 1)
 };
 
-constexpr EventTransportDirection operator|(
-    EventTransportDirection a,
-    EventTransportDirection b
-) noexcept {
-    return static_cast<EventTransportDirection>(
-        static_cast<uint8_t>(a) |
-        static_cast<uint8_t>(b)
-    );
+constexpr EventTransportDirection operator|(EventTransportDirection a, EventTransportDirection b) noexcept {
+    return static_cast<EventTransportDirection>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+constexpr EventTransportDirection operator&(EventTransportDirection a, EventTransportDirection b) noexcept {
+    return static_cast<EventTransportDirection>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+constexpr EventTransportDirection operator~(EventTransportDirection a) noexcept {
+    return static_cast<EventTransportDirection>(~static_cast<uint8_t>(a));
+}
+constexpr EventTransportDirection RemoveDirection(EventTransportDirection value, EventTransportDirection remove) noexcept {
+    return static_cast<EventTransportDirection>(static_cast<uint8_t>(value) & ~static_cast<uint8_t>(remove));
+}
+constexpr bool HasDirection(EventTransportDirection value, EventTransportDirection test) noexcept {
+    return (static_cast<uint8_t>(value) & static_cast<uint8_t>(test)) == static_cast<uint8_t>(test);
 }
 
-constexpr EventTransportDirection operator&(
-    EventTransportDirection a,
-    EventTransportDirection b
-) noexcept {
-    return static_cast<EventTransportDirection>(
-        static_cast<uint8_t>(a) &
-        static_cast<uint8_t>(b)
-    );
-}
-
-constexpr EventTransportDirection operator~(
-    EventTransportDirection a
-) noexcept {
-    return static_cast<EventTransportDirection>(
-        ~static_cast<uint8_t>(a)
-    );
-}
-
-constexpr EventTransportDirection RemoveDirection(
-    EventTransportDirection value,
-    EventTransportDirection remove
-) noexcept {
-    return static_cast<EventTransportDirection>(
-        static_cast<uint8_t>(value) &
-        ~static_cast<uint8_t>(remove)
-    );
-}
-
-constexpr bool HasDirection(
-    EventTransportDirection value,
-    EventTransportDirection test
-) noexcept {
-    return (
-        static_cast<uint8_t>(value) &
-        static_cast<uint8_t>(test)
-    ) == static_cast<uint8_t>(test);
-}
-
-enum class EventTransportPendingAction : uint8_t {
-    Complete,
-    Discard
-};
+enum class EventTransportPendingAction : uint8_t { Complete, Discard };
 
 struct EventTransportUnregistrationOptions {
-    EventTransportPendingAction PendingOutbound =
-        EventTransportPendingAction::Complete;
-
-    EventTransportPendingAction PendingInbound =
-        EventTransportPendingAction::Complete;
+    EventTransportPendingAction PendingOutbound = EventTransportPendingAction::Complete;
+    EventTransportPendingAction PendingInbound = EventTransportPendingAction::Complete;
 };
 
-enum class EventOrigin : uint8_t {
-    Local,
-    Remote
-};
+enum class EventOrigin : uint8_t { Local, Remote };
 
 struct EventDispatchContext {
     EventOrigin Origin = EventOrigin::Local;
     uint64_t TransportMessageID = 0;
     uint8_t HopCount = 0;
 
-    constexpr bool operator==(
-        const EventDispatchContext& other
-    ) const noexcept {
-        return
-            Origin == other.Origin &&
-            TransportMessageID ==
-                other.TransportMessageID &&
+    constexpr bool operator==(const EventDispatchContext& other) const noexcept {
+        return Origin == other.Origin &&
+            TransportMessageID == other.TransportMessageID &&
             HopCount == other.HopCount;
     }
-
-    constexpr bool operator!=(
-        const EventDispatchContext& other
-    ) const noexcept {
+    constexpr bool operator!=(const EventDispatchContext& other) const noexcept {
         return !(*this == other);
     }
 };
 
 #pragma pack(push, 1)
 struct EventTransportEnvelope {
-    static constexpr uint32_t MagicValue =
-        0x45565454u; // EVTT
-
+    static constexpr uint32_t MagicValue = 0x45565454u; // EVTT
     static constexpr uint8_t CurrentVersion = 1;
 
     uint32_t Magic = MagicValue;
     uint8_t Version = CurrentVersion;
-    uint8_t DispatchMethod =
-        static_cast<uint8_t>(
-            EventDispatchMethod::Queue
-        );
-
-    uint8_t Priority =
-        static_cast<uint8_t>(
-            EventPriority::Normal
-        );
-
+    uint8_t DispatchMethod = static_cast<uint8_t>(EventDispatchMethod::Queue);
+    uint8_t Priority = static_cast<uint8_t>(EventPriority::Normal);
     uint8_t HopCount = 0;
     uint64_t EventTypeID = 0;
     uint32_t SchemaVersion = 1;
@@ -135,10 +81,53 @@ static_assert(
     "EventTransportEnvelope wire layout changed; increment protocol version deliberately."
 );
 
-struct EventTransportPacket {
-    const uint8_t* Data = nullptr;
-    std::size_t Size = 0;
-    uint64_t MessageID = 0;
+/// <summary>Externally preferred byte storage used for complete serialized Event transport packets.</summary>
+using EventTransportBuffer = System::Memory::ByteVector<
+    System::Memory::MemoryPolicy::ExternalPreferred
+>;
+
+/// <summary>Shared immutable ownership of one complete serialized Event packet.</summary>
+using EventTransportBufferPtr = std::shared_ptr<const EventTransportBuffer>;
+
+/// <summary>Ownership-bearing serialized Event packet passed across transport execution boundaries.</summary>
+/// <remarks>
+/// The immutable backing buffer normally resides in PSRAM when available. Copying this packet copies only shared ownership;
+/// the serialized bytes are not duplicated, allowing one serialization to fan out to multiple physical transports.
+/// </remarks>
+class EventTransportPacket {
+private:
+    EventTransportBufferPtr _buffer;
+    uint64_t _messageID = 0;
+
+public:
+    EventTransportPacket() = default;
+
+    explicit EventTransportPacket(
+        EventTransportBuffer buffer,
+        uint64_t messageID = 0
+    ) :
+        _buffer(System::Memory::MakeShared<
+            EventTransportBuffer,
+            System::Memory::MemoryPolicy::ExternalPreferred
+        >(std::move(buffer))),
+        _messageID(messageID) {}
+
+    EventTransportPacket(
+        EventTransportBufferPtr buffer,
+        uint64_t messageID = 0
+    ) : _buffer(std::move(buffer)), _messageID(messageID) {}
+
+    const uint8_t* Data() const noexcept {
+        return _buffer && !_buffer->empty() ? _buffer->data() : nullptr;
+    }
+
+    std::size_t Size() const noexcept {
+        return _buffer ? _buffer->size() : 0;
+    }
+
+    uint64_t MessageID() const noexcept { return _messageID; }
+    const EventTransportBufferPtr& Buffer() const noexcept { return _buffer; }
+    explicit operator bool() const noexcept { return Data() != nullptr && Size() != 0; }
 };
 
 enum class EventTransportRegistrationResult : uint8_t {
@@ -178,32 +167,20 @@ enum class EventTransportTransactionStage : uint8_t {
 };
 
 struct EventTransportTransaction {
-    EventTransportTransactionStage Stage =
-        EventTransportTransactionStage::Failed;
-
-    EventTransportDirection Direction =
-        EventTransportDirection::None;
-
+    EventTransportTransactionStage Stage = EventTransportTransactionStage::Failed;
+    EventTransportDirection Direction = EventTransportDirection::None;
     uint64_t EventTypeID = 0;
     std::string_view EventTypeName{};
     uint32_t SchemaVersion = 0;
     uint64_t MessageID = 0;
-
     IEventTransport* Transport = nullptr;
     const IEvent* Event = nullptr;
-
     const uint8_t* Payload = nullptr;
     std::size_t PayloadSize = 0;
-
-    EventDispatchMethod DispatchMethod =
-        EventDispatchMethod::Queue;
-
-    EventPriority Priority =
-        EventPriority::Normal;
-
+    EventDispatchMethod DispatchMethod = EventDispatchMethod::Queue;
+    EventPriority Priority = EventPriority::Normal;
     EventOrigin Origin = EventOrigin::Local;
     uint8_t HopCount = 0;
-
     bool TransportAccepted = false;
 };
 
@@ -212,32 +189,18 @@ struct EventTransportTypeTraits {
     static constexpr std::string_view Name{};
 };
 
-constexpr uint64_t EventTransportTypeHash(
-    std::string_view value
-) noexcept {
-    uint64_t hash =
-        14695981039346656037ull;
-
+constexpr uint64_t EventTransportTypeHash(std::string_view value) noexcept {
+    uint64_t hash = 14695981039346656037ull;
     for (char c : value) {
-        hash ^=
-            static_cast<uint8_t>(c);
-
-        hash *=
-            1099511628211ull;
+        hash ^= static_cast<uint8_t>(c);
+        hash *= 1099511628211ull;
     }
-
     return hash;
 }
 
 template<typename TEvent>
-constexpr uint64_t EventTransportTypeID()
-    noexcept {
-    return
-        EventTransportTypeHash(
-            EventTransportTypeTraits<
-                TEvent
-            >::Name
-        );
+constexpr uint64_t EventTransportTypeID() noexcept {
+    return EventTransportTypeHash(EventTransportTypeTraits<TEvent>::Name);
 }
 
 }

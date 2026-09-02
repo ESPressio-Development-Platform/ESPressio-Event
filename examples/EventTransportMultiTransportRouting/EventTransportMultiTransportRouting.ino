@@ -4,159 +4,79 @@
 
 using namespace ESPressio;
 
-class ExampleTransport :
-    public Event::IEventTransport {
-
+class ExampleTransport : public Event::IEventTransport {
 private:
     const char* _name;
-    Event::IEventTransportReceiver*
-        _receiver = nullptr;
+    Event::IEventTransportReceiver* _receiver = nullptr;
 
 public:
-    explicit ExampleTransport(
-        const char* name
-    ) :
-        _name(name) {
-    }
+    explicit ExampleTransport(const char* name) : _name(name) {}
 
-    bool Send(
-        const Event::EventTransportPacket& packet
-    ) override {
+    bool Send(Event::EventTransportPacket packet) override {
         Serial.printf(
             "%s accepted message %llu (%u bytes)\n",
             _name,
-            static_cast<unsigned long long>(
-                packet.MessageID
-            ),
-            static_cast<unsigned int>(
-                packet.Size
-            )
+            static_cast<unsigned long long>(packet.MessageID()),
+            static_cast<unsigned int>(packet.Size())
         );
-
-        return true;
+        return static_cast<bool>(packet);
     }
 
-    void SetReceiver(
-        Event::IEventTransportReceiver* receiver
-    ) override {
+    void SetReceiver(Event::IEventTransportReceiver* receiver) override {
         _receiver = receiver;
     }
 };
 
-
-class TelemetryEvent final :
-    public Event::SerializableEvent<
-        TelemetryEvent
-    > {
-
+class TelemetryEvent final : public Event::SerializableEvent<TelemetryEvent> {
 public:
     int32_t Value = 0;
 
     TelemetryEvent() = default;
+    explicit TelemetryEvent(int32_t value) : Value(value) {}
 
-    explicit TelemetryEvent(
-        int32_t value
-    ) :
-        Value(value) {
-    }
-
-    ESPRESSIO_SERIALIZABLE_TYPE(
-        TelemetryEvent
-    )
-
+    ESPRESSIO_SERIALIZABLE_TYPE(TelemetryEvent)
     ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
-
     ESPRESSIO_SERIALIZABLE_PROPERTIES(
-        ESPRESSIO_PROPERTY(
-            "value",
-            Value
-        )
+        ESPRESSIO_PROPERTY("value", Value)
     )
 };
-
 
 ESPRESSIO_EVENT_TRANSPORT_TYPE(
     TelemetryEvent,
     "examples.telemetry.v1"
 )
 
-
-ExampleTransport
-    espNowTransport(
-        "ESP-NOW"
-    );
-
-ExampleTransport
-    udpTransport(
-        "UDP"
-    );
-
+ExampleTransport espNowTransport("ESP-NOW");
+ExampleTransport udpTransport("UDP");
 
 void setup() {
     Serial.begin(115200);
 
-    auto& manager =
-        Event::EventTransportManager::
-            GetInstance();
+    auto* eventManager = Event::EventManager::GetInstance();
+    auto& manager = Event::EventTransportManager::GetInstance();
+    manager.RegisterTransport(&espNowTransport);
+    manager.RegisterTransport(&udpTransport);
 
-    manager.RegisterTransport(
-        &espNowTransport
-    );
+    // Default policy: TelemetryEvent is outbound through every transport.
+    manager.RegisterOutboundEvent<TelemetryEvent>();
 
-    manager.RegisterTransport(
-        &udpTransport
-    );
+    // Explicit ESP-NOW override currently matches the global policy.
+    manager.RegisterOutboundEvent<TelemetryEvent>(&espNowTransport);
 
-    /*
-     * Default policy: TelemetryEvent is outbound through every transport.
-     */
-    manager.RegisterOutboundEvent<
-        TelemetryEvent
-    >();
+    // Disable TelemetryEvent specifically for UDP.
+    Event::EventTransportUnregistrationOptions options;
+    options.PendingOutbound = Event::EventTransportPendingAction::Discard;
+    manager.UnregisterOutboundEvent<TelemetryEvent>(&udpTransport, options);
 
-    /*
-     * Establish an explicit ESP-NOW override. It currently matches the
-     * global policy, but remains independent from later global changes.
-     */
-    manager.RegisterOutboundEvent<
-        TelemetryEvent
-    >(
-        &espNowTransport
-    );
-
-    /*
-     * Disable TelemetryEvent specifically for UDP.
-     *
-     * Because the global default is still Outbound, the manager retains an
-     * explicit None override for UDP.
-     */
-    Event::EventTransportUnregistrationOptions
-        options;
-
-    options.PendingOutbound =
-        Event::EventTransportPendingAction::
-            Discard;
-
-    manager.UnregisterOutboundEvent<
-        TelemetryEvent
-    >(
-        &udpTransport,
-        options
-    );
-
+    // Register/configure first, allocate resources second, then explicitly
+    // release the broker and transport coordinator to execute.
+    eventManager->Initialize();
     manager.Initialize();
+    eventManager->Start();
+    manager.Start();
 
-    (
-        new TelemetryEvent(
-            42
-        )
-    )->Queue();
-
-    /*
-     * The Event is now eligible for ESP-NOW only.
-     */
+    (new TelemetryEvent(42))->Queue();
 }
-
 
 void loop() {
     delay(1000);

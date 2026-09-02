@@ -12,347 +12,165 @@
 #include "ESPressio_EventManager.hpp"
 
 namespace ESPressio {
-
-    namespace Event {
-
-        /*
-         * Generic Event implementation.
-         *
-         * TTime controls only the public representation of Event lifecycle
-         * timestamps. Internally the Event engine stores raw nanoseconds.
-         */
-        template<
-            typename TTime = Timing::DefaultClockTime
-        >
-        class Event :
-            public IEvent {
-
-            private:
-                struct DispatchState {
-                    bool WasDispatched = false;
-                    uint64_t DispatchTimeNanoseconds = 0;
-
-                    bool operator==(
-                        const DispatchState& other
-                    ) const {
-                        return
-                            WasDispatched ==
-                                other.WasDispatched &&
-                            DispatchTimeNanoseconds ==
-                                other.DispatchTimeNanoseconds;
-                    }
-                };
-
-
-                class AtomicFlagGuard {
-                    private:
-                        std::atomic_flag& _flag;
-
-                    public:
-                        explicit AtomicFlagGuard(
-                            std::atomic_flag& flag
-                        ) noexcept :
-                            _flag(flag) {
-                            while (
-                                _flag.test_and_set(
-                                    std::memory_order_acquire
-                                )
-                            ) {
-                                /* Tiny lifecycle/context critical section. */
-                            }
-                        }
-
-                        ~AtomicFlagGuard() {
-                            _flag.clear(
-                                std::memory_order_release
-                            );
-                        }
-
-                        AtomicFlagGuard(
-                            const AtomicFlagGuard&
-                        ) = delete;
-
-                        AtomicFlagGuard& operator=(
-                            const AtomicFlagGuard&
-                        ) = delete;
-                };
-
-
-                /*
-                 * Event instances are intentionally short-lived. The previous
-                 * ReadWriteMutex members ultimately owned lazily-created
-                 * pthread/FreeRTOS rwlock resources on ESP32. Sustained Event
-                 * churn could therefore exhaust lock/heap resources.
-                 *
-                 * atomic_flag is guaranteed lock-free and owns no external
-                 * lock resource. Keep the original DispatchState and
-                 * EventDispatchContext representations intact so Event
-                 * Transport observes the same context semantics as 5.8.2.
-                 */
-                mutable std::atomic_flag
-                    _dispatchStateGuard =
-                        ATOMIC_FLAG_INIT;
-
-                DispatchState
-                    _dispatchState{};
-
-                std::atomic<uint32_t>
-                    _refCount{0};
-
-                mutable std::atomic_flag
-                    _dispatchContextGuard =
-                        ATOMIC_FLAG_INIT;
-
-                EventDispatchContext
-                    _dispatchContext{};
-
-
-                static uint64_t
-                GetResolutionNanoseconds() {
-                    auto& clock =
-                        Timing::SystemClock<
-                            TTime
-                        >::GetInstance();
-
-                    uint64_t resolution =
-                        Timing::TimeTraits<
-                            TTime
-                        >::template
-                            ToNanoseconds<
-                                uint64_t
-                            >(
-                                clock.
-                                    GetResolution()
-                            );
-
-                    return
-                        resolution == 0
-                            ? 1
-                            : resolution;
-                }
-
-
-                static uint64_t
-                GetNowNanoseconds() {
-                    auto& clock =
-                        Timing::SystemClock<
-                            TTime
-                        >::GetInstance();
-
-                    return
-                        Timing::TimeTraits<
-                            TTime
-                        >::template
-                            ToNanoseconds<
-                                uint64_t
-                            >(
-                                clock.GetTime()
-                            );
-                }
-
-
-                static TTime
-                CreateTime(
-                    uint64_t nanoseconds
-                ) {
-                    const uint64_t resolution =
-                        GetResolutionNanoseconds();
-
-                    return
-                        Timing::TimeTraits<
-                            TTime
-                        >::template
-                            FromNanoseconds<
-                                uint64_t
-                            >(
-                                nanoseconds,
-                                resolution
-                            );
-                }
-
-
-                DispatchState
-                GetDispatchState() const noexcept {
-                    AtomicFlagGuard lock(
-                        _dispatchStateGuard
-                    );
-
-                    return _dispatchState;
-                }
-
-
-            public:
-                using TimeType = TTime;
-
-
-                virtual ~Event() = default;
-
-
-                void __ref() noexcept override {
-                    _refCount.fetch_add(
-                        1,
-                        std::memory_order_relaxed
-                    );
-                }
-
-
-                void __unref() noexcept override {
-                    uint32_t current =
-                        _refCount.load(
-                            std::memory_order_acquire
-                        );
-
-                    while (current != 0) {
-                        if (
-                            _refCount.
-                                compare_exchange_weak(
-                                    current,
-                                    current - 1,
-                                    std::memory_order_acq_rel,
-                                    std::memory_order_acquire
-                                )
-                        ) {
-                            if (current == 1) {
-                                delete this;
-                            }
-
-                            return;
-                        }
-                    }
-
-                    /*
-                     * Defensive no-op: an unmatched __unref() must never wrap
-                     * the unsigned reference count to UINT32_MAX.
-                     */
-                }
-
-
-                void __setDispatchContext(
-                    const EventDispatchContext& context
-                ) override {
-                    AtomicFlagGuard lock(
-                        _dispatchContextGuard
-                    );
-
-                    _dispatchContext = context;
-                }
-
-
-                EventDispatchContext
-                __getDispatchContext() const override {
-                    AtomicFlagGuard lock(
-                        _dispatchContextGuard
-                    );
-
-                    return _dispatchContext;
-                }
-
-
-                void __dispatch() override {
-                    const uint64_t now =
-                        GetNowNanoseconds();
-
-                    AtomicFlagGuard lock(
-                        _dispatchStateGuard
-                    );
-
-                    if (
-                        !_dispatchState.
-                            WasDispatched
-                    ) {
-                        _dispatchState.
-                            WasDispatched =
-                                true;
-
-                        _dispatchState.
-                            DispatchTimeNanoseconds =
-                                now;
-                    }
-                }
-
-
-                void Queue(
-                    EventPriority priority =
-                        EventPriority::Normal
-                ) override {
-                    EventManager::
-                        GetInstance()->
-                        QueueEvent(
-                            this,
-                            priority
-                        );
-                }
-
-
-                void Stack(
-                    EventPriority priority =
-                        EventPriority::Normal
-                ) override {
-                    EventManager::
-                        GetInstance()->
-                        StackEvent(
-                            this,
-                            priority
-                        );
-                }
-
-
-                uint64_t
-                GetDispatchTimeNanoseconds()
-                    const override {
-
-                    const DispatchState state =
-                        GetDispatchState();
-
-                    return
-                        state.WasDispatched
-                            ? state.
-                                DispatchTimeNanoseconds
-                            : 0;
-                }
-
-
-                uint64_t
-                GetTimeSinceDispatchNanoseconds()
-                    const override {
-
-                    const DispatchState state =
-                        GetDispatchState();
-
-                    if (!state.WasDispatched) {
-                        return 0;
-                    }
-
-                    const uint64_t now =
-                        GetNowNanoseconds();
-
-                    return
-                        now >=
-                            state.
-                                DispatchTimeNanoseconds
-                            ? now -
-                                state.
-                                    DispatchTimeNanoseconds
-                            : 0;
-                }
-
-
-                TTime GetDispatchTime() const {
-                    return
-                        CreateTime(
-                            GetDispatchTimeNanoseconds()
-                        );
-                }
-
-
-                TTime GetTimeSinceDispatch() const {
-                    return
-                        CreateTime(
-                            GetTimeSinceDispatchNanoseconds()
-                        );
-                }
-        };
-
+namespace Event {
+
+/// <summary>Default event implementation providing intrusive lifetime, dispatch timing, context, and manager queueing.</summary>
+/// <typeparam name="TTime">Public time representation returned by typed dispatch-time accessors.</typeparam>
+template<typename TTime = Timing::DefaultClockTime>
+class Event : public IEvent {
+private:
+    struct DispatchState {
+        bool WasDispatched = false;
+        uint64_t DispatchTimeNanoseconds = 0;
+    };
+
+    class AtomicFlagGuard {
+    private:
+        std::atomic_flag& _flag;
+    public:
+        explicit AtomicFlagGuard(std::atomic_flag& flag) noexcept : _flag(flag) {
+            while (_flag.test_and_set(std::memory_order_acquire)) {}
+        }
+        ~AtomicFlagGuard() { _flag.clear(std::memory_order_release); }
+        AtomicFlagGuard(const AtomicFlagGuard&) = delete;
+        AtomicFlagGuard& operator=(const AtomicFlagGuard&) = delete;
+    };
+
+    mutable std::atomic_flag _dispatchStateGuard = ATOMIC_FLAG_INIT;
+    DispatchState _dispatchState{};
+    std::atomic<uint32_t> _refCount{0};
+    mutable std::atomic_flag _dispatchContextGuard = ATOMIC_FLAG_INIT;
+    EventDispatchContext _dispatchContext{};
+
+    static uint64_t GetResolutionNanoseconds() {
+        auto& clock = Timing::SystemClock<TTime>::GetInstance();
+        uint64_t resolution = Timing::TimeTraits<TTime>::template ToNanoseconds<uint64_t>(
+            clock.GetResolution()
+        );
+        return resolution == 0 ? 1 : resolution;
     }
 
-}
+    static uint64_t GetNowNanoseconds() {
+        auto& clock = Timing::SystemClock<TTime>::GetInstance();
+        return Timing::TimeTraits<TTime>::template ToNanoseconds<uint64_t>(
+            clock.GetTime()
+        );
+    }
+
+    static TTime CreateTime(uint64_t nanoseconds) {
+        return Timing::TimeTraits<TTime>::template FromNanoseconds<uint64_t>(
+            nanoseconds,
+            GetResolutionNanoseconds()
+        );
+    }
+
+    DispatchState GetDispatchState() const noexcept {
+        AtomicFlagGuard lock(_dispatchStateGuard);
+        return _dispatchState;
+    }
+
+public:
+    using TimeType = TTime;
+    virtual ~Event() = default;
+
+    /// <inheritdoc/>
+    void __ref() noexcept override {
+        _refCount.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    /// <inheritdoc/>
+    void __unref() noexcept override {
+        uint32_t current = _refCount.load(std::memory_order_acquire);
+        while (current != 0) {
+            if (_refCount.compare_exchange_weak(
+                    current,
+                    current - 1,
+                    std::memory_order_acq_rel,
+                    std::memory_order_acquire)) {
+                if (current == 1) delete this;
+                return;
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    void __setDispatchContext(const EventDispatchContext& context) override {
+        AtomicFlagGuard lock(_dispatchContextGuard);
+        _dispatchContext = context;
+    }
+
+    /// <inheritdoc/>
+    EventDispatchContext __getDispatchContext() const override {
+        AtomicFlagGuard lock(_dispatchContextGuard);
+        return _dispatchContext;
+    }
+
+    /// <inheritdoc/>
+    void __dispatch() override {
+        const uint64_t now = GetNowNanoseconds();
+        AtomicFlagGuard lock(_dispatchStateGuard);
+        if (!_dispatchState.WasDispatched) {
+            _dispatchState.WasDispatched = true;
+            _dispatchState.DispatchTimeNanoseconds = now;
+        }
+    }
+
+    /// <inheritdoc/>
+    void Queue(EventPriority priority = EventPriority::Normal) override {
+        EventManager::GetInstance()->QueueEvent(this, priority);
+    }
+
+    /// <inheritdoc/>
+    void Stack(EventPriority priority = EventPriority::Normal) override {
+        EventManager::GetInstance()->StackEvent(this, priority);
+    }
+
+    /// <inheritdoc/>
+    uint64_t GetDispatchTimeNanoseconds() const override {
+        const DispatchState state = GetDispatchState();
+        return state.WasDispatched ? state.DispatchTimeNanoseconds : 0;
+    }
+
+    /// <inheritdoc/>
+    uint64_t GetTimeSinceDispatchNanoseconds() const override {
+        const DispatchState state = GetDispatchState();
+        if (!state.WasDispatched) return 0;
+        const uint64_t now = GetNowNanoseconds();
+        return now >= state.DispatchTimeNanoseconds
+            ? now - state.DispatchTimeNanoseconds
+            : 0;
+    }
+
+    /// <summary>Returns the event's dispatch timestamp in the configured public time representation.</summary>
+    TTime GetDispatchTime() const {
+        return CreateTime(GetDispatchTimeNanoseconds());
+    }
+
+    /// <summary>Returns elapsed time since dispatch in the configured public time representation.</summary>
+    TTime GetTimeSinceDispatch() const {
+        return CreateTime(GetTimeSinceDispatchNanoseconds());
+    }
+};
+
+/// <summary>CRTP event base that supplies a stable RTTI-free type identity for a concrete event type.</summary>
+/// <typeparam name="TDerived">Concrete event type whose identity is exposed.</typeparam>
+/// <typeparam name="TTime">Public time representation used by the event.</typeparam>
+template<
+    typename TDerived,
+    typename TTime = Timing::DefaultClockTime
+>
+class TypedEvent : public Event<TTime> {
+public:
+    using TimeType = TTime;
+    using EventBase = Event<TTime>;
+
+    /// <summary>Returns the stable compiler-backed type key for <typeparamref name="TDerived"/>.</summary>
+    EventTypeKey __getTypeKey() const noexcept override {
+        return EventTypeKeyOf<TDerived>();
+    }
+
+    virtual ~TypedEvent() = default;
+};
+
+} // namespace Event
+} // namespace ESPressio

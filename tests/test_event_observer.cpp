@@ -27,6 +27,9 @@ class TestEvent final : public IEvent {
         EventDispatchContext __getDispatchContext() const override {
             return _dispatchContext;
         }
+        EventTypeKey __getTypeKey() const noexcept override {
+            return EventTypeKeyOf<TestEvent>();
+        }
         void Queue(EventPriority = EventPriority::Normal) override {}
         void Stack(EventPriority = EventPriority::Normal) override {}
         uint64_t GetDispatchTimeNanoseconds() const override { return 0; }
@@ -49,6 +52,9 @@ class OtherEvent final : public IEvent {
         }
         EventDispatchContext __getDispatchContext() const override {
             return _dispatchContext;
+        }
+        EventTypeKey __getTypeKey() const noexcept override {
+            return EventTypeKeyOf<OtherEvent>();
         }
         void Queue(EventPriority = EventPriority::Normal) override {}
         void Stack(EventPriority = EventPriority::Normal) override {}
@@ -107,8 +113,8 @@ class TrackingEventListener final : public EventListener {
         void Shutdown() { UnregisterAllListeners(); }
 
     protected:
-        void OnListenerRegistered(std::type_index) override { ++registrations; }
-        void OnListenerUnregistered(std::type_index) override { ++unregistrations; }
+        void OnListenerRegistered(EventTypeKey) override { ++registrations; }
+        void OnListenerUnregistered(EventTypeKey) override { ++unregistrations; }
 };
 
 static_assert(std::is_base_of<
@@ -216,6 +222,34 @@ int main() {
     assert(selfRemovingObserver.calls == 1);
     assert(!selfRemovingHandle->IsRegistered());
     selfRemovingHandle.reset();
+
+    // Registration from inside a callback must be safe, must not invalidate the
+    // callback currently executing, and must not join the dispatch already in
+    // progress. It becomes visible on the next event.
+    EventListener reentrantListener;
+    EventListenerHandlePtr appendedHandle;
+    int firstCalls = 0;
+    int appendedCalls = 0;
+    EventListenerHandlePtr firstHandle = reentrantListener.RegisterListener<TestEvent>(
+        [&](TestEvent*, EventDispatchMethod, EventPriority) {
+            ++firstCalls;
+            if (!appendedHandle) {
+                appendedHandle = reentrantListener.RegisterListener<TestEvent>(
+                    [&](TestEvent*, EventDispatchMethod, EventPriority) {
+                        ++appendedCalls;
+                    }
+                );
+            }
+        }
+    );
+    Process(reentrantListener, event);
+    assert(firstCalls == 1);
+    assert(appendedCalls == 0);
+    Process(reentrantListener, event);
+    assert(firstCalls == 2);
+    assert(appendedCalls == 1);
+    firstHandle.reset();
+    appendedHandle.reset();
 
     EventListenerHandlePtr throwingHandle = listener.RegisterListener<TestEvent>(
         [](TestEvent*, EventDispatchMethod, EventPriority) {

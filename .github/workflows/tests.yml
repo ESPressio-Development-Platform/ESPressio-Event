@@ -14,6 +14,8 @@ jobs:
           python-version: '3.x'
       - name: Verify Event dependency boundaries
         run: python tools/check_dependency_boundaries.py
+      - name: Verify Event transport subscription cleanup
+        run: python tools/check_event_transport_subscription_cleanup.py
 
   host-tests:
     runs-on: ubuntu-latest
@@ -23,18 +25,23 @@ jobs:
           path: ESPressio-Event
       - uses: actions/checkout@v4
         with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: feature/1-system-memory-policy
+          path: ESPressio-System
+      - uses: actions/checkout@v4
+        with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: 3.0.2
+          ref: feature/16-rtti-free-observer-registry
           path: ESPressio-Observable
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: 2.2.8
+          ref: feature/29-platform-clock-abstractions
           path: ESPressio_Timing
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Units
-          ref: 0.2.7
+          ref: main
           path: ESPressio-Units
       - name: Configure
         run: cmake -S ESPressio-Event/tests -B build
@@ -51,35 +58,45 @@ jobs:
           path: project/ESPressio-Event
       - uses: actions/checkout@v4
         with:
+          repository: ESPressio-Development-Platform/ESPressio-System
+          ref: feature/1-system-memory-policy
+          path: project/dependencies/ESPressio-System
+      - uses: actions/checkout@v4
+        with:
+          repository: ESPressio-Development-Platform/ESPressio-Task
+          ref: feature/1-task-execution
+          path: project/dependencies/ESPressio-Task
+      - uses: actions/checkout@v4
+        with:
           repository: ESPressio-Development-Platform/ESPressio-Observable
-          ref: 3.0.2
+          ref: feature/16-rtti-free-observer-registry
           path: project/dependencies/ESPressio-Observable
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Units
-          ref: 0.2.7
+          ref: main
           path: project/dependencies/ESPressio-Units
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Timing
-          ref: 2.2.8
+          ref: feature/29-platform-clock-abstractions
           path: project/dependencies/ESPressio-Timing
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Threads
-          ref: 3.1.7
+          ref: optimisation/69-resource-footprint
           path: project/dependencies/ESPressio-Threads
       - uses: actions/checkout@v4
         with:
           repository: ESPressio-Development-Platform/ESPressio-Serializable
-          ref: 0.11.3
+          ref: optimisation/25-psram-buffers
           path: project/dependencies/ESPressio-Serializable
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install PlatformIO
         run: pip install platformio
-      - name: Create Event mechanism compile project
+      - name: Create RTTI-free Event mechanism compile project
         shell: bash
         run: |
           mkdir -p project/compile/src
@@ -90,12 +107,16 @@ jobs:
           framework = arduino
           build_flags =
               -std=gnu++17
-              -frtti
+              -fno-rtti
+              -DESPRESSIO_SERIALIZATION_PREFER_PSRAM
+              -DESPRESSIO_EVENT_SIGNAL_DIAGNOSTICS=1
           build_unflags =
               -std=gnu++11
-              -fno-rtti
+              -frtti
           lib_ldf_mode = deep+
           lib_deps =
+              ../dependencies/ESPressio-System
+              ../dependencies/ESPressio-Task
               ../dependencies/ESPressio-Observable
               ../dependencies/ESPressio-Units
               ../dependencies/ESPressio-Timing
@@ -111,8 +132,15 @@ jobs:
           #include <ESPressio_ThreadEventBridges.hpp>
           #include <ESPressio_SystemClockEventBridge_Serializable.hpp>
           #include <ESPressio_ThreadEventBridges_Serializable.hpp>
-          void setup() {}
+
+          void setup() {
+              auto& transportManager = ESPressio::Event::EventTransportManager::GetInstance();
+              (void)transportManager.Initialize();
+              (void)transportManager.Start();
+              (void)transportManager.GetOutboundExecutionStatistics();
+              (void)transportManager.GetRejectedOutboundWorkCount();
+          }
           void loop() {}
           EOF
-      - name: Compile ESP32 Event mechanism and legitimate downstream bridges
+      - name: Compile ESP32 Event mechanism and downstream bridges without RTTI
         run: pio run -d project/compile

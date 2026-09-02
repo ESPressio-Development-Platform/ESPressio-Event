@@ -23,7 +23,9 @@ private:
 
 public:
     InfrastructureEventThread() :
-        Event::EventThread(false) {
+        Event::EventThread(
+            Threads::ThreadReleasePolicy::ExplicitRelease
+        ) {
 
         _registeredHandle =
             RegisterListener<
@@ -44,19 +46,17 @@ public:
 
         _cleanupHandle =
             RegisterListener<
-                Event::ThreadGarbageCollectionCompletedEvent
+                Event::ThreadCleanupCompletedEvent
             >(
                 [](
-                    Event::ThreadGarbageCollectionCompletedEvent* event,
+                    Event::ThreadCleanupCompletedEvent* event,
                     Event::EventDispatchMethod,
                     Event::EventPriority
                 ) {
                     Serial.printf(
-                        "GC deleted=%u\n",
+                        "cleanup deleted=%u\n",
                         static_cast<unsigned int>(
-                            event->Result.
-                                ManagerResult.
-                                ThreadsDeleted
+                            event->Result.ThreadsDeleted
                         )
                     );
                 }
@@ -86,10 +86,6 @@ void setup() {
     Serial.begin(115200);
 
     Event::ThreadManagerEventBridge::
-        GetInstance().
-        Initialize();
-
-    Event::ThreadGarbageCollectorEventBridge::
         GetInstance().
         Initialize();
 

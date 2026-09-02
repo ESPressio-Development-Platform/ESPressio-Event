@@ -27,6 +27,9 @@ class ReferenceTrackingEvent final : public IEvent {
         EventDispatchContext __getDispatchContext() const override {
             return _dispatchContext;
         }
+        EventTypeKey __getTypeKey() const noexcept override {
+            return EventTypeKeyOf<ReferenceTrackingEvent>();
+        }
         void Queue(EventPriority = EventPriority::Normal) override { }
         void Stack(EventPriority = EventPriority::Normal) override { }
         uint64_t GetDispatchTimeNanoseconds() const override { return 0; }
@@ -97,6 +100,9 @@ class HeapTrackingEvent final : public IEvent {
         EventDispatchContext __getDispatchContext() const override {
             return _dispatchContext;
         }
+        EventTypeKey __getTypeKey() const noexcept override {
+            return EventTypeKeyOf<HeapTrackingEvent>();
+        }
         void Queue(EventPriority = EventPriority::Normal) override { }
         void Stack(EventPriority = EventPriority::Normal) override { }
         uint64_t GetDispatchTimeNanoseconds() const override { return 0; }
@@ -108,14 +114,20 @@ int main() {
     TrackingReceiver receiver;
     TestDispatcher dispatcher;
 
-    dispatcher.RegisterReceiver(typeid(dispatchedEvent), &receiver);
+    dispatcher.RegisterReceiver(
+        EventTypeKeyOf<ReferenceTrackingEvent>(),
+        &receiver
+    );
     dispatcher.QueueEvent(&dispatchedEvent);
     assert(dispatchedEvent.References() == 1);
     dispatcher.Dispatch();
     assert(dispatchedEvent.References() == 1);
     receiver.Drain();
     assert(dispatchedEvent.References() == 0);
-    dispatcher.UnregisterReceiver(typeid(dispatchedEvent), &receiver);
+    dispatcher.UnregisterReceiver(
+        EventTypeKeyOf<ReferenceTrackingEvent>(),
+        &receiver
+    );
 
     ReferenceTrackingEvent unhandledEvent;
     dispatcher.QueueEvent(&unhandledEvent);
@@ -171,10 +183,12 @@ int main() {
     TrackingReceiver secondFanOutReceiver;
     TestDispatcher fanOutDispatcher;
     fanOutDispatcher.RegisterReceiver(
-        typeid(fanOutEvent), &firstFanOutReceiver
+        EventTypeKeyOf<ReferenceTrackingEvent>(),
+        &firstFanOutReceiver
     );
     fanOutDispatcher.RegisterReceiver(
-        typeid(fanOutEvent), &secondFanOutReceiver
+        EventTypeKeyOf<ReferenceTrackingEvent>(),
+        &secondFanOutReceiver
     );
     fanOutDispatcher.QueueEvent(&fanOutEvent);
     fanOutDispatcher.Dispatch();
@@ -189,7 +203,8 @@ int main() {
     TestDispatcher stressDispatcher;
     HeapTrackingEvent eventTypeProbe(liveHeapEvents);
     stressDispatcher.RegisterReceiver(
-        typeid(eventTypeProbe), &stressReceiver
+        EventTypeKeyOf<HeapTrackingEvent>(),
+        &stressReceiver
     );
     assert(liveHeapEvents == 1);
     for (int iteration = 0; iteration < 10000; ++iteration) {

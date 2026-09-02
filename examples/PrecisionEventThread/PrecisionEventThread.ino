@@ -5,7 +5,7 @@
 using namespace ESPressio;
 
 class SetpointEvent final :
-    public Event::Event<> {
+    public Event::TypedEvent<SetpointEvent> {
 
     private:
         const int _setpoint;
@@ -52,6 +52,12 @@ class ControlThread final :
         }
 
     public:
+        ControlThread() :
+            Event::PrecisionEventThread<>(
+                Threads::ThreadReleasePolicy::ExplicitRelease
+            ) {
+        }
+
         void ApplySetpoint(
             SetpointEvent* event
         ) {

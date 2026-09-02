@@ -20,48 +20,32 @@ public:
     )
 };
 
-/* Stable wire identity: never use RTTI names as a protocol contract. */
 ESPRESSIO_EVENT_TRANSPORT_TYPE(
     DistributedCounterEvent,
     "flowduino.example.distributed-counter.v1"
 )
 
-class LoopbackEventTransport final :
-    public Event::IEventTransport {
+class LoopbackEventTransport final : public Event::IEventTransport {
 private:
     Event::IEventTransportReceiver* _receiver = nullptr;
 
 public:
-    bool Send(
-        const Event::EventTransportPacket& packet
-    ) override {
-        if (_receiver == nullptr) {
-            return false;
-        }
+    bool Send(Event::EventTransportPacket packet) override {
+        if (_receiver == nullptr || !packet) return false;
 
-        /*
-         * A real transport would copy/send these bytes to another device.
-         * Loopback injects them into the receive path on this device so the
-         * transport-independent Event machinery can be exercised alone.
-         */
-        _receiver->ReceiveEventTransportPacket(
-            this,
-            packet.Data,
-            packet.Size
-        );
-
+        // A real transport may move this ownership-bearing packet into an
+        // asynchronous worker. Loopback transfers the same immutable backing
+        // directly into Event's inbound path without copying serialized bytes.
+        _receiver->ReceiveEventTransportPacket(this, std::move(packet));
         return true;
     }
 
-    void SetReceiver(
-        Event::IEventTransportReceiver* receiver
-    ) override {
+    void SetReceiver(Event::IEventTransportReceiver* receiver) override {
         _receiver = receiver;
     }
 };
 
-class DemoListener final :
-    public Event::EventListener {
+class DemoListener final : public Event::EventListener {
 private:
     Event::EventListenerHandlePtr _handle;
 
@@ -73,18 +57,12 @@ public:
                 Event::EventDispatchMethod,
                 Event::EventPriority
             ) {
-                const auto context =
-                    event->__getDispatchContext();
-
+                const auto context = event->__getDispatchContext();
                 Serial.printf(
                     "Counter=%ld origin=%s message=%llu\n",
                     static_cast<long>(event->Counter),
-                    context.Origin == Event::EventOrigin::Remote
-                        ? "remote"
-                        : "local",
-                    static_cast<unsigned long long>(
-                        context.TransportMessageID
-                    )
+                    context.Origin == Event::EventOrigin::Remote ? "remote" : "local",
+                    static_cast<unsigned long long>(context.TransportMessageID)
                 );
             }
         );
@@ -97,17 +75,18 @@ DemoListener listener;
 void setup() {
     Serial.begin(115200);
 
-    auto& transports =
-        Event::EventTransportManager::GetInstance();
+    auto* eventManager = Event::EventManager::GetInstance();
+    auto& transports = Event::EventTransportManager::GetInstance();
 
     transports.RegisterTransport(&loopback);
+    transports.RegisterBidirectionalEvents<DistributedCounterEvent>();
 
-    /* Equivalent individual registration is also available. */
-    transports.RegisterBidirectionalEvents<
-        DistributedCounterEvent
-    >();
-
+    // Construction, resource initialization, and execution are deliberately
+    // separate lifecycle phases for both managers.
+    eventManager->Initialize();
     transports.Initialize();
+    eventManager->Start();
+    transports.Start();
 
     auto* event = new DistributedCounterEvent();
     event->Counter = 42;

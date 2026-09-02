@@ -6,15 +6,27 @@
 
 namespace ESPressio::Event {
 
+/// <summary>Observes Events after the local EventManager has dispatched them.</summary>
 class IEventManagerObserver : public virtual Observable::IObserver {
 public:
     virtual ~IEventManagerObserver() = default;
+
+    /// <summary>Called after an Event is dispatched locally, including its dispatch method, priority, and transport-origin context.</summary>
+    /// <param name="event">Non-owning Event pointer valid for the duration of the callback.</param>
+    /// <param name="dispatchMethod">Queue or stack dispatch method used for the Event.</param>
+    /// <param name="priority">Priority assigned to the Event.</param>
+    /// <param name="context">Origin and transport-routing context carried by the Event.</param>
     virtual void OnEventDispatched(
-        IEvent*,
-        EventDispatchMethod,
-        EventPriority,
-        const EventDispatchContext&
-    ) {}
+        IEvent* event,
+        EventDispatchMethod dispatchMethod,
+        EventPriority priority,
+        const EventDispatchContext& context
+    ) {
+        (void)event;
+        (void)dispatchMethod;
+        (void)priority;
+        (void)context;
+    }
 };
 
 }

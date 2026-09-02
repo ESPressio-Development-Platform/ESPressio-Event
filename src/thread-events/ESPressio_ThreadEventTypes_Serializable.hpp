@@ -8,7 +8,6 @@
 #include <string>
 
 #include <ESPressio_ThreadManagerTypes.hpp>
-#include <ESPressio_ThreadGarbageCollectorTypes.hpp>
 
 #include "../ESPressio_Event_Serializable.hpp"
 
@@ -85,30 +84,6 @@ struct SerializableThreadSnapshotData {
     ESPRESSIO_PROPERTY("activeIterationCount", ActiveIterationCount), \
     ESPRESSIO_PROPERTY("threadCountBefore", ThreadCountBefore), \
     ESPRESSIO_PROPERTY("threadCountAfter", ThreadCountAfter)
-
-#define ESPRESSIO_GC_MEMBERS \
-    uint8_t ExecutionMode = 0; \
-    bool InfrastructureAvailable = false; \
-    bool RequestQueued = false; \
-    bool Completed = false; \
-    bool Failed = false; \
-    ESPRESSIO_THREAD_CLEANUP_MEMBERS
-
-#define ESPRESSIO_GC_ASSIGN(r) \
-    ExecutionMode = static_cast<uint8_t>((r).ExecutionMode); \
-    InfrastructureAvailable = (r).InfrastructureAvailable; \
-    RequestQueued = (r).RequestQueued; \
-    Completed = (r).Completed; \
-    Failed = (r).Failed; \
-    ESPRESSIO_THREAD_CLEANUP_ASSIGN((r).ManagerResult)
-
-#define ESPRESSIO_GC_PROPERTIES \
-    ESPRESSIO_PROPERTY("executionMode", ExecutionMode), \
-    ESPRESSIO_PROPERTY("infrastructureAvailable", InfrastructureAvailable), \
-    ESPRESSIO_PROPERTY("requestQueued", RequestQueued), \
-    ESPRESSIO_PROPERTY("completed", Completed), \
-    ESPRESSIO_PROPERTY("failed", Failed), \
-    ESPRESSIO_THREAD_CLEANUP_PROPERTIES
 
 #define ESPRESSIO_DEFINE_SERIALIZABLE_SNAPSHOT_EVENT(CLASS_NAME) \
 class CLASS_NAME final : public SerializableEvent<CLASS_NAME> { \
@@ -231,94 +206,6 @@ public:
     )
 };
 
-class SerializableThreadGarbageCollectorInitializedEvent final :
-    public SerializableEvent<SerializableThreadGarbageCollectorInitializedEvent> {
-public:
-    bool Available = false;
-
-    SerializableThreadGarbageCollectorInitializedEvent() = default;
-    explicit SerializableThreadGarbageCollectorInitializedEvent(bool available)
-        : Available(available) {}
-
-    ESPRESSIO_SERIALIZABLE_TYPE(SerializableThreadGarbageCollectorInitializedEvent)
-    ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
-    ESPRESSIO_SERIALIZABLE_PROPERTIES(
-        ESPRESSIO_PROPERTY("available", Available)
-    )
-};
-
-class SerializableThreadGarbageCollectorInitializationFailedEvent final :
-    public SerializableEvent<SerializableThreadGarbageCollectorInitializationFailedEvent> {
-public:
-    ESPRESSIO_SERIALIZABLE_TYPE(SerializableThreadGarbageCollectorInitializationFailedEvent)
-    ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
-    ESPRESSIO_SERIALIZABLE_PROPERTIES()
-};
-
-class SerializableThreadGarbageCollectionRequestedEvent final :
-    public SerializableEvent<SerializableThreadGarbageCollectionRequestedEvent> {
-public:
-    uint8_t ExecutionMode = 0;
-
-    SerializableThreadGarbageCollectionRequestedEvent() = default;
-    explicit SerializableThreadGarbageCollectionRequestedEvent(
-        Threads::ThreadGarbageCollectionExecutionMode mode
-    ) :
-        ExecutionMode(static_cast<uint8_t>(mode)) {
-    }
-
-    ESPRESSIO_SERIALIZABLE_TYPE(SerializableThreadGarbageCollectionRequestedEvent)
-    ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
-    ESPRESSIO_SERIALIZABLE_PROPERTIES(
-        ESPRESSIO_PROPERTY("executionMode", ExecutionMode)
-    )
-};
-
-#define ESPRESSIO_DEFINE_SERIALIZABLE_GC_EVENT(CLASS_NAME) \
-class CLASS_NAME final : public SerializableEvent<CLASS_NAME> { \
-public: \
-    ESPRESSIO_GC_MEMBERS \
-    CLASS_NAME() = default; \
-    explicit CLASS_NAME(const Threads::ThreadGarbageCollectionResult& result) { \
-        ESPRESSIO_GC_ASSIGN(result) \
-    } \
-    ESPRESSIO_SERIALIZABLE_TYPE(CLASS_NAME) \
-    ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1) \
-    ESPRESSIO_SERIALIZABLE_PROPERTIES(ESPRESSIO_GC_PROPERTIES) \
-};
-
-ESPRESSIO_DEFINE_SERIALIZABLE_GC_EVENT(SerializableThreadGarbageCollectionQueuedEvent)
-ESPRESSIO_DEFINE_SERIALIZABLE_GC_EVENT(SerializableThreadGarbageCollectionRequestCoalescedEvent)
-ESPRESSIO_DEFINE_SERIALIZABLE_GC_EVENT(SerializableThreadGarbageCollectionStartedEvent)
-ESPRESSIO_DEFINE_SERIALIZABLE_GC_EVENT(SerializableThreadGarbageCollectionCompletedEvent)
-ESPRESSIO_DEFINE_SERIALIZABLE_GC_EVENT(SerializableThreadGarbageCollectionFallbackStartedEvent)
-
-#undef ESPRESSIO_DEFINE_SERIALIZABLE_GC_EVENT
-
-class SerializableThreadGarbageCollectionFailedEvent final :
-    public SerializableEvent<SerializableThreadGarbageCollectionFailedEvent> {
-public:
-    ESPRESSIO_GC_MEMBERS
-    std::string ExceptionMessage;
-
-    SerializableThreadGarbageCollectionFailedEvent() = default;
-
-    SerializableThreadGarbageCollectionFailedEvent(
-        const Threads::ThreadGarbageCollectionResult& result,
-        const std::string& message
-    ) :
-        ExceptionMessage(message) {
-        ESPRESSIO_GC_ASSIGN(result)
-    }
-
-    ESPRESSIO_SERIALIZABLE_TYPE(SerializableThreadGarbageCollectionFailedEvent)
-    ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
-    ESPRESSIO_SERIALIZABLE_PROPERTIES(
-        ESPRESSIO_GC_PROPERTIES,
-        ESPRESSIO_PROPERTY("exceptionMessage", ExceptionMessage)
-    )
-};
-
 class SerializableThreadTerminationDispatcherInitializedEvent final :
     public SerializableEvent<SerializableThreadTerminationDispatcherInitializedEvent> {
 public:
@@ -335,9 +222,6 @@ public:
     )
 };
 
-#undef ESPRESSIO_GC_PROPERTIES
-#undef ESPRESSIO_GC_ASSIGN
-#undef ESPRESSIO_GC_MEMBERS
 #undef ESPRESSIO_THREAD_CLEANUP_PROPERTIES
 #undef ESPRESSIO_THREAD_CLEANUP_ASSIGN
 #undef ESPRESSIO_THREAD_CLEANUP_MEMBERS

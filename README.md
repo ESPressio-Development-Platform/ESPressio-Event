@@ -311,15 +311,15 @@ Event CI enforces that reverse dependencies do not return.
 
 # Dependencies
 
-The active working branch consumes the corresponding lead dependency branches through `library.json`:
+The active working branch consumes the dependency repositories from `main` through `library.json`:
 
 ```text
-ESPressio Threads    optimisation/69-resource-footprint
-ESPressio Observable feature/16-rtti-free-observer-registry
+ESPressio Threads    main
+ESPressio Observable main
 ESPressio Timing     main
 ```
 
-Optional Serializable Event/Event Transport support consumes ESPressio Serializable when the application enables those headers.
+Optional Serializable Event/Event Transport support consumes ESPressio Serializable from `main` when the application enables those headers.
 
 # Installation
 

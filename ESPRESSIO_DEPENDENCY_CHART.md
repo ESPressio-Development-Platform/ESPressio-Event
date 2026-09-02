@@ -24,10 +24,10 @@ Serial        0.8.1
 
 ```text
 Event 6.0.3
-    -> Threads >= 3.1.7 < 4.0.0
-    -> Timing >= 2.2.8 < 3.0.0
-    -> Observable >= 3.0.2 < 4.0.0
-    - - -> Serializable >= 0.11.3 < 1.0.0
+    -> Threads main
+    -> Timing main
+    -> Observable main
+    - - -> Serializable main
             opt-in Serializable Events / Event Transport
 ```
 
@@ -36,11 +36,11 @@ Event remains a mechanism-only library. Domain-specific Event types and bridges 
 ## Downstream integration direction
 
 ```text
-Command  - - -> Event >= 6.0.3 < 7.0.0
-Security - - -> Event >= 6.0.3 < 7.0.0
-Sockets  - - -> Event >= 6.0.3 < 7.0.0
-ESP-Now  - - -> Event >= 6.0.3 < 7.0.0
-WiFi     - - -> Event >= 6.0.3 < 7.0.0
+Command  - - -> Event main
+Security - - -> Event main
+Sockets  - - -> Event main
+ESP-Now  - - -> Event main
+WiFi     - - -> Event main
 
 Event -> Command   NONE
 Event -> Security  NONE

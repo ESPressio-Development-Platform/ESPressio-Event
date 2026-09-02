@@ -1,7 +1,7 @@
 #pragma once
 
 #if !__has_include(<ESPressio_Serializable.hpp>) || !__has_include(<ESPressio_DirectBinaryArchive.hpp>)
-#error "ESPressio Event Transport requires ESPressio-Serializable. Add https://github.com/ESPressio-Development-Platform/ESPressio-Serializable.git#main to the consuming project."
+#error "ESPressio Event Transport requires ESPressio-Serializable. Add https://github.com/ESPressio-Development-Platform/ESPressio-Serializable.git#structural_realignment to the consuming project."
 #endif
 
 #include <algorithm>

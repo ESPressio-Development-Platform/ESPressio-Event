@@ -1,7 +1,7 @@
 #pragma once
 
 #if !__has_include(<ESPressio_Serializable.hpp>)
-    #error "ESPressio_Event_Serializable.hpp requires ESPressio-Serializable. Add https://github.com/ESPressio-Development-Platform/ESPressio-Serializable.git#main to the consuming project."
+    #error "ESPressio_Event_Serializable.hpp requires ESPressio-Serializable. Add https://github.com/ESPressio-Development-Platform/ESPressio-Serializable.git#structural_realignment to the consuming project."
 #endif
 
 #include <ESPressio_Serializable.hpp>

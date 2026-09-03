@@ -15,7 +15,7 @@
 namespace ESPressio {
 namespace Event {
 
-/// <summary>Contract for routing event types to registered receivers.</summary>
+/// <summary>Contract for routing Event types to registered receivers.</summary>
 class IEventDispatcher {
 public:
     virtual ~IEventDispatcher() = default;
@@ -23,11 +23,12 @@ public:
     virtual void UnregisterReceiver(EventTypeKey type, IEventReceiver* receiver) = 0;
 };
 
-/// <summary>Event receiver that redispatches queued events to receivers registered for each event type.</summary>
+/// <summary>Event receiver that redispatches queued Events to receivers registered for each Event type.</summary>
 /// <remarks>
 /// Receiver removal is safe during nested dispatch. Fan-out admission is always non-blocking, and downstream receiver
-/// calls execute without the registry lock held. A caller may supply a lightweight post-fanout completion action; this
-/// is intended for lifecycle bookkeeping such as scheduling asynchronous observation, never for consumer work.
+/// calls execute without the registry lock held. Dispatch provenance is propagated beside each Event reference rather
+/// than being retained by the Event itself. A caller may supply a lightweight post-fanout completion action; this is
+/// intended for lifecycle bookkeeping such as scheduling asynchronous observation, never for consumer work.
 /// </remarks>
 class EventDispatcher : public EventReceiver, public IEventDispatcher {
 private:
@@ -67,7 +68,10 @@ private:
     template<typename TCompletion>
     void DispatchEventsWithCompletion(TCompletion&& completion) {
         WithEvents(
-            [&](IEvent* event, EventDispatchMethod dispatchMethod, EventPriority priority) {
+            [&](IEvent* event,
+                EventDispatchMethod dispatchMethod,
+                EventPriority priority,
+                const EventDispatchContext& context) {
                 event->__dispatch();
 
                 const EventTypeKey eventType = event->__getTypeKey();
@@ -101,9 +105,9 @@ private:
 
                             if (receiver == nullptr) continue;
                             if (dispatchMethod == EventDispatchMethod::Queue) {
-                                (void)receiver->TryQueueEvent(event, priority);
+                                (void)receiver->TryQueueEvent(event, priority, context);
                             } else {
-                                (void)receiver->TryStackEvent(event, priority);
+                                (void)receiver->TryStackEvent(event, priority, context);
                             }
                         }
                     } catch (...) {
@@ -120,7 +124,7 @@ private:
                     FinishReceiverDispatchLocked();
                 }
 
-                completion(event, dispatchMethod, priority);
+                completion(event, dispatchMethod, priority, context);
             }
         );
     }
@@ -136,14 +140,14 @@ protected:
         }
     }
 
-    /// <summary>Drains and routes pending events without a dispatch-completion action.</summary>
+    /// <summary>Drains and routes pending Events without a dispatch-completion action.</summary>
     void DispatchEvents() {
         DispatchEventsWithCompletion(
-            [](IEvent*, EventDispatchMethod, EventPriority) {}
+            [](IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&) {}
         );
     }
 
-    /// <summary>Drains and routes pending events, then invokes a lightweight completion action for each dispatch.</summary>
+    /// <summary>Drains and routes pending Events, then invokes a lightweight completion action for each dispatch.</summary>
     template<typename TCompletion>
     void DispatchEvents(TCompletion&& completion) {
         DispatchEventsWithCompletion(std::forward<TCompletion>(completion));

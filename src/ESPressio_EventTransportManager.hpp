@@ -69,12 +69,14 @@ namespace ESPressio::Event {
 /// Serializable Event subscriber that converts Event ownership into owned serialized transport payloads.
 /// </summary>
 /// <remarks>
-/// EventTransportManager behaves like an ordinary Event receiver: EventManager fans one Event reference into this
-/// subscriber mailbox for each transport-enabled Serializable Event type. Its coordinator Thread transfers outbound
-/// ownership into a bounded TaskExecutor and returns immediately; serialization, transport observation, and fanout execute
-/// off the coordinator stack. The executor serializes once into ExternalPreferred storage, releases Event ownership after
-/// Event-aware serialized-stage notifications, and then fans shared immutable packet ownership to physical transports.
-/// Inbound physical packets enter as owned buffers and are deserialized before being submitted to EventManager.
+/// EventTransportManager behaves like an ordinary Event receiver: EventManager fans one Event reference and its
+/// transport-independent dispatch provenance into this subscriber mailbox for each transport-enabled Serializable
+/// Event type. Remote provenance is retained beside queued work and prevents automatic re-forwarding. Its coordinator
+/// Thread transfers outbound ownership into a bounded TaskExecutor and returns immediately; serialization, transport
+/// observation, and fanout execute off the coordinator stack. The executor serializes once into ExternalPreferred
+/// storage, releases Event ownership after Event-aware serialized-stage notifications, and then fans shared immutable
+/// packet ownership to physical transports. Inbound physical packets enter as owned buffers and are deserialized before
+/// being submitted to EventManager with Remote dispatch provenance.
 /// </remarks>
 class EventTransportManager final :
     public Threads::Thread,
@@ -153,6 +155,7 @@ private:
         IEvent* Event = nullptr;
         EventDispatchMethod Method = EventDispatchMethod::Queue;
         EventPriority Priority = EventPriority::Normal;
+        EventDispatchContext Context{};
     };
 
     static_assert(
@@ -377,8 +380,7 @@ private:
 
         IEvent* event = work.Event;
         if (event == nullptr) return;
-        const EventDispatchContext context = event->__getDispatchContext();
-        if (context.Origin != EventOrigin::Local) return;
+        if (work.Context.Origin != EventOrigin::Local) return;
 
         const EventTypeKey eventType = event->__getTypeKey();
         if (eventType == nullptr) return;
@@ -441,7 +443,6 @@ private:
                     work.Method,
                     work.Priority,
                     EventOrigin::Local,
-                    0,
                     false
                 });
             }
@@ -455,7 +456,6 @@ private:
         envelope.MessageID = messageID;
         envelope.DispatchMethod = static_cast<uint8_t>(work.Method);
         envelope.Priority = static_cast<uint8_t>(work.Priority);
-        envelope.HopCount = 0;
         envelope.PayloadLength = static_cast<uint32_t>(payloadSize);
         std::memcpy(bytes.data(), &envelope, sizeof(envelope));
 
@@ -489,7 +489,6 @@ private:
                 work.Method,
                 work.Priority,
                 EventOrigin::Local,
-                0,
                 false
             });
         }
@@ -523,7 +522,6 @@ private:
                 work.Method,
                 work.Priority,
                 EventOrigin::Local,
-                0,
                 accepted
             });
         }
@@ -535,7 +533,8 @@ private:
     void SubmitOutboundEvent(
         IEvent* event,
         EventDispatchMethod method,
-        EventPriority priority
+        EventPriority priority,
+        const EventDispatchContext& context
     ) noexcept {
         if (
             event == nullptr ||
@@ -546,6 +545,7 @@ private:
         work.Event = event;
         work.Method = method;
         work.Priority = priority;
+        work.Context = context;
 
         event->__ref();
         const auto status = _outboundExecutor.Submit(work);
@@ -594,7 +594,6 @@ private:
                 static_cast<EventDispatchMethod>(envelope.DispatchMethod),
                 static_cast<EventPriority>(envelope.Priority),
                 EventOrigin::Remote,
-                envelope.HopCount,
                 false
             });
             return;
@@ -609,18 +608,13 @@ private:
             });
         }
 
-        EventDispatchContext context;
-        context.Origin = EventOrigin::Remote;
-        context.TransportMessageID = envelope.MessageID;
-        context.HopCount = envelope.HopCount;
-        event->__setDispatchContext(context);
-
+        const EventDispatchContext context{EventOrigin::Remote};
         const auto method = static_cast<EventDispatchMethod>(envelope.DispatchMethod);
         const auto priority = static_cast<EventPriority>(envelope.Priority);
 
         const bool accepted = method == EventDispatchMethod::Stack
-            ? EventManager::GetInstance()->TryStackEvent(event, priority)
-            : EventManager::GetInstance()->TryQueueEvent(event, priority);
+            ? EventManager::GetInstance()->TryStackEvent(event, priority, context)
+            : EventManager::GetInstance()->TryQueueEvent(event, priority, context);
 
         if (!accepted) {
             NotifyTransaction({
@@ -637,7 +631,6 @@ private:
                 method,
                 priority,
                 EventOrigin::Remote,
-                envelope.HopCount,
                 false
             });
             return;
@@ -666,7 +659,6 @@ private:
             method,
             priority,
             EventOrigin::Remote,
-            envelope.HopCount,
             true
         });
         _processedInboundCount.fetch_add(1, std::memory_order_relaxed);
@@ -694,8 +686,11 @@ private:
 
             if (GetPendingEventCount() != 0) {
                 WithEvents(
-                    [&](IEvent* event, EventDispatchMethod method, EventPriority priority) {
-                        SubmitOutboundEvent(event, method, priority);
+                    [&](IEvent* event,
+                        EventDispatchMethod method,
+                        EventPriority priority,
+                        const EventDispatchContext& context) {
+                        SubmitOutboundEvent(event, method, priority, context);
                     }
                 );
                 didWork = true;
@@ -1750,7 +1745,6 @@ public:
                 static_cast<EventDispatchMethod>(envelope.DispatchMethod),
                 static_cast<EventPriority>(envelope.Priority),
                 EventOrigin::Remote,
-                envelope.HopCount,
                 false
             });
             return;

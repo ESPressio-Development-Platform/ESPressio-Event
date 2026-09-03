@@ -22,9 +22,30 @@ using EventCorrelationId = Primitive::CorrelationId;
 /// <summary>Primitive-family protocol revision used by Event family adapters.</summary>
 using EventProtocolVersion = Primitive::PrimitiveProtocolVersion;
 
-/// <summary>
-/// Intrinsic transport-independent metadata of one Event occurrence.
-/// </summary>
+/// <summary>Provenance of an Event at the current local dispatch boundary.</summary>
+enum class EventOrigin : std::uint8_t {
+    Local,
+    Remote
+};
+
+/// <summary>Transport-independent provenance accompanying one local Event dispatch.</summary>
+/// <remarks>
+/// This context belongs to the dispatch operation rather than to the Event object.
+/// Transport-local message identifiers, routes and hop counts are deliberately absent.
+/// </remarks>
+struct EventDispatchContext final {
+    EventOrigin Origin = EventOrigin::Local;
+
+    constexpr bool operator==(const EventDispatchContext& other) const noexcept {
+        return Origin == other.Origin;
+    }
+
+    constexpr bool operator!=(const EventDispatchContext& other) const noexcept {
+        return !(*this == other);
+    }
+};
+
+/// <summary>Intrinsic transport-independent metadata of one Event occurrence.</summary>
 /// <remarks>
 /// Transport origin, route, hop count and transport-local message identity are
 /// deliberately absent. Those values belong to receive/dispatch context owned by

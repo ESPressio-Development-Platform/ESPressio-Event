@@ -43,6 +43,7 @@ namespace Event {
 /// before Start(); they remain pending until the broker starts. EventManager never executes observer callbacks. Dispatch
 /// observation is submitted to a bounded TaskExecutor only while observers are actually registered; otherwise no additional
 /// Event reference or observer work item is created. Downstream receiver admission is non-blocking through EventDispatcher.
+/// Local/remote provenance is retained beside queued work and never written into the Event object.
 /// </remarks>
 class EventManager : public Thread, public EventDispatcher {
 private:
@@ -109,7 +110,8 @@ private:
     void SubmitObserverNotification(
         IEvent* event,
         EventDispatchMethod method,
-        EventPriority priority
+        EventPriority priority,
+        const EventDispatchContext& context
     ) noexcept {
         if (
             event == nullptr ||
@@ -122,7 +124,7 @@ private:
         work.Event = event;
         work.Method = method;
         work.Priority = priority;
-        work.Context = event->__getDispatchContext();
+        work.Context = context;
 
         event->__ref();
         const auto status = _observerExecutor.Submit(work);
@@ -155,9 +157,10 @@ protected:
             [this](
                 IEvent* event,
                 EventDispatchMethod method,
-                EventPriority priority
+                EventPriority priority,
+                const EventDispatchContext& context
             ) {
-                SubmitObserverNotification(event, method, priority);
+                SubmitObserverNotification(event, method, priority, context);
             }
         );
     }

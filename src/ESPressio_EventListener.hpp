@@ -18,6 +18,7 @@
 #include "ESPressio_EventEnums.hpp"
 #include "ESPressio_EventObserver.hpp"
 #include "ESPressio_EventTypeKey.hpp"
+#include "ESPressio_EventTypes.hpp"
 
 namespace ESPressio {
 namespace Event {
@@ -37,7 +38,7 @@ public:
 
     virtual EventListenerHandlePtr RegisterListener(
         EventTypeKey eventType,
-        std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
+        std::function<void(IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&)> callback,
         EventListenerInterest interest = EventListenerInterest::All,
         EventTime maximumTimeSinceDispatch = EventTime(0),
         std::function<bool(IEvent*)> customInterestCallback = nullptr
@@ -45,7 +46,7 @@ public:
 
     template<typename EventType>
     EventListenerHandlePtr RegisterListener(
-        std::function<void(EventType*, EventDispatchMethod, EventPriority)> callback,
+        std::function<void(EventType*, EventDispatchMethod, EventPriority, const EventDispatchContext&)> callback,
         EventListenerInterest interest = EventListenerInterest::All,
         EventTime maximumTimeSinceDispatch = EventTime(0),
         std::function<bool(EventType*)> customInterestCallback = nullptr
@@ -57,8 +58,13 @@ public:
             };
         }
         return RegisterTypedListener<EventType>(
-            [callback = std::move(callback)](IEvent* event, EventDispatchMethod method, EventPriority priority) {
-                callback(static_cast<EventType*>(event), method, priority);
+            [callback = std::move(callback)](
+                IEvent* event,
+                EventDispatchMethod method,
+                EventPriority priority,
+                const EventDispatchContext& context
+            ) {
+                callback(static_cast<EventType*>(event), method, priority, context);
             },
             interest,
             maximumTimeSinceDispatch,
@@ -78,8 +84,13 @@ public:
             customInterest = [observer](EventType* event) { return observer->IsInterestedInEvent(event); };
         }
         return RegisterListener<EventType>(
-            [observer](EventType* event, EventDispatchMethod method, EventPriority priority) {
-                observer->OnEvent(event, method, priority);
+            [observer](
+                EventType* event,
+                EventDispatchMethod method,
+                EventPriority priority,
+                const EventDispatchContext& context
+            ) {
+                observer->OnEvent(event, method, priority, context);
             },
             interest,
             maximumTimeSinceDispatch,
@@ -97,7 +108,7 @@ public:
 protected:
     virtual EventListenerHandlePtr RegisterTypedListenerErased(
         EventTypeKey eventType,
-        std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
+        std::function<void(IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&)> callback,
         EventListenerInterest interest,
         EventTime maximumTimeSinceDispatch,
         std::function<bool(IEvent*)> customInterestCallback
@@ -105,7 +116,7 @@ protected:
 
     template<typename EventType>
     EventListenerHandlePtr RegisterTypedListener(
-        std::function<void(IEvent*, EventDispatchMethod, EventPriority)> callback,
+        std::function<void(IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&)> callback,
         EventListenerInterest interest,
         EventTime maximumTimeSinceDispatch,
         std::function<bool(IEvent*)> customInterestCallback
@@ -146,11 +157,11 @@ public:
     }
 };
 
-/// <summary>Thread-safe listener registry that filters and invokes callbacks for matching event types.</summary>
-/// <remarks>Registration bookkeeping is protected by a System recursive mutex, but application callbacks and custom-interest predicates execute outside that registry lock. Stable externally preferred shared callback ownership keeps in-flight callbacks valid while concurrent unregistration is deferred through processing depth.</remarks>
+/// <summary>Thread-safe listener registry that filters and invokes callbacks for matching Event types.</summary>
+/// <remarks>Registration bookkeeping is protected by a System recursive mutex, but application callbacks and custom-interest predicates execute outside that registry lock. Stable externally preferred shared callback ownership keeps in-flight callbacks valid while concurrent unregistration is deferred through processing depth. Dispatch provenance is supplied separately from the Event object.</remarks>
 class EventListener : public IEventListener {
 private:
-    using EventCallback = std::function<void(IEvent*, EventDispatchMethod, EventPriority)>;
+    using EventCallback = std::function<void(IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&)>;
     using InterestCallback = std::function<bool(IEvent*)>;
     using StableEventCallback = std::shared_ptr<const EventCallback>;
     using StableInterestCallback = std::shared_ptr<const InterestCallback>;
@@ -340,8 +351,14 @@ public:
         if (removedLast) OnListenerUnregistered(eventType);
     }
 
-    /// <summary>Delivers one event to active matching listeners without holding the listener registry lock across application code.</summary>
-    void ProcessEvent(IEvent* event, EventDispatchMethod dispatchMethod, EventPriority priority) {
+    /// <summary>Delivers one Event to active matching listeners without holding the listener registry lock across application code.</summary>
+    /// <param name="context">Transport-independent provenance of this dispatch.</param>
+    void ProcessEvent(
+        IEvent* event,
+        EventDispatchMethod dispatchMethod,
+        EventPriority priority,
+        const EventDispatchContext& context = {}
+    ) {
         if (event == nullptr) return;
 
         std::size_t listenerCount = 0;
@@ -380,7 +397,7 @@ public:
                         event
                     )) continue;
 
-                (*callback)(event, dispatchMethod, priority);
+                (*callback)(event, dispatchMethod, priority, context);
             }
         } catch (...) {
             std::lock_guard<System::Synchronization::RecursiveMutex> lock(_listenersMutex);

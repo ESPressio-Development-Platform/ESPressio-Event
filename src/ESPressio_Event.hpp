@@ -14,7 +14,7 @@
 namespace ESPressio {
 namespace Event {
 
-/// <summary>Default event implementation providing intrusive lifetime, dispatch timing, context, and manager queueing.</summary>
+/// <summary>Default Event implementation providing intrusive lifetime, dispatch timing, and manager queueing.</summary>
 /// <typeparam name="TTime">Public time representation returned by typed dispatch-time accessors.</typeparam>
 template<typename TTime = Timing::DefaultClockTime>
 class Event : public IEvent {
@@ -39,8 +39,6 @@ private:
     mutable std::atomic_flag _dispatchStateGuard = ATOMIC_FLAG_INIT;
     DispatchState _dispatchState{};
     std::atomic<uint32_t> _refCount{0};
-    mutable std::atomic_flag _dispatchContextGuard = ATOMIC_FLAG_INIT;
-    EventDispatchContext _dispatchContext{};
 
     static uint64_t GetResolutionNanoseconds() {
         auto& clock = Timing::SystemClock<TTime>::GetInstance();
@@ -94,18 +92,6 @@ public:
     }
 
     /// <inheritdoc/>
-    void __setDispatchContext(const EventDispatchContext& context) override {
-        AtomicFlagGuard lock(_dispatchContextGuard);
-        _dispatchContext = context;
-    }
-
-    /// <inheritdoc/>
-    EventDispatchContext __getDispatchContext() const override {
-        AtomicFlagGuard lock(_dispatchContextGuard);
-        return _dispatchContext;
-    }
-
-    /// <inheritdoc/>
     void __dispatch() override {
         const uint64_t now = GetNowNanoseconds();
         AtomicFlagGuard lock(_dispatchStateGuard);
@@ -141,7 +127,7 @@ public:
             : 0;
     }
 
-    /// <summary>Returns the event's dispatch timestamp in the configured public time representation.</summary>
+    /// <summary>Returns the Event's dispatch timestamp in the configured public time representation.</summary>
     TTime GetDispatchTime() const {
         return CreateTime(GetDispatchTimeNanoseconds());
     }
@@ -152,9 +138,9 @@ public:
     }
 };
 
-/// <summary>CRTP event base that supplies a stable RTTI-free type identity for a concrete event type.</summary>
-/// <typeparam name="TDerived">Concrete event type whose identity is exposed.</typeparam>
-/// <typeparam name="TTime">Public time representation used by the event.</typeparam>
+/// <summary>CRTP Event base that supplies a stable RTTI-free local type identity for a concrete Event type.</summary>
+/// <typeparam name="TDerived">Concrete Event type whose identity is exposed.</typeparam>
+/// <typeparam name="TTime">Public time representation used by the Event.</typeparam>
 template<
     typename TDerived,
     typename TTime = Timing::DefaultClockTime
@@ -164,7 +150,7 @@ public:
     using TimeType = TTime;
     using EventBase = Event<TTime>;
 
-    /// <summary>Returns the stable compiler-backed type key for <typeparamref name="TDerived"/>.</summary>
+    /// <summary>Returns the stable compiler-backed local type key for <typeparamref name="TDerived"/>.</summary>
     EventTypeKey __getTypeKey() const noexcept override {
         return EventTypeKeyOf<TDerived>();
     }

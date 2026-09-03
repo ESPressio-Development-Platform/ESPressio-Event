@@ -34,7 +34,8 @@ public:
                 [](
                     Event::ThreadRegisteredEvent* event,
                     Event::EventDispatchMethod,
-                    Event::EventPriority
+                    Event::EventPriority,
+                    const Event::EventDispatchContext&
                 ) {
                     Serial.printf(
                         "registered id=%u core=%d\n",
@@ -51,7 +52,8 @@ public:
                 [](
                     Event::ThreadCleanupCompletedEvent* event,
                     Event::EventDispatchMethod,
-                    Event::EventPriority
+                    Event::EventPriority,
+                    const Event::EventDispatchContext&
                 ) {
                     Serial.printf(
                         "cleanup deleted=%u\n",
@@ -69,7 +71,8 @@ public:
                 [](
                     Event::ThreadTerminationDispatchCompletedEvent* event,
                     Event::EventDispatchMethod,
-                    Event::EventPriority
+                    Event::EventPriority,
+                    const Event::EventDispatchContext&
                 ) {
                     Serial.printf(
                         "termination dispatched id=%u\n",

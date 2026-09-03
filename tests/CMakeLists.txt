@@ -29,6 +29,7 @@ set(EVENT_HOST_TEST_INCLUDE_DIRS
     stubs
     ../src
     ../../ESPressio-System/src
+    ../../ESPressio-Primitive/src
     ../../ESPressio-Observable/src
     ../../ESPressio_Timing/src
     ../../ESPressio-Units/src

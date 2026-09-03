@@ -9,6 +9,7 @@
 #include <ESPressio_Memory.hpp>
 
 #include "ESPressio_EventEnums.hpp"
+#include "ESPressio_EventTypes.hpp"
 
 namespace ESPressio::Event {
 
@@ -42,33 +43,16 @@ struct EventTransportUnregistrationOptions {
     EventTransportPendingAction PendingInbound = EventTransportPendingAction::Complete;
 };
 
-enum class EventOrigin : uint8_t { Local, Remote };
-
-struct EventDispatchContext {
-    EventOrigin Origin = EventOrigin::Local;
-    uint64_t TransportMessageID = 0;
-    uint8_t HopCount = 0;
-
-    constexpr bool operator==(const EventDispatchContext& other) const noexcept {
-        return Origin == other.Origin &&
-            TransportMessageID == other.TransportMessageID &&
-            HopCount == other.HopCount;
-    }
-    constexpr bool operator!=(const EventDispatchContext& other) const noexcept {
-        return !(*this == other);
-    }
-};
-
 #pragma pack(push, 1)
 struct EventTransportEnvelope {
     static constexpr uint32_t MagicValue = 0x45565454u; // EVTT
-    static constexpr uint8_t CurrentVersion = 1;
+    static constexpr uint8_t CurrentVersion = 2;
 
     uint32_t Magic = MagicValue;
     uint8_t Version = CurrentVersion;
     uint8_t DispatchMethod = static_cast<uint8_t>(EventDispatchMethod::Queue);
     uint8_t Priority = static_cast<uint8_t>(EventPriority::Normal);
-    uint8_t HopCount = 0;
+    uint8_t Reserved = 0;
     uint64_t EventTypeID = 0;
     uint32_t SchemaVersion = 1;
     uint64_t MessageID = 0;
@@ -166,6 +150,8 @@ enum class EventTransportTransactionStage : uint8_t {
     Failed
 };
 
+/// <summary>Diagnostic snapshot of one Event transport-manager stage.</summary>
+/// <remarks>Origin is dispatch provenance; route/hop state is deliberately absent because Event transport does not forward a received Event onward.</remarks>
 struct EventTransportTransaction {
     EventTransportTransactionStage Stage = EventTransportTransactionStage::Failed;
     EventTransportDirection Direction = EventTransportDirection::None;
@@ -180,7 +166,6 @@ struct EventTransportTransaction {
     EventDispatchMethod DispatchMethod = EventDispatchMethod::Queue;
     EventPriority Priority = EventPriority::Normal;
     EventOrigin Origin = EventOrigin::Local;
-    uint8_t HopCount = 0;
     bool TransportAccepted = false;
 };
 

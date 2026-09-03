@@ -53,16 +53,20 @@ class TestObserver final : public IEventObserver<TestEvent> {
         TestEvent* lastEvent = nullptr;
         EventDispatchMethod lastMethod = EventDispatchMethod::Queue;
         EventPriority lastPriority = EventPriority::Normal;
+        EventOrigin lastOrigin = EventOrigin::Local;
         IEventListenerHandle* unregisterOnEvent = nullptr;
 
         void OnEvent(
             TestEvent* event,
             EventDispatchMethod dispatchMethod,
-            EventPriority priority) override {
+            EventPriority priority,
+            const EventDispatchContext& context
+        ) override {
             ++calls;
             lastEvent = event;
             lastMethod = dispatchMethod;
             lastPriority = priority;
+            lastOrigin = context.Origin;
             if (unregisterOnEvent != nullptr) {
                 unregisterOnEvent->Unregister();
             }
@@ -80,11 +84,15 @@ class MultiEventObserver final :
         int testCalls = 0;
         int otherCalls = 0;
 
-        void OnEvent(TestEvent*, EventDispatchMethod, EventPriority) override {
+        void OnEvent(
+            TestEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&
+        ) override {
             ++testCalls;
         }
 
-        void OnEvent(OtherEvent*, EventDispatchMethod, EventPriority) override {
+        void OnEvent(
+            OtherEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&
+        ) override {
             ++otherCalls;
         }
 };
@@ -113,8 +121,9 @@ void Process(
     EventListener& listener,
     IEvent& event,
     EventDispatchMethod method = EventDispatchMethod::Queue,
-    EventPriority priority = EventPriority::Normal) {
-    listener.ProcessEvent(&event, method, priority);
+    EventPriority priority = EventPriority::Normal,
+    EventDispatchContext context = {}) {
+    listener.ProcessEvent(&event, method, priority, context);
 }
 
 int main() {
@@ -149,17 +158,29 @@ int main() {
     const int routingUnregistrations = listener.unregistrations;
 
     int callbackCalls = 0;
+    EventOrigin callbackOrigin = EventOrigin::Local;
     EventListenerHandlePtr callbackHandle = listener.RegisterListener<TestEvent>(
-        [&](TestEvent*, EventDispatchMethod, EventPriority) { ++callbackCalls; });
+        [&](TestEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext& context) {
+            ++callbackCalls;
+            callbackOrigin = context.Origin;
+        });
     assert(listener.registrations == routingRegistrations);
 
     TestEvent event;
-    Process(listener, event, EventDispatchMethod::Stack, EventPriority::High);
+    Process(
+        listener,
+        event,
+        EventDispatchMethod::Stack,
+        EventPriority::High,
+        EventDispatchContext{EventOrigin::Remote}
+    );
     assert(observer.calls == 1);
     assert(observer.lastEvent == &event);
     assert(observer.lastMethod == EventDispatchMethod::Stack);
     assert(observer.lastPriority == EventPriority::High);
+    assert(observer.lastOrigin == EventOrigin::Remote);
     assert(callbackCalls == 1);
+    assert(callbackOrigin == EventOrigin::Remote);
     assert(event.References() == 1);
 
     observerHandle->Unregister();
@@ -212,11 +233,11 @@ int main() {
     int firstCalls = 0;
     int appendedCalls = 0;
     EventListenerHandlePtr firstHandle = reentrantListener.RegisterListener<TestEvent>(
-        [&](TestEvent*, EventDispatchMethod, EventPriority) {
+        [&](TestEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&) {
             ++firstCalls;
             if (!appendedHandle) {
                 appendedHandle = reentrantListener.RegisterListener<TestEvent>(
-                    [&](TestEvent*, EventDispatchMethod, EventPriority) {
+                    [&](TestEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&) {
                         ++appendedCalls;
                     }
                 );
@@ -233,7 +254,7 @@ int main() {
     appendedHandle.reset();
 
     EventListenerHandlePtr throwingHandle = listener.RegisterListener<TestEvent>(
-        [](TestEvent*, EventDispatchMethod, EventPriority) {
+        [](TestEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&) {
             throw std::runtime_error("expected callback failure");
         });
     bool callbackThrown = false;

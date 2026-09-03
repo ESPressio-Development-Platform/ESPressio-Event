@@ -8,7 +8,6 @@ using namespace ESPressio::Event;
 class BrokerTestEvent final : public IEvent {
 private:
     int _references = 0;
-    EventDispatchContext _context{};
 
 public:
     void __ref() noexcept override { ++_references; }
@@ -17,10 +16,6 @@ public:
         --_references;
     }
     void __dispatch() override {}
-    void __setDispatchContext(const EventDispatchContext& context) override {
-        _context = context;
-    }
-    EventDispatchContext __getDispatchContext() const override { return _context; }
     EventTypeKey __getTypeKey() const noexcept override {
         return EventTypeKeyOf<BrokerTestEvent>();
     }
@@ -35,10 +30,12 @@ public:
 class BrokerTestReceiver final : public EventReceiver {
 public:
     int Processed = 0;
+    EventDispatchContext LastContext{};
 
     void Drain() {
-        WithEvents([&](IEvent*, EventDispatchMethod, EventPriority) {
+        WithEvents([&](IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext& context) {
             ++Processed;
+            LastContext = context;
         });
     }
 };
@@ -64,7 +61,11 @@ int main() {
     assert(retained.References() == 1);
 
     BrokerTestEvent routed;
-    dispatcher.QueueEvent(&routed);
+    dispatcher.QueueEvent(
+        &routed,
+        EventPriority::Normal,
+        EventDispatchContext{EventOrigin::Remote}
+    );
     assert(routed.References() == 1);
 
     // Dispatch must not block even though the first receiver is full and is
@@ -78,10 +79,12 @@ int main() {
 
     healthy.Drain();
     assert(healthy.Processed == 1);
+    assert(healthy.LastContext.Origin == EventOrigin::Remote);
     assert(routed.References() == 0);
 
     saturated.Drain();
     assert(saturated.Processed == 1);
+    assert(saturated.LastContext.Origin == EventOrigin::Local);
     assert(retained.References() == 0);
 
     BrokerTestEvent directTry;

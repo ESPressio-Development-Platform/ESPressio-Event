@@ -1,17 +1,14 @@
 #include <cassert>
 #include <type_traits>
 
-#include "../src/ESPressio_EventTransportTypes.hpp"
+#include "../src/ESPressio_EventTypes.hpp"
 
 int main() {
     using namespace ESPressio::Event;
 
     static_assert(
         std::is_same<
-            decltype(
-                EventDispatchContext{} ==
-                EventDispatchContext{}
-            ),
+            decltype(EventDispatchContext{} == EventDispatchContext{}),
             bool
         >::value,
         "EventDispatchContext must be equality comparable."
@@ -19,49 +16,21 @@ int main() {
 
     constexpr EventDispatchContext localA{};
     constexpr EventDispatchContext localB{};
+    static_assert(localA == localB);
 
-    static_assert(
-        localA == localB,
-        "Equivalent default contexts must compare equal."
-    );
-
-    constexpr EventDispatchContext remoteA{
-        EventOrigin::Remote,
-        42,
-        3
-    };
-
-    constexpr EventDispatchContext remoteB{
-        EventOrigin::Remote,
-        42,
-        3
-    };
-
-    constexpr EventDispatchContext differentOrigin{
-        EventOrigin::Local,
-        42,
-        3
-    };
-
-    constexpr EventDispatchContext differentMessage{
-        EventOrigin::Remote,
-        43,
-        3
-    };
-
-    constexpr EventDispatchContext differentHop{
-        EventOrigin::Remote,
-        42,
-        4
-    };
+    constexpr EventDispatchContext remoteA{EventOrigin::Remote};
+    constexpr EventDispatchContext remoteB{EventOrigin::Remote};
+    constexpr EventDispatchContext local{EventOrigin::Local};
 
     static_assert(remoteA == remoteB);
-    static_assert(remoteA != differentOrigin);
-    static_assert(remoteA != differentMessage);
-    static_assert(remoteA != differentHop);
+    static_assert(remoteA != local);
+
+    static_assert(
+        sizeof(EventDispatchContext) == sizeof(EventOrigin),
+        "Event dispatch context must not grow transport-local route or hop metadata."
+    );
 
     assert(remoteA == remoteB);
     assert(!(remoteA != remoteB));
-
     return 0;
 }

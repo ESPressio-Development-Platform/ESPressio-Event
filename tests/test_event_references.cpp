@@ -12,7 +12,6 @@ using namespace ESPressio::Event;
 class ReferenceTrackingEvent final : public IEvent {
     private:
         int _references = 0;
-        EventDispatchContext _dispatchContext{};
 
     public:
         void __ref() noexcept override { ++_references; }
@@ -21,12 +20,6 @@ class ReferenceTrackingEvent final : public IEvent {
             --_references;
         }
         void __dispatch() override { }
-        void __setDispatchContext(const EventDispatchContext& context) override {
-            _dispatchContext = context;
-        }
-        EventDispatchContext __getDispatchContext() const override {
-            return _dispatchContext;
-        }
         EventTypeKey __getTypeKey() const noexcept override {
             return EventTypeKeyOf<ReferenceTrackingEvent>();
         }
@@ -40,27 +33,30 @@ class ReferenceTrackingEvent final : public IEvent {
 class TrackingReceiver final : public EventReceiver {
     public:
         std::vector<EventDispatchMethod> methods;
+        std::vector<EventOrigin> origins;
 
         void Drain() {
             WithEvents([&](
                 IEvent* event,
                 EventDispatchMethod method,
-                EventPriority
+                EventPriority,
+                const EventDispatchContext& context
             ) {
                 methods.push_back(method);
+                origins.push_back(context.Origin);
                 (void)event;
             });
         }
 
         void DrainWithoutRecording() {
             WithEvents([](
-                IEvent*, EventDispatchMethod, EventPriority
+                IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&
             ) { });
         }
 
         void DrainWithFailure() {
             WithEvents([](
-                IEvent*, EventDispatchMethod, EventPriority
+                IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&
             ) {
                 throw std::runtime_error("expected processing failure");
             });
@@ -76,7 +72,6 @@ class HeapTrackingEvent final : public IEvent {
     private:
         int _references = 0;
         int& _liveEvents;
-        EventDispatchContext _dispatchContext{};
 
     public:
         explicit HeapTrackingEvent(int& liveEvents)
@@ -94,12 +89,6 @@ class HeapTrackingEvent final : public IEvent {
             }
         }
         void __dispatch() override { }
-        void __setDispatchContext(const EventDispatchContext& context) override {
-            _dispatchContext = context;
-        }
-        EventDispatchContext __getDispatchContext() const override {
-            return _dispatchContext;
-        }
         EventTypeKey __getTypeKey() const noexcept override {
             return EventTypeKeyOf<HeapTrackingEvent>();
         }
@@ -118,11 +107,17 @@ int main() {
         EventTypeKeyOf<ReferenceTrackingEvent>(),
         &receiver
     );
-    dispatcher.QueueEvent(&dispatchedEvent);
+    dispatcher.QueueEvent(
+        &dispatchedEvent,
+        EventPriority::Normal,
+        EventDispatchContext{EventOrigin::Remote}
+    );
     assert(dispatchedEvent.References() == 1);
     dispatcher.Dispatch();
     assert(dispatchedEvent.References() == 1);
     receiver.Drain();
+    assert(receiver.origins.size() == 1);
+    assert(receiver.origins[0] == EventOrigin::Remote);
     assert(dispatchedEvent.References() == 0);
     dispatcher.UnregisterReceiver(
         EventTypeKeyOf<ReferenceTrackingEvent>(),

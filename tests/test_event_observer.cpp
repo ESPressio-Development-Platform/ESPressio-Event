@@ -11,7 +11,6 @@ class TestEvent final : public IEvent {
     private:
         int _references = 1;
         uint64_t _ageNanoseconds = 0;
-        EventDispatchContext _dispatchContext{};
 
     public:
         explicit TestEvent(unsigned long ageMilliseconds = 0)
@@ -21,12 +20,6 @@ class TestEvent final : public IEvent {
         void __ref() noexcept override { ++_references; }
         void __unref() noexcept override { --_references; }
         void __dispatch() override {}
-        void __setDispatchContext(const EventDispatchContext& context) override {
-            _dispatchContext = context;
-        }
-        EventDispatchContext __getDispatchContext() const override {
-            return _dispatchContext;
-        }
         EventTypeKey __getTypeKey() const noexcept override {
             return EventTypeKeyOf<TestEvent>();
         }
@@ -40,19 +33,10 @@ class TestEvent final : public IEvent {
 };
 
 class OtherEvent final : public IEvent {
-    private:
-        EventDispatchContext _dispatchContext{};
-
     public:
         void __ref() noexcept override {}
         void __unref() noexcept override {}
         void __dispatch() override {}
-        void __setDispatchContext(const EventDispatchContext& context) override {
-            _dispatchContext = context;
-        }
-        EventDispatchContext __getDispatchContext() const override {
-            return _dispatchContext;
-        }
         EventTypeKey __getTypeKey() const noexcept override {
             return EventTypeKeyOf<OtherEvent>();
         }
@@ -223,9 +207,6 @@ int main() {
     assert(!selfRemovingHandle->IsRegistered());
     selfRemovingHandle.reset();
 
-    // Registration from inside a callback must be safe, must not invalidate the
-    // callback currently executing, and must not join the dispatch already in
-    // progress. It becomes visible on the next event.
     EventListener reentrantListener;
     EventListenerHandlePtr appendedHandle;
     int firstCalls = 0;

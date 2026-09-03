@@ -81,9 +81,10 @@ private:
             [&](
                 IEvent* event,
                 EventDispatchMethod dispatchMethod,
-                EventPriority priority
+                EventPriority priority,
+                const EventDispatchContext& context
             ) {
-                ProcessEvent(event, dispatchMethod, priority);
+                ProcessEvent(event, dispatchMethod, priority, context);
             }
         );
     }

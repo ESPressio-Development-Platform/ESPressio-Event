@@ -14,7 +14,8 @@ public:
             RegisterListener<Event::SystemClockSynchronizedEvent>(
                 [](Event::SystemClockSynchronizedEvent* event,
                    Event::EventDispatchMethod,
-                   Event::EventPriority) {
+                   Event::EventPriority,
+                   const Event::EventDispatchContext&) {
                     Serial.printf(
                         "Clock synchronized: before=%llu after=%llu immediateDiff=%lld ns\n",
                         static_cast<unsigned long long>(event->ClockBeforeNanoseconds),

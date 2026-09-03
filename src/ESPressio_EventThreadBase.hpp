@@ -29,7 +29,7 @@ namespace Event {
 
 class IEventThreadBase {};
 
-/// <summary>Thread/receiver base that waits for queued events and forwards them to a derived event handler.</summary>
+/// <summary>Thread/receiver base that waits for queued Events and forwards them with dispatch provenance to a derived handler.</summary>
 class EventThreadBase : public Thread, public EventReceiver, public IEventThreadBase {
 private:
     std::unique_ptr<System::Synchronization::ISignal> _eventSignal;
@@ -91,7 +91,7 @@ private:
     }
 
 protected:
-    /// <summary>Waits for pending events and drains them through <see cref="OnEvent"/>.</summary>
+    /// <summary>Waits for pending Events and drains them through <see cref="OnEvent"/>.</summary>
     void OnLoop() override {
 #ifdef ESPRESSIO_EVENT_SIGNAL_DIAGNOSTICS
         _eventWorkerTask.store(Task::TaskRuntime::Current(), std::memory_order_release);
@@ -119,8 +119,13 @@ protected:
         }
 
         WithEvents(
-            [&](IEvent* event, EventDispatchMethod dispatchMethod, EventPriority priority) {
-                OnEvent(event, dispatchMethod, priority);
+            [&](
+                IEvent* event,
+                EventDispatchMethod dispatchMethod,
+                EventPriority priority,
+                const EventDispatchContext& context
+            ) {
+                OnEvent(event, dispatchMethod, priority, context);
             }
         );
     }
@@ -128,7 +133,8 @@ protected:
     virtual void OnEvent(
         IEvent* event,
         EventDispatchMethod dispatchMethod,
-        EventPriority priority
+        EventPriority priority,
+        const EventDispatchContext& context
     ) = 0;
 
     /// <summary>Signals the worker when new receiver work becomes available.</summary>

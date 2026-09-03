@@ -1,6 +1,6 @@
 # Getting Started
 
-Define a routable Event with compiler-backed type identity:
+Define a routable Event with compiler-backed local type identity:
 
 ```cpp
 #include <ESPressio_Event.hpp>
@@ -22,13 +22,17 @@ Dispatch it asynchronously:
 (new TemperatureChangedEvent(21.0f, 21.5f))->Queue();
 ```
 
-Register a typed listener on an Event-aware Thread:
+Register a typed listener on an Event-aware Thread. Dispatch provenance is supplied explicitly beside the Event rather than being stored on the Event object:
 
 ```cpp
 auto handle = eventThread.RegisterListener<TemperatureChangedEvent>(
     [](TemperatureChangedEvent* event,
        Event::EventDispatchMethod,
-       Event::EventPriority) {
+       Event::EventPriority,
+       const Event::EventDispatchContext& context) {
+        if (context.Origin == Event::EventOrigin::Remote) {
+            // This occurrence arrived through an Event-family transport.
+        }
         // consume event
     }
 );

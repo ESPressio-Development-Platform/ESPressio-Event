@@ -108,7 +108,9 @@ void setup() {
                     Event::
                         EventDispatchMethod,
                     Event::
-                        EventPriority
+                        EventPriority,
+                    const Event::
+                        EventDispatchContext&
                 ) {
                     controlThread.
                         ApplySetpoint(

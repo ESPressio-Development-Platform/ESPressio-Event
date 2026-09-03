@@ -8,13 +8,10 @@ using namespace ESPressio::Event;
 class CompletionEvent final : public IEvent {
 private:
     int _references = 0;
-    EventDispatchContext _context{};
 public:
     void __ref() noexcept override { ++_references; }
     void __unref() noexcept override { assert(_references > 0); --_references; }
     void __dispatch() override {}
-    void __setDispatchContext(const EventDispatchContext& context) override { _context = context; }
-    EventDispatchContext __getDispatchContext() const override { return _context; }
     EventTypeKey __getTypeKey() const noexcept override { return EventTypeKeyOf<CompletionEvent>(); }
     void Queue(EventPriority = EventPriority::Normal) override {}
     void Stack(EventPriority = EventPriority::Normal) override {}
@@ -25,8 +22,12 @@ public:
 
 class CompletionReceiver final : public EventReceiver {
 public:
+    EventDispatchContext LastContext{};
+
     void Drain() {
-        WithEvents([](IEvent*, EventDispatchMethod, EventPriority) {});
+        WithEvents([&](IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext& context) {
+            LastContext = context;
+        });
     }
 };
 
@@ -44,14 +45,21 @@ int main() {
     dispatcher.RegisterReceiver(EventTypeKeyOf<CompletionEvent>(), &receiver);
 
     CompletionEvent event;
-    dispatcher.QueueEvent(&event);
+    const EventDispatchContext remote{EventOrigin::Remote};
+    dispatcher.QueueEvent(&event, EventPriority::Normal, remote);
     assert(event.References() == 1);
 
     IEvent* completionReference = nullptr;
-    dispatcher.Dispatch([&](IEvent* dispatched, EventDispatchMethod method, EventPriority priority) {
+    dispatcher.Dispatch([&](
+        IEvent* dispatched,
+        EventDispatchMethod method,
+        EventPriority priority,
+        const EventDispatchContext& context
+    ) {
         assert(dispatched == &event);
         assert(method == EventDispatchMethod::Queue);
         assert(priority == EventPriority::Normal);
+        assert(context.Origin == EventOrigin::Remote);
         assert(event.References() == 2); // dispatcher + receiver mailbox
         dispatched->__ref();            // model async observer ownership
         completionReference = dispatched;
@@ -64,6 +72,7 @@ int main() {
     assert(event.References() == 1);
 
     receiver.Drain();
+    assert(receiver.LastContext.Origin == EventOrigin::Remote);
     assert(event.References() == 0);
     return 0;
 }

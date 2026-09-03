@@ -5,7 +5,7 @@
 #include <ESPressio_ClockTypes.hpp>
 
 #include "ESPressio_EventEnums.hpp"
-#include "ESPressio_EventTransportTypes.hpp"
+#include "ESPressio_EventTypes.hpp"
 #include "ESPressio_EventTypeKey.hpp"
 
 namespace ESPressio {
@@ -14,33 +14,33 @@ namespace Event {
 /// <summary>Default public time representation used by Event APIs.</summary>
 using EventTime = Timing::DefaultClockTime;
 
-/// <summary>Base contract for locally dispatchable and transport-routable events.</summary>
-/// <remarks>Concrete events normally derive through TypedEvent or SerializableEvent so a stable RTTI-free type key is supplied automatically.</remarks>
+/// <summary>Base contract for a locally dispatchable Event occurrence.</summary>
+/// <remarks>
+/// Concrete Events normally derive through TypedEvent or SerializableEvent so a stable RTTI-free
+/// local type key is supplied automatically. Transport provenance is carried by dispatch context,
+/// not retained intrinsically by the Event object.
+/// </remarks>
 class IEvent {
 public:
     virtual ~IEvent() = default;
 
-    /// <summary>Adds one intrusive lifetime reference to this event.</summary>
+    /// <summary>Adds one intrusive lifetime reference to this Event.</summary>
     virtual void __ref() noexcept = 0;
-    /// <summary>Releases one intrusive lifetime reference and may destroy the event when the count reaches zero.</summary>
+    /// <summary>Releases one intrusive lifetime reference and may destroy the Event when the count reaches zero.</summary>
     virtual void __unref() noexcept = 0;
-    /// <summary>Records that the event has entered dispatch.</summary>
+    /// <summary>Records that the Event has entered local dispatch.</summary>
     virtual void __dispatch() = 0;
-    /// <summary>Associates routing/transport context with this dispatch.</summary>
-    virtual void __setDispatchContext(const EventDispatchContext& context) = 0;
-    /// <summary>Returns the routing/transport context associated with this dispatch.</summary>
-    virtual EventDispatchContext __getDispatchContext() const = 0;
 
-    /// <summary>Returns the compiler-backed local process identity used for routing and listener dispatch.</summary>
+    /// <summary>Returns the compiler-backed local-process identity used for listener dispatch.</summary>
     /// <remarks>Every concrete routable Event must provide a stable EventTypeKey; use TypedEvent&lt;TDerived&gt; or SerializableEvent&lt;TDerived&gt; for the standard CRTP path.</remarks>
     virtual EventTypeKey __getTypeKey() const noexcept = 0;
 
-    /// <summary>Queues the event for normal FIFO-style processing at the specified priority.</summary>
+    /// <summary>Queues the Event for normal FIFO-style local processing at the specified priority.</summary>
     virtual void Queue(
         EventPriority priority = EventPriority::Normal
     ) = 0;
 
-    /// <summary>Stacks the event for priority processing ahead of queued events at the specified priority.</summary>
+    /// <summary>Stacks the Event for local priority processing ahead of queued Events at the specified priority.</summary>
     virtual void Stack(
         EventPriority priority = EventPriority::Normal
     ) = 0;

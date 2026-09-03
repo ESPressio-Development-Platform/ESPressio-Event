@@ -55,14 +55,14 @@ public:
             [](
                 DistributedCounterEvent* event,
                 Event::EventDispatchMethod,
-                Event::EventPriority
+                Event::EventPriority,
+                const Event::EventDispatchContext& context
             ) {
-                const auto context = event->__getDispatchContext();
+                // Origin belongs to this dispatch, not to the Event instance.
                 Serial.printf(
-                    "Counter=%ld origin=%s message=%llu\n",
+                    "Counter=%ld origin=%s\n",
                     static_cast<long>(event->Counter),
-                    context.Origin == Event::EventOrigin::Remote ? "remote" : "local",
-                    static_cast<unsigned long long>(context.TransportMessageID)
+                    context.Origin == Event::EventOrigin::Remote ? "remote" : "local"
                 );
             }
         );

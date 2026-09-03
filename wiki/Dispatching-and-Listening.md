@@ -22,18 +22,24 @@ If an operation requires synchronous, ordered completion, direct sequencing or E
 
 ## Registering a listener
 
-Listener registration is typed:
+Listener registration is typed. The callback receives dispatch provenance explicitly as context associated with that one dispatch operation:
 
 ```cpp
 Event::EventListenerHandlePtr handle =
     eventThread.RegisterListener<TemperatureChangedEvent>(
         [](TemperatureChangedEvent* event,
            Event::EventDispatchMethod method,
-           Event::EventPriority priority) {
+           Event::EventPriority priority,
+           const Event::EventDispatchContext& context) {
+            if (context.Origin == Event::EventOrigin::Remote) {
+                // The occurrence arrived from an Event-family transport.
+            }
             // Consume event.
         }
     );
 ```
+
+`EventDispatchContext` is intentionally not Event state. The same Event abstraction therefore remains free of transport addresses, route data and hop counts, while local dispatch can still distinguish locally originated from remotely received occurrences.
 
 Keep the returned handle alive for as long as the listener should remain registered. Destroying or unregistering the handle removes the registration according to the listener lifecycle contract.
 
@@ -49,7 +55,7 @@ This is an important memory-efficiency property and should be preserved by exten
 
 Dispatch carries `EventPriority` alongside the Event and dispatch method. Consumers can inspect the supplied priority where their processing policy requires it.
 
-Priority does not turn asynchronous fan-out into a globally ordered synchronous pipeline.
+Priority does not turn asynchronous fan-out into a globally ordered synchronous pipeline and is not Mesh QoS.
 
 ## Bounded pending work
 
@@ -61,4 +67,4 @@ The default maximum is configurable through:
 ESPRESSIO_EVENT_DEFAULT_MAX_PENDING_EVENT_COUNT
 ```
 
-Queue diagnostics expose current and peak pending counts plus rejected/dropped Event counts. Treat those diagnostics as part of operational health monitoring when Event rates can approach receiver capacity.
+Each queued entry retains its Event reference together with dispatch method, priority, sequence and compact dispatch provenance. Queue diagnostics expose current and peak pending counts plus rejected/dropped Event counts. Treat those diagnostics as part of operational health monitoring when Event rates can approach receiver capacity.

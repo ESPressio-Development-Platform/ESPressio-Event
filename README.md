@@ -2,6 +2,8 @@
 
 Generic Event-Driven Development infrastructure for the ESPressio Development Platform.
 
+The stable ESPressio primitive family for transported Event occurrences is `EventFamilyId` (`0x0003`).
+
 ESPressio Event provides the asynchronous counterpart to ESPressio Observable: producers dispatch strongly typed occurrence contracts without knowing which consumers exist, while listeners process those Events independently on Event-aware Threads.
 
 ## 1.0.0 baseline

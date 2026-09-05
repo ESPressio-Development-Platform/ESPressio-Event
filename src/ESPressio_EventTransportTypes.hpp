@@ -7,11 +7,15 @@
 #include <utility>
 
 #include <ESPressio_Memory.hpp>
+#include <ESPressio_Primitive.hpp>
 
 #include "ESPressio_EventEnums.hpp"
 #include "ESPressio_EventTypes.hpp"
 
 namespace ESPressio::Event {
+
+/// <summary>Stable ESPressio primitive-family identifier for Event occurrences.</summary>
+inline constexpr Primitive::PrimitiveFamilyId EventFamilyId = Primitive::FamilyIds::Event;
 
 enum class EventTransportDirection : uint8_t {
     None = 0,

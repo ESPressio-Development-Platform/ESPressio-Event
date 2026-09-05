@@ -6,6 +6,8 @@
 using namespace ESPressio::Event;
 
 int main() {
+    static_assert(EventFamilyId == ESPressio::Primitive::FamilyIds::Event);
+
     EventTransportBuffer bytes;
     bytes.push_back(0x11);
     bytes.push_back(0x22);

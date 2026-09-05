@@ -28,7 +28,9 @@ Runtime transport registrations are immutable after construction and shared by q
 
 Local runtime Event matching uses `EventTypeKey`. There is no RTTI routing fallback.
 
-Serializable wire identity remains a separate compatibility concern; do not substitute local compiler identity for an established wire type ID.
+Serializable wire identity is an explicit stable non-zero 64-bit `EventTypeId` declared by the Event contract. Diagnostic names do not derive identity, and local compiler identity must never be substituted for the wire value.
+
+Outbound conceptual message identifiers come from a non-wrapping monotonic generator whose authenticated source identity and source-incarnation scope is owned by composition. A continuing incarnation restores its non-regressing persisted high-water mark before the manager starts; a newly authenticated incarnation explicitly resets issuance to begin at `1`. One identifier is retained across serialization and physical-transport fan-out.
 
 ## Memory placement
 

@@ -27,34 +27,34 @@ public:
 
     /// <summary>Called when a transported Event type is first registered.</summary>
     virtual void OnEventTransportTypeRegistered(
-        uint64_t,
+        EventTypeId,
         EventTransportDirection
     ) {}
 
     /// <summary>Called when the aggregate registered direction for a transported Event type changes.</summary>
     virtual void OnEventTransportTypeRegistrationChanged(
-        uint64_t,
+        EventTypeId,
         EventTransportDirection,
         EventTransportDirection
     ) {}
 
     /// <summary>Called when directions are removed from a transported Event type registration.</summary>
     virtual void OnEventTransportTypeUnregistered(
-        uint64_t,
+        EventTypeId,
         EventTransportDirection,
         EventTransportDirection
     ) {}
 
     /// <summary>Called when a concrete transport route is first registered for an Event type.</summary>
     virtual void OnEventTransportTypeRouteRegistered(
-        uint64_t,
+        EventTypeId,
         IEventTransport*,
         EventTransportDirection
     ) {}
 
     /// <summary>Called when the registered direction for one concrete transport route changes.</summary>
     virtual void OnEventTransportTypeRouteChanged(
-        uint64_t,
+        EventTypeId,
         IEventTransport*,
         EventTransportDirection,
         EventTransportDirection
@@ -62,7 +62,7 @@ public:
 
     /// <summary>Called when directions are removed from one concrete transport route.</summary>
     virtual void OnEventTransportTypeRouteUnregistered(
-        uint64_t,
+        EventTypeId,
         IEventTransport*,
         EventTransportDirection,
         EventTransportDirection
@@ -70,49 +70,49 @@ public:
 
     /// <summary>Called when an outbound Event is accepted for transport routing.</summary>
     virtual void OnOutboundEventAccepted(
-        uint64_t,
-        uint64_t
+        EventTypeId,
+        EventMessageId
     ) {}
 
     /// <summary>Called when an outbound Event is accepted for delivery by a specific registered transport route.</summary>
     virtual void OnOutboundEventAcceptedForTransport(
-        uint64_t,
-        uint64_t,
+        EventTypeId,
+        EventMessageId,
         IEventTransport*
     ) {}
 
     /// <summary>Called after a serialized outbound Event is handed to a concrete transport.</summary>
     virtual void OnOutboundEventHandedToTransport(
-        uint64_t,
-        uint64_t,
+        EventTypeId,
+        EventMessageId,
         IEventTransport*,
         bool
     ) {}
 
     /// <summary>Called when an inbound wire packet passes transport-envelope and route validation.</summary>
     virtual void OnInboundPacketAccepted(
-        uint64_t,
-        uint64_t,
+        EventTypeId,
+        EventMessageId,
         IEventTransport*
     ) {}
 
     /// <summary>Called when an inbound wire packet is rejected before Event deserialization/dispatch.</summary>
     virtual void OnInboundPacketRejected(
-        uint64_t,
-        uint64_t,
+        EventTypeId,
+        EventMessageId,
         IEventTransport*
     ) {}
 
     /// <summary>Called after an inbound packet has been deserialized into its concrete Event type.</summary>
     virtual void OnInboundEventDeserialized(
-        uint64_t,
-        uint64_t
+        EventTypeId,
+        EventMessageId
     ) {}
 
     /// <summary>Called after an inbound Event has been queued or stacked into local Event dispatch.</summary>
     virtual void OnInboundEventDispatched(
-        uint64_t,
-        uint64_t
+        EventTypeId,
+        EventMessageId
     ) {}
 
     /// <summary>Receives the unified immutable snapshot for an Event transport transaction stage.</summary>

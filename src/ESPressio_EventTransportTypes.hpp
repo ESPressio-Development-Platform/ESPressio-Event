@@ -57,7 +57,7 @@ struct EventTransportEnvelope {
     uint8_t DispatchMethod = static_cast<uint8_t>(EventDispatchMethod::Queue);
     uint8_t Priority = static_cast<uint8_t>(EventPriority::Normal);
     uint8_t Reserved = 0;
-    uint64_t EventTypeID = 0;
+    EventTypeId EventTypeID = 0;
     uint32_t SchemaVersion = 1;
     uint64_t MessageID = 0;
     uint32_t PayloadLength = 0;
@@ -85,14 +85,14 @@ using EventTransportBufferPtr = std::shared_ptr<const EventTransportBuffer>;
 class EventTransportPacket {
 private:
     EventTransportBufferPtr _buffer;
-    uint64_t _messageID = 0;
+    EventMessageId _messageID{};
 
 public:
     EventTransportPacket() = default;
 
     explicit EventTransportPacket(
         EventTransportBuffer buffer,
-        uint64_t messageID = 0
+        EventMessageId messageID = {}
     ) :
         _buffer(System::Memory::MakeShared<
             EventTransportBuffer,
@@ -102,7 +102,7 @@ public:
 
     EventTransportPacket(
         EventTransportBufferPtr buffer,
-        uint64_t messageID = 0
+        EventMessageId messageID = {}
     ) : _buffer(std::move(buffer)), _messageID(messageID) {}
 
     const uint8_t* Data() const noexcept {
@@ -113,7 +113,7 @@ public:
         return _buffer ? _buffer->size() : 0;
     }
 
-    uint64_t MessageID() const noexcept { return _messageID; }
+    EventMessageId MessageID() const noexcept { return _messageID; }
     const EventTransportBufferPtr& Buffer() const noexcept { return _buffer; }
     explicit operator bool() const noexcept { return Data() != nullptr && Size() != 0; }
 };
@@ -159,10 +159,10 @@ enum class EventTransportTransactionStage : uint8_t {
 struct EventTransportTransaction {
     EventTransportTransactionStage Stage = EventTransportTransactionStage::Failed;
     EventTransportDirection Direction = EventTransportDirection::None;
-    uint64_t EventTypeID = 0;
+    EventTypeId EventTypeID = 0;
     std::string_view EventTypeName{};
     uint32_t SchemaVersion = 0;
-    uint64_t MessageID = 0;
+    EventMessageId MessageID{};
     IEventTransport* Transport = nullptr;
     const IEvent* Event = nullptr;
     const uint8_t* Payload = nullptr;
@@ -175,28 +175,21 @@ struct EventTransportTransaction {
 
 template<typename TEvent>
 struct EventTransportTypeTraits {
+    static constexpr EventTypeId Id = 0;
     static constexpr std::string_view Name{};
 };
 
-constexpr uint64_t EventTransportTypeHash(std::string_view value) noexcept {
-    uint64_t hash = 14695981039346656037ull;
-    for (char c : value) {
-        hash ^= static_cast<uint8_t>(c);
-        hash *= 1099511628211ull;
-    }
-    return hash;
-}
-
 template<typename TEvent>
-constexpr uint64_t EventTransportTypeID() noexcept {
-    return EventTransportTypeHash(EventTransportTypeTraits<TEvent>::Name);
+constexpr EventTypeId EventTransportTypeID() noexcept {
+    return EventTransportTypeTraits<TEvent>::Id;
 }
 
 }
 
-#define ESPRESSIO_EVENT_TRANSPORT_TYPE(Type, StableName) \
+#define ESPRESSIO_EVENT_TRANSPORT_TYPE(Type, StableId, DiagnosticName) \
     namespace ESPressio::Event { \
         template<> struct EventTransportTypeTraits<Type> { \
-            static constexpr std::string_view Name = StableName; \
+            static constexpr EventTypeId Id = StableId; \
+            static constexpr std::string_view Name = DiagnosticName; \
         }; \
     }

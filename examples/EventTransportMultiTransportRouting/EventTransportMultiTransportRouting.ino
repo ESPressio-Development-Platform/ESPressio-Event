@@ -16,7 +16,7 @@ public:
         Serial.printf(
             "%s accepted message %llu (%u bytes)\n",
             _name,
-            static_cast<unsigned long long>(packet.MessageID()),
+            static_cast<unsigned long long>(packet.MessageID().Value()),
             static_cast<unsigned int>(packet.Size())
         );
         return static_cast<bool>(packet);
@@ -43,6 +43,7 @@ public:
 
 ESPRESSIO_EVENT_TRANSPORT_TYPE(
     TelemetryEvent,
+    0xF10D000000000002ULL,
     "examples.telemetry.v1"
 )
 

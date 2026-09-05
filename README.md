@@ -242,6 +242,8 @@ public:
 
 Event Transport uses the bounded EVTT envelope plus the ESPressio Serializable binary payload representation. The structural realignment intentionally advances the EVTT envelope to version 2 and removes hop-count semantics from that envelope. Historical envelope compatibility is not preserved for the 1.0.0 restructuring.
 
+Every transported Event contract declares its explicit stable non-zero 64-bit `EventTypeId`; the accompanying name is diagnostic and is not hashed into identity. Outbound conceptual occurrences use a non-wrapping `EventMessageId` sequence scoped externally by authenticated source identity plus source incarnation. The same occurrence identifier is retained across serialization, transport fan-out, retries and Mesh delivery integration.
+
 # Runtime Serializable Event discovery
 
 The Serializable Event registry can be inspected without compile-time knowledge of every concrete Event type:
@@ -285,7 +287,7 @@ The Event Transport registration path stores immutable runtime registration meta
 
 Event depends on `ESPressio-Primitive` for common conceptual-message vocabulary. `EventMessageId`, `EventCorrelationId` and `EventProtocolVersion` are aliases of the corresponding Primitive types. `EventMetadata` keeps this conceptual identity separate from transport-specific envelope mechanics.
 
-Concrete ESPressio `PrimitiveFamilyId` numeric allocation is intentionally not performed in this branch until the platform-wide family registry allocation is explicitly settled.
+Event uses the centrally allocated ESPressio `PrimitiveFamilyId` value `0x0003`.
 
 # Timing/SystemClock Event bridge
 

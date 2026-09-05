@@ -5,18 +5,30 @@
 
 using namespace ESPressio::Event;
 
+struct ExplicitType {};
+struct UnregisteredType {};
+
+ESPRESSIO_EVENT_TRANSPORT_TYPE(
+    ExplicitType,
+    0xF10D00000000F001ULL,
+    "tests.explicit-type.v1"
+)
+
 int main() {
     static_assert(EventFamilyId == ESPressio::Primitive::FamilyIds::Event);
+    static_assert(EventTransportTypeID<ExplicitType>() == 0xF10D00000000F001ULL);
+    static_assert(EventTransportTypeID<UnregisteredType>() == 0);
+    static_assert(EventTransportTypeTraits<ExplicitType>::Name == "tests.explicit-type.v1");
 
     EventTransportBuffer bytes;
     bytes.push_back(0x11);
     bytes.push_back(0x22);
     bytes.push_back(0x33);
 
-    EventTransportPacket original(std::move(bytes), 42);
+    EventTransportPacket original(std::move(bytes), EventMessageId(42));
     assert(original);
     assert(original.Size() == 3);
-    assert(original.MessageID() == 42);
+    assert(original.MessageID() == EventMessageId(42));
 
     const auto originalBacking = original.Buffer();
     assert(originalBacking);

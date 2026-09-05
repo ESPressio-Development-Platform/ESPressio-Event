@@ -44,6 +44,22 @@ When an Event must cross a transport boundary, derive from `SerializableEvent<TD
 
 Local-only Events do not need ESPressio Serializable.
 
+## Distributed Event type identity
+
+Every Event contract that crosses a transport boundary declares an explicit, stable, non-zero 64-bit `EventTypeId` together with a diagnostic name:
+
+```cpp
+ESPRESSIO_EVENT_TRANSPORT_TYPE(
+    TemperatureChangedEvent,
+    0xF10D000000001001ULL,
+    "application.temperature-changed.v1"
+)
+```
+
+The numeric value is the distributed identity. The name is for diagnostics and runtime discovery only; it is never hashed or otherwise used to derive identity. Contract owners must allocate values deliberately and keep them stable across every producer and consumer of that contract. Zero remains Invalid/Unspecified.
+
+Each conceptual Event occurrence receives one `EventMessageId` from a non-wrapping monotonic sequence scoped by authenticated source identity plus source incarnation. The same identifier survives serialization, transport fan-out, retries and downstream Mesh deliveries. A new causal Event receives a new identifier even when it correlates to an earlier occurrence.
+
 ## Design rule for extensions
 
 New Event infrastructure must consume `EventTypeKey` rather than adding another runtime type mechanism. A feature that requires RTTI to discover the concrete Event type is outside the 1.0.0 Event routing contract.

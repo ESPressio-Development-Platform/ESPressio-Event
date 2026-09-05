@@ -22,6 +22,7 @@ public:
 
 ESPRESSIO_EVENT_TRANSPORT_TYPE(
     DistributedCounterEvent,
+    0xF10D000000000001ULL,
     "flowduino.example.distributed-counter.v1"
 )
 

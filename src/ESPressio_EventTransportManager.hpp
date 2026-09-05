@@ -93,7 +93,7 @@ private:
 
     struct RuntimeRegistration {
         EventTypeKey EventType = nullptr;
-        uint64_t TypeID = 0;
+        EventTypeId TypeID = 0;
         std::string_view TypeName{};
         uint32_t SchemaVersion = 1;
         std::function<bool(IEvent*, EventTransportBuffer&)> Serialize;
@@ -146,7 +146,7 @@ private:
 
     struct InboundWork {
         IEventTransport* Transport = nullptr;
-        uint64_t TypeID = 0;
+        EventTypeId TypeID = 0;
         RuntimeRegistrationPtr Runtime;
         EventTransportPacket Packet;
     };
@@ -164,13 +164,13 @@ private:
     );
 
     using RegistrationMap = System::Memory::UnorderedMap<
-        uint64_t,
+        EventTypeId,
         Registration,
         ExternalPreferred
     >;
     using RuntimeTypeMap = System::Memory::UnorderedMap<
         EventTypeKey,
-        uint64_t,
+        EventTypeId,
         ExternalPreferred
     >;
     using TransportVector = System::Memory::Vector<
@@ -186,7 +186,7 @@ private:
         ExternalPreferred
     >;
     using TypeIdVector = System::Memory::Vector<
-        uint64_t,
+        EventTypeId,
         ExternalPreferred
     >;
 
@@ -212,7 +212,7 @@ private:
         System::Synchronization::CreateBinarySignal();
     std::shared_ptr<EventTransportManagerObservable> _observable =
         CreateEventTransportManagerObservable();
-    std::atomic<uint64_t> _nextMessageID{1};
+    Primitive::ConceptualMessageIdGenerator _messageIds;
     std::atomic<uint64_t> _rejectedInboundCount{0};
     std::atomic<uint64_t> _processedInboundCount{0};
     std::atomic<uint64_t> _processedOutboundCount{0};
@@ -248,6 +248,8 @@ private:
         if (
             envelope.Magic != EventTransportEnvelope::MagicValue ||
             envelope.Version != EventTransportEnvelope::CurrentVersion ||
+            envelope.EventTypeID == 0 ||
+            envelope.MessageID == 0 ||
             envelope.PayloadLength != packet.Size() - sizeof(EventTransportEnvelope)
         ) {
             return false;
@@ -329,7 +331,7 @@ private:
         }
     }
 
-    void RefreshOutboundSubscription(uint64_t typeID) {
+    void RefreshOutboundSubscription(EventTypeId typeID) {
         EventTypeKey type = nullptr;
         bool required = false;
         {
@@ -343,7 +345,7 @@ private:
         if (type != nullptr) SetOutboundSubscription(type, required);
     }
 
-    void RemoveRegistrationIfUnusedLocked(uint64_t typeID) {
+    void RemoveRegistrationIfUnusedLocked(EventTypeId typeID) {
         auto found = _registrations.find(typeID);
         if (found == _registrations.end() || found->second.HasAnyDirection()) return;
 
@@ -385,8 +387,8 @@ private:
         const EventTypeKey eventType = event->__getTypeKey();
         if (eventType == nullptr) return;
 
-        uint64_t typeID = 0;
-        uint64_t messageID = 0;
+        EventTypeId typeID = 0;
+        EventMessageId messageID{};
         RuntimeRegistrationPtr runtime;
         TransportVector& targets = _outboundTargets;
         targets.clear();
@@ -415,7 +417,10 @@ private:
 
             typeID = runtimeType->second;
             runtime = registration->second.Runtime;
-            messageID = _nextMessageID.fetch_add(1, std::memory_order_relaxed);
+            if (!_messageIds.TryIssue(messageID)) {
+                _rejectedOutboundWorkCount.fetch_add(1, std::memory_order_relaxed);
+                return;
+            }
         }
 
         if (!runtime || !runtime->Serialize) return;
@@ -453,7 +458,7 @@ private:
         EventTransportEnvelope envelope;
         envelope.EventTypeID = runtime->TypeID;
         envelope.SchemaVersion = runtime->SchemaVersion;
-        envelope.MessageID = messageID;
+        envelope.MessageID = messageID.Value();
         envelope.DispatchMethod = static_cast<uint8_t>(work.Method);
         envelope.Priority = static_cast<uint8_t>(work.Priority);
         envelope.PayloadLength = static_cast<uint32_t>(payloadSize);
@@ -577,6 +582,7 @@ private:
 
         const RuntimeRegistrationPtr& runtime = work.Runtime;
         if (!runtime || !runtime->Deserialize) return;
+        const EventMessageId messageID(envelope.MessageID);
 
         IEvent* event = runtime->Deserialize(payload, envelope.PayloadLength);
         if (event == nullptr) {
@@ -586,7 +592,7 @@ private:
                 envelope.EventTypeID,
                 runtime->TypeName,
                 envelope.SchemaVersion,
-                envelope.MessageID,
+                messageID,
                 work.Transport,
                 nullptr,
                 payload,
@@ -603,7 +609,7 @@ private:
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnInboundEventDeserialized(
                     envelope.EventTypeID,
-                    envelope.MessageID
+                    messageID
                 );
             });
         }
@@ -623,7 +629,7 @@ private:
                 envelope.EventTypeID,
                 runtime->TypeName,
                 envelope.SchemaVersion,
-                envelope.MessageID,
+                messageID,
                 work.Transport,
                 nullptr,
                 payload,
@@ -640,7 +646,7 @@ private:
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnInboundEventDispatched(
                     envelope.EventTypeID,
-                    envelope.MessageID
+                    messageID
                 );
             });
         }
@@ -651,7 +657,7 @@ private:
             envelope.EventTypeID,
             runtime->TypeName,
             envelope.SchemaVersion,
-            envelope.MessageID,
+            messageID,
             work.Transport,
             nullptr,
             payload,
@@ -772,6 +778,18 @@ private:
     }
 
     template<typename TEvent>
+    static constexpr void ValidateTransportEventIdentity() {
+        static_assert(
+            EventTransportTypeTraits<TEvent>::Name.size() != 0,
+            "Transported Events require a non-empty diagnostic name."
+        );
+        static_assert(
+            EventTransportTypeTraits<TEvent>::Id != 0,
+            "Transported Events require ESPRESSIO_EVENT_TRANSPORT_TYPE(Type, StableId, DiagnosticName) with a non-zero explicit StableId."
+        );
+    }
+
+    template<typename TEvent>
     static void ValidateTransportEventType() {
         static_assert(
             std::is_base_of_v<IEvent, TEvent>,
@@ -781,10 +799,7 @@ private:
             Serializable::IsSerializable<TEvent>,
             "Transported Events must implement ESPressio Serializable."
         );
-        static_assert(
-            EventTransportTypeTraits<TEvent>::Name.size() != 0,
-            "Transported Events require ESPRESSIO_EVENT_TRANSPORT_TYPE(Type, StableName)."
-        );
+        ValidateTransportEventIdentity<TEvent>();
     }
 
     template<typename TEvent>
@@ -797,7 +812,7 @@ private:
             return EventTransportRegistrationResult::TypeConflict;
         }
 
-        constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
+        constexpr EventTypeId typeID = EventTransportTypeID<TEvent>();
         Registration proposed = CreateRegistration<TEvent>(direction);
         const EventTypeKey eventType = proposed.Runtime->EventType;
         EventTransportRegistrationResult result;
@@ -857,7 +872,7 @@ private:
             return EventTransportRegistrationResult::TypeConflict;
         }
 
-        constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
+        constexpr EventTypeId typeID = EventTransportTypeID<TEvent>();
         Registration proposed = CreateRegistration<TEvent>(EventTransportDirection::None);
         const EventTypeKey eventType = proposed.Runtime->EventType;
         EventTransportDirection before = EventTransportDirection::None;
@@ -947,7 +962,7 @@ private:
     }
 
     void DiscardInboundLocked(
-        uint64_t typeID,
+        EventTypeId typeID,
         IEventTransport* transport,
         EventTransportDirection removedDirection,
         const EventTransportUnregistrationOptions& options,
@@ -1141,7 +1156,7 @@ public:
         }
 
         transport->SetReceiver(nullptr);
-        for (uint64_t typeID : refreshTypes) RefreshOutboundSubscription(typeID);
+        for (EventTypeId typeID : refreshTypes) RefreshOutboundSubscription(typeID);
         if (_observable) {
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnEventTransportUnregistered(transport);
@@ -1175,7 +1190,7 @@ public:
     }
 
     bool FindRegisteredSerializableEvent(
-        uint64_t typeID,
+        EventTypeId typeID,
         SerializableEventDescriptor& descriptor
     ) const {
         std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
@@ -1211,7 +1226,7 @@ public:
     }
 
     SerializableEventConstructionResult CreateSerializableEvent(
-        uint64_t typeID,
+        EventTypeId typeID,
         const Serializable::SerializationNode& node,
         const Serializable::DeserializationOptions& options = {}
     ) const {
@@ -1344,11 +1359,8 @@ public:
         EventTransportDirection direction,
         const EventTransportUnregistrationOptions& options = {}
     ) {
-        static_assert(
-            EventTransportTypeTraits<TEvent>::Name.size() != 0,
-            "Unregistering a transported Event requires its stable transport type trait."
-        );
-        constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
+        ValidateTransportEventIdentity<TEvent>();
+        constexpr EventTypeId typeID = EventTransportTypeID<TEvent>();
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
         EventTypeKey subscriptionType = nullptr;
@@ -1403,12 +1415,9 @@ public:
         EventTransportDirection direction,
         const EventTransportUnregistrationOptions& options = {}
     ) {
-        static_assert(
-            EventTransportTypeTraits<TEvent>::Name.size() != 0,
-            "Unregistering a transported Event requires its stable transport type trait."
-        );
+        ValidateTransportEventIdentity<TEvent>();
         if (transport == nullptr) return EventTransportUnregistrationResult::InvalidTransport;
-        constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
+        constexpr EventTypeId typeID = EventTransportTypeID<TEvent>();
         EventTransportDirection before = EventTransportDirection::None;
         EventTransportDirection after = EventTransportDirection::None;
         EventTypeKey subscriptionType = nullptr;
@@ -1511,7 +1520,7 @@ public:
             for (const auto& entry : _registrations) typeIDs.push_back(entry.first);
         }
         result.Requested = typeIDs.size();
-        for (uint64_t typeID : typeIDs) {
+        for (EventTypeId typeID : typeIDs) {
             EventTransportDirection before = EventTransportDirection::None;
             EventTransportDirection after = EventTransportDirection::None;
             EventTypeKey subscriptionType = nullptr;
@@ -1573,7 +1582,7 @@ public:
             for (const auto& entry : _registrations) typeIDs.push_back(entry.first);
         }
         result.Requested = typeIDs.size();
-        for (uint64_t typeID : typeIDs) {
+        for (EventTypeId typeID : typeIDs) {
             EventTransportDirection before = EventTransportDirection::None;
             EventTransportDirection after = EventTransportDirection::None;
             EventTypeKey subscriptionType = nullptr;
@@ -1634,11 +1643,8 @@ public:
 
     template<typename TEvent>
     EventTransportDirection GetEventTransportDirection() const {
-        static_assert(
-            EventTransportTypeTraits<TEvent>::Name.size() != 0,
-            "Querying a transported Event requires its stable transport type trait."
-        );
-        constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
+        ValidateTransportEventIdentity<TEvent>();
+        constexpr EventTypeId typeID = EventTransportTypeID<TEvent>();
         std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
         const auto found = _registrations.find(typeID);
         return found == _registrations.end()
@@ -1648,12 +1654,9 @@ public:
 
     template<typename TEvent>
     EventTransportDirection GetEventTransportDirection(IEventTransport* transport) const {
-        static_assert(
-            EventTransportTypeTraits<TEvent>::Name.size() != 0,
-            "Querying a transported Event requires its stable transport type trait."
-        );
+        ValidateTransportEventIdentity<TEvent>();
         if (transport == nullptr) return EventTransportDirection::None;
-        constexpr uint64_t typeID = EventTransportTypeID<TEvent>();
+        constexpr EventTypeId typeID = EventTransportTypeID<TEvent>();
         std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
         const auto found = _registrations.find(typeID);
         return found == _registrations.end()
@@ -1681,12 +1684,13 @@ public:
             _rejectedInboundCount.fetch_add(1, std::memory_order_relaxed);
             if (_observable) {
                 _observable->Notify([&](IEventTransportManagerObserver* observer) {
-                    observer->OnInboundPacketRejected(0, 0, transport);
+                    observer->OnInboundPacketRejected(0, {}, transport);
                 });
             }
             return;
         }
 
+        const EventMessageId messageID(envelope.MessageID);
         bool accepted = false;
         RuntimeRegistrationPtr runtime;
         std::string_view typeName{};
@@ -1726,7 +1730,7 @@ public:
                 _observable->Notify([&](IEventTransportManagerObserver* observer) {
                     observer->OnInboundPacketRejected(
                         envelope.EventTypeID,
-                        envelope.MessageID,
+                        messageID,
                         transport
                     );
                 });
@@ -1737,7 +1741,7 @@ public:
                 envelope.EventTypeID,
                 typeName,
                 schemaVersion,
-                envelope.MessageID,
+                messageID,
                 transport,
                 nullptr,
                 payload,
@@ -1755,7 +1759,7 @@ public:
             _observable->Notify([&](IEventTransportManagerObserver* observer) {
                 observer->OnInboundPacketAccepted(
                     envelope.EventTypeID,
-                    envelope.MessageID,
+                    messageID,
                     transport
                 );
             });
@@ -1766,6 +1770,31 @@ public:
     std::size_t GetPendingInboundPacketCount() const {
         std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
         return _inbound.size();
+    }
+
+    /// <summary>
+    /// Restores the persisted conceptual-message high-water mark for the same source incarnation.
+    /// </summary>
+    /// <remarks>The manager must be shut down before its externally owned identity scope changes.</remarks>
+    bool RestoreMessageIdHighWater(EventMessageId restored) {
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+        if (_initialized.load(std::memory_order_acquire)) return false;
+        return _messageIds.RestoreHighWater(restored);
+    }
+
+    /// <summary>Starts issuance for a newly authenticated source incarnation at identifier 1.</summary>
+    /// <remarks>The manager must be shut down before its externally owned identity scope changes.</remarks>
+    bool ResetMessageIdsForNewSourceIncarnation() {
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+        if (_initialized.load(std::memory_order_acquire)) return false;
+        _messageIds.ResetForNewSourceIncarnation();
+        return true;
+    }
+
+    /// <summary>Gets the last issued or restored conceptual-message identifier.</summary>
+    EventMessageId GetMessageIdHighWater() const {
+        std::lock_guard<System::Synchronization::Mutex> lock(_mutex);
+        return _messageIds.HighWater();
     }
 
     std::size_t GetPeakInboundPacketCount() const noexcept {

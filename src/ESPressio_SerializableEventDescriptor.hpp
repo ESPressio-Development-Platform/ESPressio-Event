@@ -16,7 +16,7 @@ namespace ESPressio::Event {
 /// <summary>Runtime schema and transport metadata for a registered serializable Event type.</summary>
 struct SerializableEventDescriptor {
     /// <summary>Stable wire type identifier.</summary>
-    uint64_t TypeID = 0;
+    EventTypeId TypeID = 0;
     /// <summary>Stable wire type name.</summary>
     std::string TypeName;
     /// <summary>Current Serializable schema version.</summary>

@@ -20,6 +20,7 @@ public:
 
 ESPRESSIO_EVENT_TRANSPORT_TYPE(
     OperatorCommandEvent,
+    0xF10D000000000003ULL,
     "flowduino.example.operator-command.v1"
 )
 

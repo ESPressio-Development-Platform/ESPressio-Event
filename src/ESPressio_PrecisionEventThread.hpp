@@ -162,9 +162,7 @@ protected:
     }
 
 public:
-    using ClockType = Timing::ISystemClock<
-        typename PrecisionThreadBase::IterationTime
-    >;
+    using ClockType = typename PrecisionThreadBase::ClockType;
 
     explicit PrecisionEventThread(
         Threads::ThreadReleasePolicy releasePolicy,

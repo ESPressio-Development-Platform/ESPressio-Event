@@ -23,6 +23,13 @@
 namespace ESPressio {
 namespace Event {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IEventListenerHandle {
 public:
     virtual ~IEventListenerHandle() = default;
@@ -32,6 +39,13 @@ public:
 
 using EventListenerHandlePtr = System::Memory::PolymorphicUniquePtr<IEventListenerHandle>;
 
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IEventListener {
 public:
     virtual ~IEventListener() = default;
@@ -128,6 +142,17 @@ protected:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _eventType (EventTypeKey): sizeof(EventTypeKey) [0 bytes dynamic allocation]
+ * - _listener (IEventListener*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + 4 bytes known members + sizeof(EventTypeKey) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class EventListenerHandle final : public IEventListenerHandle {
 private:
     std::atomic<bool> _isRegistered{true};
@@ -159,6 +184,19 @@ public:
 
 /// <summary>Thread-safe listener registry that filters and invokes callbacks for matching Event types.</summary>
 /// <remarks>Registration bookkeeping is protected by a System recursive mutex, but application callbacks and custom-interest predicates execute outside that registry lock. Stable externally preferred shared callback ownership keeps in-flight callbacks valid while concurrent unregistration is deferred through processing depth. Dispatch provenance is supplied separately from the Event object.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _listeners (ListenerStorage): sizeof(ListenerStorage) [0 bytes dynamic allocation]
+ * - _listenersMutex (System::Synchronization::RecursiveMutex): sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * - _processingDepth (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _needsCompaction (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class EventListener : public IEventListener {
 private:
     using EventCallback = std::function<void(IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&)>;
@@ -167,7 +205,22 @@ private:
     using StableInterestCallback = std::shared_ptr<const InterestCallback>;
     static constexpr auto ExternalPreferred = System::Memory::MemoryPolicy::ExternalPreferred;
 
-    struct ListenerRecord {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - EventType (EventTypeKey): sizeof(EventTypeKey) [0 bytes dynamic allocation]
+ * - Handler (IEventListenerHandle*): 4 bytes [0 bytes dynamic allocation]
+ * - Callback (StableEventCallback): sizeof(StableEventCallback) [0 bytes dynamic allocation]
+ * - Interest (EventListenerInterest): 4 bytes [0 bytes dynamic allocation]
+ * - MaximumTimeSinceDispatchNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - CustomInterest (StableInterestCallback): sizeof(StableInterestCallback) [0 bytes dynamic allocation]
+ * - Active (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 17 bytes known members + sizeof(EventTypeKey) + sizeof(StableEventCallback) + sizeof(StableInterestCallback) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+struct ListenerRecord {
         EventTypeKey EventType = nullptr;
         IEventListenerHandle* Handler = nullptr;
         StableEventCallback Callback;

@@ -15,17 +15,63 @@
 namespace ESPressio {
 namespace Event {
 
-enum class PrecisionEventProcessOrder : uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class PrecisionEventProcessOrder : uint8_t {
     EventsBeforeIteration,
     EventsAfterIteration
 };
 
-enum class PrecisionEventArrivalPolicy : uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class PrecisionEventArrivalPolicy : uint8_t {
     ProcessOnNextIteration,
     TriggerImmediateIteration,
     ProcessImmediately
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Threads::PrecisionThread<TTime, TRepresentationTraits>) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * Requires Stack/Heap Preallocation
+ * Members:
+ * - _eventPolicyMutex (std::mutex): sizeof(std::mutex) [0 bytes dynamic allocation]
+ * - _eventProcessOrder (PrecisionEventProcessOrder): 1 bytes [0 bytes dynamic allocation]
+ * - _eventArrivalPolicy (PrecisionEventArrivalPolicy): 1 bytes [0 bytes dynamic allocation]
+ * - _lifecycleObserverHandle (Observable::ObserverHandlePtr): sizeof(Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Threads::PrecisionThread<TTime, TRepresentationTraits>) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + 2 bytes known members + sizeof(std::mutex) + sizeof(Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<
     typename TTime = Timing::DefaultClockTime,
     typename TRepresentationTraits = Threads::PrecisionThreadTraits<TTime>
@@ -47,7 +93,17 @@ private:
         PrecisionEventArrivalPolicy::ProcessOnNextIteration;
     std::atomic<bool> _acceptingEvents{true};
 
-    class LifecycleObserver final : public Threads::IThreadObserver {
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Threads::IThreadObserver) [0 bytes dynamic allocation]
+ * Members:
+ * - _owner (PrecisionEventThread*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Threads::IThreadObserver) + 4 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+class LifecycleObserver final : public Threads::IThreadObserver {
     private:
         PrecisionEventThread* _owner;
     public:

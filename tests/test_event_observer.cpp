@@ -7,6 +7,16 @@
 
 using namespace ESPressio::Event;
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _references (int): 4 bytes [0 bytes dynamic allocation]
+ * - _ageNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class TestEvent final : public IEvent {
     private:
         int _references = 1;
@@ -32,6 +42,14 @@ class TestEvent final : public IEvent {
         int References() const { return _references; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class OtherEvent final : public IEvent {
     public:
         void __ref() noexcept override {}
@@ -46,6 +64,21 @@ class OtherEvent final : public IEvent {
         uint64_t GetTimeSinceDispatchNanoseconds() const override { return 0; }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - calls (int): 4 bytes [0 bytes dynamic allocation]
+ * - interested (bool): 1 bytes [0 bytes dynamic allocation]
+ * - lastEvent (TestEvent*): 4 bytes [0 bytes dynamic allocation]
+ * - lastMethod (EventDispatchMethod): 4 bytes [0 bytes dynamic allocation]
+ * - lastPriority (EventPriority): 4 bytes [0 bytes dynamic allocation]
+ * - lastOrigin (EventOrigin): 1 bytes [0 bytes dynamic allocation]
+ * - unregisterOnEvent (IEventListenerHandle*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 32 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class TestObserver final : public IEventObserver<TestEvent> {
     public:
         int calls = 0;
@@ -77,6 +110,16 @@ class TestObserver final : public IEventObserver<TestEvent> {
         }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 8 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - testCalls (int): 4 bytes [0 bytes dynamic allocation]
+ * - otherCalls (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class MultiEventObserver final :
     public IEventObserver<TestEvent>,
     public IEventObserver<OtherEvent> {
@@ -97,6 +140,17 @@ class MultiEventObserver final :
         }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * Members:
+ * - registrations (int): 4 bytes [0 bytes dynamic allocation]
+ * - unregistrations (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + 8 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class TrackingEventListener final : public EventListener {
     public:
         int registrations = 0;

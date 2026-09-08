@@ -27,9 +27,28 @@ using namespace ESPressio::Threads;
 namespace ESPressio {
 namespace Event {
 
+/**
+ * ESPressio Memory Audit
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 0 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IEventThreadBase {};
 
 /// <summary>Thread/receiver base that waits for queued Events and forwards them with dispatch provenance to a derived handler.</summary>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) [0 bytes dynamic allocation]
+ * Requires Stack/Heap Preallocation
+ * Members:
+ * - _eventSignal (std::unique_ptr<System::Synchronization::ISignal>): 4 bytes [owned object: sizeof(System::Synchronization::ISignal)]
+ * - _eventSignalMutex (System::Synchronization::Mutex): 0 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known members [_eventSignal: owned object: sizeof(System::Synchronization::ISignal)]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class EventThreadBase : public Thread, public EventReceiver, public IEventThreadBase {
 private:
     std::unique_ptr<System::Synchronization::ISignal> _eventSignal;

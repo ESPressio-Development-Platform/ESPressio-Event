@@ -23,7 +23,23 @@ using EventCorrelationId = Primitive::CorrelationId;
 using EventProtocolVersion = Primitive::PrimitiveProtocolVersion;
 
 /// <summary>Provenance of an Event at the current local dispatch boundary.</summary>
-enum class EventOrigin : std::uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class EventOrigin : std::uint8_t {
     Local,
     Remote
 };
@@ -33,6 +49,14 @@ enum class EventOrigin : std::uint8_t {
 /// This context belongs to the dispatch operation rather than to the Event object.
 /// Transport-local message identifiers, routes and hop counts are deliberately absent.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Origin (EventOrigin): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 struct EventDispatchContext final {
     EventOrigin Origin = EventOrigin::Local;
 
@@ -51,6 +75,16 @@ struct EventDispatchContext final {
 /// deliberately absent. Those values belong to receive/dispatch context owned by
 /// the integration layer rather than to the Event occurrence itself.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - TypeId (EventTypeId): sizeof(EventTypeId) [0 bytes dynamic allocation]
+ * - SchemaVersion (EventSchemaVersion): sizeof(EventSchemaVersion) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(EventTypeId) + sizeof(EventSchemaVersion) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 struct EventMetadata final {
     /// <summary>Stable semantic Event type identifier.</summary>
     EventTypeId TypeId = 0;

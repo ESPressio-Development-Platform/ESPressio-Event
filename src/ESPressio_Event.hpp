@@ -16,15 +16,42 @@ namespace Event {
 
 /// <summary>Default Event implementation providing intrusive lifetime, dispatch timing, and manager queueing.</summary>
 /// <typeparam name="TTime">Public time representation returned by typed dispatch-time accessors.</typeparam>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _dispatchStateGuard (std::atomic_flag): sizeof(std::atomic_flag) [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + sizeof(std::atomic_flag) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<typename TTime = Timing::DefaultClockTime>
 class Event : public IEvent {
 private:
-    struct DispatchState {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - WasDispatched (bool): 1 bytes [0 bytes dynamic allocation]
+ * - DispatchTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct DispatchState {
         bool WasDispatched = false;
         uint64_t DispatchTimeNanoseconds = 0;
     };
 
-    class AtomicFlagGuard {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _flag (std::atomic_flag&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class AtomicFlagGuard {
     private:
         std::atomic_flag& _flag;
     public:
@@ -141,6 +168,15 @@ public:
 /// <summary>CRTP Event base that supplies a stable RTTI-free local type identity for a concrete Event type.</summary>
 /// <typeparam name="TDerived">Concrete Event type whose identity is exposed.</typeparam>
 /// <typeparam name="TTime">Public time representation used by the Event.</typeparam>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes known bases + sizeof(std::atomic_flag) [0 bytes dynamic allocation]
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes known bases + sizeof(std::atomic_flag) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 template<
     typename TDerived,
     typename TTime = Timing::DefaultClockTime

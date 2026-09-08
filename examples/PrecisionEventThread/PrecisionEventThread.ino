@@ -4,6 +4,16 @@
 
 using namespace ESPressio;
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Members:
+ * - _setpoint (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class SetpointEvent final :
     public Event::TypedEvent<SetpointEvent> {
 
@@ -23,6 +33,17 @@ class SetpointEvent final :
 };
 
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Threads::PrecisionThread<TTime, TRepresentationTraits>) + sizeof(EventReceiver) + sizeof(IEventThreadBase) + sizeof(EventListener) + sizeof(IEventThread) + 2 bytes known members + sizeof(std::mutex) + sizeof(Observable::ObserverHandlePtr) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Requires Stack/Heap Preallocation
+ * Members:
+ * - _setpoint (int): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Threads::PrecisionThread<TTime, TRepresentationTraits>) + sizeof(EventReceiver) + sizeof(IEventThreadBase) + sizeof(EventListener) + sizeof(IEventThread) + 2 bytes known members + sizeof(std::mutex) + sizeof(Observable::ObserverHandlePtr) + 4 bytes vptr + 4 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class ControlThread final :
     public Event::PrecisionEventThread<> {
 

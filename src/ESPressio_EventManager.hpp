@@ -47,9 +47,31 @@ namespace Event {
 /// reference or observer work item is created. Downstream receiver admission is non-blocking through EventDispatcher.
 /// Local/remote provenance is retained beside queued work and never written into the Event object.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Thread) + 4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * Requires Stack/Heap Preallocation
+ * Members:
+ * - _observerExecutor (Task::TaskExecutor<ObserverWork>): sizeof(Task::TaskExecutor<ObserverWork>) [0 bytes dynamic allocation]
+ * - _observerLifecycleMutex (System::Synchronization::Mutex): 0 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(Thread) + 4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex) + sizeof(Task::TaskExecutor<ObserverWork>) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class EventManager : public Thread, public EventDispatcher {
 private:
-    struct ObserverWork {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Event (IEvent*): 4 bytes [0 bytes dynamic allocation]
+ * - Method (EventDispatchMethod): 4 bytes [0 bytes dynamic allocation]
+ * - Priority (EventPriority): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct ObserverWork {
         IEvent* Event = nullptr;
         EventDispatchMethod Method = EventDispatchMethod::Queue;
         EventPriority Priority = EventPriority::Normal;
@@ -89,7 +111,15 @@ private:
     }
 
     void ProcessObserverWork(const ObserverWork& work) noexcept {
-        class EventReferenceGuard final {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _event (IEvent*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class EventReferenceGuard final {
         private:
             IEvent* _event;
         public:

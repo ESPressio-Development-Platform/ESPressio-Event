@@ -16,6 +16,13 @@ namespace ESPressio {
 namespace Event {
 
 /// <summary>Contract for routing Event types to registered receivers.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IEventDispatcher {
 public:
     virtual ~IEventDispatcher() = default;
@@ -30,9 +37,33 @@ public:
 /// than being retained by the Event itself. A caller may supply a lightweight post-fanout completion action; this is
 /// intended for lifecycle bookkeeping such as scheduling asynchronous observation, never for consumer work.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) [0 bytes dynamic allocation]
+ * Members:
+ * - _eventReceivers (ReceiverStorage): sizeof(ReceiverStorage) [0 bytes dynamic allocation]
+ * - _eventReceiversMutex (System::Synchronization::RecursiveMutex): sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * - _dispatchDepth (std::size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _needsCompaction (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class EventDispatcher : public EventReceiver, public IEventDispatcher {
 private:
-    struct ReceiverRecord {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Type (EventTypeKey): sizeof(EventTypeKey) [0 bytes dynamic allocation]
+ * - Receiver (IEventReceiver*): 4 bytes [0 bytes dynamic allocation]
+ * - Active (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 5 bytes known members + sizeof(EventTypeKey) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+struct ReceiverRecord {
         EventTypeKey Type = nullptr;
         IEventReceiver* Receiver = nullptr;
         bool Active = false;

@@ -1,0 +1,6047 @@
+{
+  "schema": "espressio-memory-audit-v1",
+  "pass": 1,
+  "repository": "ESPressio-Event",
+  "branch": "structural_realignment_propagation_ESPressio-Mesh",
+  "basis": {
+    "target": "ESP32/Xtensa ILP32 reference ABI",
+    "pointer_bytes": 4,
+    "size_t_bytes": 4,
+    "notes": "GNU libstdc++ control-block sizes are reference values; target/compiler sizeof is authoritative for ABI-sensitive and opaque types."
+  },
+  "missing_external_catalogs": [
+    "ESPressio-Threads",
+    "ESPressio-Mesh",
+    "ESPressio-Sockets",
+    "ESPressio-Serial",
+    "ESPressio-WiFi",
+    "ESPressio-Logging",
+    "ESPressio-Command",
+    "ESPressio-ESP32",
+    "ESPressio-Lua",
+    "ESPressio-MeshAdapters",
+    "ESPressio-NRF24",
+    "ESPressio-Persistence",
+    "ESPressio-Radio",
+    "ESPressio-Security",
+    "ESPressio-State",
+    "ESPressio-Units",
+    "ESPressio-Web"
+  ],
+  "type_count": 152,
+  "types": [
+    {
+      "name": "DistributedCounterEvent",
+      "kind": "class",
+      "file": "examples/EventTransportLoopback/EventTransportLoopback.ino",
+      "line": 10,
+      "bases": [
+        "Event::Event<>",
+        "Serializable::SerializableBase<DistributedCounterEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Counter",
+          "type": "int32_t",
+          "declaration": "int32_t Counter",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "LoopbackEventTransport",
+      "kind": "class",
+      "file": "examples/EventTransportLoopback/EventTransportLoopback.ino",
+      "line": 29,
+      "bases": [
+        "Event::IEventTransport"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_receiver",
+          "type": "Event::IEventTransportReceiver*",
+          "declaration": "Event::IEventTransportReceiver* _receiver",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": 8,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "DemoListener",
+      "kind": "class",
+      "file": "examples/EventTransportLoopback/EventTransportLoopback.ino",
+      "line": 49,
+      "bases": [
+        "Event::EventListener"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_handle",
+          "type": "Event::EventListenerHandlePtr",
+          "declaration": "Event::EventListenerHandlePtr _handle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Event::EventListenerHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + sizeof(Event::EventListenerHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ExampleTransport",
+      "kind": "class",
+      "file": "examples/EventTransportMultiTransportRouting/EventTransportMultiTransportRouting.ino",
+      "line": 7,
+      "bases": [
+        "Event::IEventTransport"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_name",
+          "type": "char*",
+          "declaration": "const char* _name",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_receiver",
+          "type": "Event::IEventTransportReceiver*",
+          "declaration": "Event::IEventTransportReceiver* _receiver",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": 12,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "TelemetryEvent",
+      "kind": "class",
+      "file": "examples/EventTransportMultiTransportRouting/EventTransportMultiTransportRouting.ino",
+      "line": 30,
+      "bases": [
+        "Event::SerializableEvent<TelemetryEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Value",
+          "type": "int32_t",
+          "declaration": "int32_t Value",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SetpointEvent",
+      "kind": "class",
+      "file": "examples/PrecisionEventThread/PrecisionEventThread.ino",
+      "line": 7,
+      "bases": [
+        "Event::TypedEvent<SetpointEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_setpoint",
+          "type": "int",
+          "declaration": "const int _setpoint",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ControlThread",
+      "kind": "class",
+      "file": "examples/PrecisionEventThread/PrecisionEventThread.ino",
+      "line": 26,
+      "bases": [
+        "Event::PrecisionEventThread<>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::PrecisionThread<TTime, TRepresentationTraits>) + sizeof(EventReceiver) + sizeof(IEventThreadBase) + sizeof(EventListener) + sizeof(IEventThread) + 2 bytes known members + sizeof(std::mutex) + sizeof(Observable::ObserverHandlePtr) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_setpoint",
+          "type": "int",
+          "declaration": "int _setpoint",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Threads::PrecisionThread<TTime, TRepresentationTraits>) + sizeof(EventReceiver) + sizeof(IEventThreadBase) + sizeof(EventListener) + sizeof(IEventThread) + 2 bytes known members + sizeof(std::mutex) + sizeof(Observable::ObserverHandlePtr) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": true,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "OperatorCommandEvent",
+      "kind": "class",
+      "file": "examples/RuntimeSerializableEvents/RuntimeSerializableEvents.ino",
+      "line": 8,
+      "bases": [
+        "Event::Event<>",
+        "Serializable::SerializableBase<OperatorCommandEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Value",
+          "type": "int32_t",
+          "declaration": "int32_t Value",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "TemperatureEvent",
+      "kind": "class",
+      "file": "examples/SerializableEvent/SerializableEvent.ino",
+      "line": 6,
+      "bases": [
+        "Event::SerializableEvent<TemperatureEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_temperature",
+          "type": "float",
+          "declaration": "float _temperature",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "_sensorId",
+          "type": "uint32_t",
+          "declaration": "uint32_t _sensorId",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 8 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "TimingEventThread",
+      "kind": "class",
+      "file": "examples/SystemClockEventBridge/SystemClockEventBridge.ino",
+      "line": 7,
+      "bases": [
+        "Event::EventThread"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(EventThreadBase) + sizeof(EventListener)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_synchronizedListener",
+          "type": "Event::EventListenerHandlePtr",
+          "declaration": "Event::EventListenerHandlePtr _synchronizedListener",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Event::EventListenerHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(EventThreadBase) + sizeof(EventListener) + sizeof(Event::EventListenerHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": true,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "InfrastructureEventThread",
+      "kind": "class",
+      "file": "examples/ThreadInfrastructureEventBridges/ThreadInfrastructureEventBridges.ino",
+      "line": 11,
+      "bases": [
+        "Event::EventThread"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(EventThreadBase) + sizeof(EventListener)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_registeredHandle",
+          "type": "Event::EventListenerHandlePtr",
+          "declaration": "Event::EventListenerHandlePtr _registeredHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Event::EventListenerHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_cleanupHandle",
+          "type": "Event::EventListenerHandlePtr",
+          "declaration": "Event::EventListenerHandlePtr _cleanupHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Event::EventListenerHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_terminationHandle",
+          "type": "Event::EventListenerHandlePtr",
+          "declaration": "Event::EventListenerHandlePtr _terminationHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Event::EventListenerHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(EventThreadBase) + sizeof(EventListener) + sizeof(Event::EventListenerHandlePtr) + sizeof(Event::EventListenerHandlePtr) + sizeof(Event::EventListenerHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": true,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "Event",
+      "kind": "class",
+      "file": "src/ESPressio_Event.hpp",
+      "line": 19,
+      "bases": [
+        "IEvent"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_dispatchStateGuard",
+          "type": "std::atomic_flag",
+          "declaration": "std::atomic_flag _dispatchStateGuard",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(std::atomic_flag)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + sizeof(std::atomic_flag)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "low"
+    },
+    {
+      "name": "DispatchState",
+      "kind": "struct",
+      "file": "src/ESPressio_Event.hpp",
+      "line": 22,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "WasDispatched",
+          "type": "bool",
+          "declaration": "bool WasDispatched",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "DispatchTimeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t DispatchTimeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": 12,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "AtomicFlagGuard",
+      "kind": "class",
+      "file": "src/ESPressio_Event.hpp",
+      "line": 27,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_flag",
+          "type": "std::atomic_flag&",
+          "declaration": "std::atomic_flag& _flag",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "TypedEvent",
+      "kind": "class",
+      "file": "src/ESPressio_Event.hpp",
+      "line": 144,
+      "bases": [
+        "Event<TTime>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + sizeof(std::atomic_flag)",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + sizeof(std::atomic_flag)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "low"
+    },
+    {
+      "name": "IEventDispatcher",
+      "kind": "class",
+      "file": "src/ESPressio_EventDispatcher.hpp",
+      "line": 19,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "EventDispatcher",
+      "kind": "class",
+      "file": "src/ESPressio_EventDispatcher.hpp",
+      "line": 33,
+      "bases": [
+        "EventReceiver",
+        "IEventDispatcher"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_eventReceivers",
+          "type": "ReceiverStorage",
+          "declaration": "ReceiverStorage _eventReceivers",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(ReceiverStorage)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_eventReceiversMutex",
+          "type": "System::Synchronization::RecursiveMutex",
+          "declaration": "System::Synchronization::RecursiveMutex _eventReceiversMutex",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(System::Synchronization::RecursiveMutex)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_dispatchDepth",
+          "type": "std::size_t",
+          "declaration": "std::size_t _dispatchDepth",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_needsCompaction",
+          "type": "bool",
+          "declaration": "bool _needsCompaction",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ReceiverRecord",
+      "kind": "struct",
+      "file": "src/ESPressio_EventDispatcher.hpp",
+      "line": 35,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Type",
+          "type": "EventTypeKey",
+          "declaration": "EventTypeKey Type",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeKey)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "Receiver",
+          "type": "IEventReceiver*",
+          "declaration": "IEventReceiver* Receiver",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Active",
+          "type": "bool",
+          "declaration": "bool Active",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "5 bytes known members + sizeof(EventTypeKey)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "EventPriority",
+      "kind": "enum",
+      "file": "src/ESPressio_EventEnums.hpp",
+      "line": 11,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "int",
+          "declaration": "int"
+        }
+      ],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventListenerInterest",
+      "kind": "enum",
+      "file": "src/ESPressio_EventEnums.hpp",
+      "line": 59,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "int",
+          "declaration": "int"
+        }
+      ],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventDispatchMethod",
+      "kind": "enum",
+      "file": "src/ESPressio_EventEnums.hpp",
+      "line": 107,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "int",
+          "declaration": "int"
+        }
+      ],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "IEventListenerHandle",
+      "kind": "class",
+      "file": "src/ESPressio_EventListener.hpp",
+      "line": 26,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "IEventListener",
+      "kind": "class",
+      "file": "src/ESPressio_EventListener.hpp",
+      "line": 35,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "EventListenerHandle",
+      "kind": "class",
+      "file": "src/ESPressio_EventListener.hpp",
+      "line": 131,
+      "bases": [
+        "IEventListenerHandle"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_eventType",
+          "type": "EventTypeKey",
+          "declaration": "EventTypeKey _eventType",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeKey)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_listener",
+          "type": "IEventListener*",
+          "declaration": "IEventListener* _listener",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 4 bytes known members + sizeof(EventTypeKey)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "EventListener",
+      "kind": "class",
+      "file": "src/ESPressio_EventListener.hpp",
+      "line": 162,
+      "bases": [
+        "IEventListener"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_listeners",
+          "type": "ListenerStorage",
+          "declaration": "ListenerStorage _listeners",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(ListenerStorage)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_listenersMutex",
+          "type": "System::Synchronization::RecursiveMutex",
+          "declaration": "System::Synchronization::RecursiveMutex _listenersMutex",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(System::Synchronization::RecursiveMutex)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_processingDepth",
+          "type": "std::size_t",
+          "declaration": "std::size_t _processingDepth",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_needsCompaction",
+          "type": "bool",
+          "declaration": "bool _needsCompaction",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "low"
+    },
+    {
+      "name": "ListenerRecord",
+      "kind": "struct",
+      "file": "src/ESPressio_EventListener.hpp",
+      "line": 170,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "EventType",
+          "type": "EventTypeKey",
+          "declaration": "EventTypeKey EventType",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeKey)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "Handler",
+          "type": "IEventListenerHandle*",
+          "declaration": "IEventListenerHandle* Handler",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Callback",
+          "type": "StableEventCallback",
+          "declaration": "StableEventCallback Callback",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(StableEventCallback)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "Interest",
+          "type": "EventListenerInterest",
+          "declaration": "EventListenerInterest Interest",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "MaximumTimeSinceDispatchNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t MaximumTimeSinceDispatchNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "CustomInterest",
+          "type": "StableInterestCallback",
+          "declaration": "StableInterestCallback CustomInterest",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(StableInterestCallback)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "Active",
+          "type": "bool",
+          "declaration": "bool Active",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "17 bytes known members + sizeof(EventTypeKey) + sizeof(StableEventCallback) + sizeof(StableInterestCallback)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "EventManager",
+      "kind": "class",
+      "file": "src/ESPressio_EventManager.hpp",
+      "line": 50,
+      "bases": [
+        "Thread",
+        "EventDispatcher"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Thread) + 4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_observerExecutor",
+          "type": "Task::TaskExecutor<ObserverWork>",
+          "declaration": "Task::TaskExecutor<ObserverWork> _observerExecutor",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Task::TaskExecutor<ObserverWork>)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_observerLifecycleMutex",
+          "type": "System::Synchronization::Mutex",
+          "declaration": "System::Synchronization::Mutex _observerLifecycleMutex",
+          "fixed_bytes": 0,
+          "fixed_text": "0 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Thread) + 4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex) + sizeof(Task::TaskExecutor<ObserverWork>)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": true,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ObserverWork",
+      "kind": "struct",
+      "file": "src/ESPressio_EventManager.hpp",
+      "line": 52,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Event",
+          "type": "IEvent*",
+          "declaration": "IEvent* Event",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Method",
+          "type": "EventDispatchMethod",
+          "declaration": "EventDispatchMethod Method",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "Priority",
+          "type": "EventPriority",
+          "declaration": "EventPriority Priority",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": 12,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventReferenceGuard",
+      "kind": "class",
+      "file": "src/ESPressio_EventManager.hpp",
+      "line": 92,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_event",
+          "type": "IEvent*",
+          "declaration": "IEvent* _event",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventManagerObservable",
+      "kind": "class",
+      "file": "src/ESPressio_EventManagerObservable.hpp",
+      "line": 12,
+      "bases": [
+        "Observable::ThreadSafeObservable"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + sizeof(std::enable_shared_from_this<ThreadSafeObservable>) + 4 bytes known members + sizeof(std::recursive_mutex)",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + sizeof(std::enable_shared_from_this<ThreadSafeObservable>) + 4 bytes known members + sizeof(std::recursive_mutex)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "IEventObserver",
+      "kind": "class",
+      "file": "src/ESPressio_EventObserver.hpp",
+      "line": 15,
+      "bases": [
+        "Observable::IObserver"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "EventQueueOverflowPolicy",
+      "kind": "enum",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 25,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventQueueOverflowPolicy",
+      "kind": "class",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 26,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventCollectionCapacityPolicy",
+      "kind": "enum",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 33,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventCollectionCapacityPolicy",
+      "kind": "class",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 34,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "IEventReceiver",
+      "kind": "class",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 41,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "EventReceiver",
+      "kind": "class",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 83,
+      "bases": [
+        "IEventReceiver"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_eventsMutex",
+          "type": "System::Synchronization::Mutex",
+          "declaration": "System::Synchronization::Mutex _eventsMutex",
+          "fixed_bytes": 0,
+          "fixed_text": "0 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_priorityQueues",
+          "type": "EventCollection",
+          "declaration": "EventCollection _priorityQueues",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventCollection)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_priorityStacks",
+          "type": "EventCollection",
+          "declaration": "EventCollection _priorityStacks",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventCollection)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_pendingEventCount",
+          "type": "size_t",
+          "declaration": "size_t _pendingEventCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_processingEventCount",
+          "type": "size_t",
+          "declaration": "size_t _processingEventCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "_peakPendingEventCount",
+          "type": "size_t",
+          "declaration": "size_t _peakPendingEventCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 12
+        },
+        {
+          "name": "_maximumPendingEventCount",
+          "type": "size_t",
+          "declaration": "size_t _maximumPendingEventCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        },
+        {
+          "name": "_overflowPolicy",
+          "type": "EventQueueOverflowPolicy",
+          "declaration": "EventQueueOverflowPolicy _overflowPolicy",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 20
+        },
+        {
+          "name": "_capacityPolicy",
+          "type": "EventCollectionCapacityPolicy",
+          "declaration": "EventCollectionCapacityPolicy _capacityPolicy",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 21
+        },
+        {
+          "name": "_minimumRetainedCapacity",
+          "type": "size_t",
+          "declaration": "size_t _minimumRetainedCapacity",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 24
+        },
+        {
+          "name": "_capacityExcessFactor",
+          "type": "size_t",
+          "declaration": "size_t _capacityExcessFactor",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 28
+        },
+        {
+          "name": "_recentDrainIndex",
+          "type": "size_t",
+          "declaration": "size_t _recentDrainIndex",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 32
+        },
+        {
+          "name": "_recentDrainCount",
+          "type": "size_t",
+          "declaration": "size_t _recentDrainCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 36
+        },
+        {
+          "name": "_nextSequence",
+          "type": "uint64_t",
+          "declaration": "uint64_t _nextSequence",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 40
+        },
+        {
+          "name": "_rejectedEventCount",
+          "type": "uint64_t",
+          "declaration": "uint64_t _rejectedEventCount",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 48
+        },
+        {
+          "name": "_droppedEventCount",
+          "type": "uint64_t",
+          "declaration": "uint64_t _droppedEventCount",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 56
+        },
+        {
+          "name": "_acceptingPendingEvents",
+          "type": "bool",
+          "declaration": "bool _acceptingPendingEvents",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 64
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "low"
+    },
+    {
+      "name": "PendingEvent",
+      "kind": "struct",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 85,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "event",
+          "type": "IEvent*",
+          "declaration": "IEvent* event",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "sequence",
+          "type": "uint64_t",
+          "declaration": "uint64_t sequence",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": 12,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "ProcessingGuard",
+      "kind": "class",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 376,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_receiver",
+          "type": "EventReceiver&",
+          "declaration": "EventReceiver& _receiver",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "_count",
+          "type": "size_t",
+          "declaration": "size_t _count",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": 8,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "PendingReferences",
+      "kind": "class",
+      "file": "src/ESPressio_EventReceiver.hpp",
+      "line": 391,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_events",
+          "type": "EventDispatchCollection&",
+          "declaration": "EventDispatchCollection& _events",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "IEventThread",
+      "kind": "class",
+      "file": "src/ESPressio_EventThread.hpp",
+      "line": 15,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 0,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventThread",
+      "kind": "class",
+      "file": "src/ESPressio_EventThread.hpp",
+      "line": 18,
+      "bases": [
+        "EventThreadBase",
+        "EventListener",
+        "IEventThread"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Thread) + sizeof(EventReceiver) + 4 bytes known members + 4 bytes vptr + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [
+        "EventThreadBase: _eventSignal: owned object: sizeof(System::Synchronization::ISignal)"
+      ],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Thread) + sizeof(EventReceiver) + 4 bytes known members + 4 bytes vptr + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "align": 4,
+      "dynamic_terms": [
+        "EventThreadBase: _eventSignal: owned object: sizeof(System::Synchronization::ISignal)"
+      ],
+      "requires_preallocation": true,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "EventThreadProcessOrder",
+      "kind": "enum",
+      "file": "src/ESPressio_EventThread.hpp",
+      "line": 76,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "int",
+          "declaration": "int"
+        }
+      ],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventThreadWithLoop",
+      "kind": "class",
+      "file": "src/ESPressio_EventThread.hpp",
+      "line": 84,
+      "bases": [
+        "Threads::Thread",
+        "EventReceiver",
+        "IEventThreadBase",
+        "EventListener",
+        "IEventThread"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_processOrder",
+          "type": "EventThreadProcessOrder",
+          "declaration": "EventThreadProcessOrder _processOrder",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Threads::Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": true,
+      "polymorphic": true,
+      "confidence": "low"
+    },
+    {
+      "name": "IEventThreadBase",
+      "kind": "class",
+      "file": "src/ESPressio_EventThreadBase.hpp",
+      "line": 30,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 0,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventThreadBase",
+      "kind": "class",
+      "file": "src/ESPressio_EventThreadBase.hpp",
+      "line": 33,
+      "bases": [
+        "Thread",
+        "EventReceiver",
+        "IEventThreadBase"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_eventSignal",
+          "type": "std::unique_ptr<System::Synchronization::ISignal>",
+          "declaration": "std::unique_ptr<System::Synchronization::ISignal> _eventSignal",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [
+            "owned object: sizeof(System::Synchronization::ISignal)"
+          ],
+          "confidence": "medium",
+          "offset": 0
+        },
+        {
+          "name": "_eventSignalMutex",
+          "type": "System::Synchronization::Mutex",
+          "declaration": "System::Synchronization::Mutex _eventSignalMutex",
+          "fixed_bytes": 0,
+          "fixed_text": "0 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [
+        "_eventSignal: owned object: sizeof(System::Synchronization::ISignal)"
+      ],
+      "requires_preallocation": true,
+      "polymorphic": true,
+      "confidence": "low"
+    },
+    {
+      "name": "EventTransportManager",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportManager.hpp",
+      "line": 81,
+      "bases": [
+        "Threads::Thread",
+        "EventReceiver",
+        "IEventTransportReceiver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_mutex",
+          "type": "System::Synchronization::Mutex",
+          "declaration": "System::Synchronization::Mutex _mutex",
+          "fixed_bytes": 0,
+          "fixed_text": "0 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_registrations",
+          "type": "RegistrationMap",
+          "declaration": "RegistrationMap _registrations",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(RegistrationMap)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_runtimeTypes",
+          "type": "RuntimeTypeMap",
+          "declaration": "RuntimeTypeMap _runtimeTypes",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(RuntimeTypeMap)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_transports",
+          "type": "TransportVector",
+          "declaration": "TransportVector _transports",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TransportVector)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_subscriptions",
+          "type": "SubscriptionVector",
+          "declaration": "SubscriptionVector _subscriptions",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(SubscriptionVector)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_inbound",
+          "type": "InboundQueue",
+          "declaration": "InboundQueue _inbound",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(InboundQueue)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_messageIds",
+          "type": "Primitive::ConceptualMessageIdGenerator",
+          "declaration": "Primitive::ConceptualMessageIdGenerator _messageIds",
+          "fixed_bytes": 0,
+          "fixed_text": "0 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_outboundExecutor",
+          "type": "Task::TaskExecutor<OutboundWork>",
+          "declaration": "Task::TaskExecutor<OutboundWork> _outboundExecutor",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Task::TaskExecutor<OutboundWork>)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_outboundTargets",
+          "type": "TransportVector",
+          "declaration": "TransportVector _outboundTargets",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TransportVector)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + sizeof(Threads::Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + sizeof(RegistrationMap) + sizeof(RuntimeTypeMap) + sizeof(TransportVector) + sizeof(SubscriptionVector) + sizeof(InboundQueue) + sizeof(Task::TaskExecutor<OutboundWork>) + sizeof(TransportVector)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": true,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "RuntimeRegistration",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportManager.hpp",
+      "line": 94,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "EventType",
+          "type": "EventTypeKey",
+          "declaration": "EventTypeKey EventType",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeKey)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "TypeID",
+          "type": "EventTypeId",
+          "declaration": "EventTypeId TypeID",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeId)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "SchemaVersion",
+          "type": "uint32_t",
+          "declaration": "uint32_t SchemaVersion",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Properties",
+          "type": "RuntimePropertyVector",
+          "declaration": "RuntimePropertyVector Properties",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(RuntimePropertyVector)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known members + sizeof(EventTypeKey) + sizeof(EventTypeId) + sizeof(RuntimePropertyVector)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "Registration",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportManager.hpp",
+      "line": 110,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Runtime",
+          "type": "RuntimeRegistrationPtr",
+          "declaration": "RuntimeRegistrationPtr Runtime",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(RuntimeRegistrationPtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "DefaultDirection",
+          "type": "EventTransportDirection",
+          "declaration": "EventTransportDirection DefaultDirection",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "TransportDirections",
+          "type": "System::Memory::UnorderedMap<IEventTransport*, EventTransportDirection, ExternalPreferred>",
+          "declaration": "System::Memory::UnorderedMap< IEventTransport*, EventTransportDirection, ExternalPreferred > TransportDirections",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "5 bytes known members + sizeof(RuntimeRegistrationPtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "InboundWork",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportManager.hpp",
+      "line": 147,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Transport",
+          "type": "IEventTransport*",
+          "declaration": "IEventTransport* Transport",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "TypeID",
+          "type": "EventTypeId",
+          "declaration": "EventTypeId TypeID",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeId)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "Runtime",
+          "type": "RuntimeRegistrationPtr",
+          "declaration": "RuntimeRegistrationPtr Runtime",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(RuntimeRegistrationPtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "Packet",
+          "type": "EventTransportPacket",
+          "declaration": "EventTransportPacket Packet",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTransportBufferPtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known members + sizeof(EventTypeId) + sizeof(RuntimeRegistrationPtr) + sizeof(EventTransportBufferPtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "OutboundWork",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportManager.hpp",
+      "line": 154,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Event",
+          "type": "IEvent*",
+          "declaration": "IEvent* Event",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Method",
+          "type": "EventDispatchMethod",
+          "declaration": "EventDispatchMethod Method",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "Priority",
+          "type": "EventPriority",
+          "declaration": "EventPriority Priority",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": 12,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventReferenceGuard",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportManager.hpp",
+      "line": 368,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_event",
+          "type": "IEvent*",
+          "declaration": "IEvent* _event",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportManagerObservable",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportManagerObservable.hpp",
+      "line": 12,
+      "bases": [
+        "Observable::ThreadSafeObservable"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + sizeof(std::enable_shared_from_this<ThreadSafeObservable>) + 4 bytes known members + sizeof(std::recursive_mutex)",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + sizeof(std::enable_shared_from_this<ThreadSafeObservable>) + 4 bytes known members + sizeof(std::recursive_mutex)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "EventTransportDirection",
+      "kind": "enum",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 20,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportDirection",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 21,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportPendingAction",
+      "kind": "enum",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 44,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportPendingAction",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 45,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportUnregistrationOptions",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 47,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PendingOutbound",
+          "type": "EventTransportPendingAction",
+          "declaration": "EventTransportPendingAction PendingOutbound",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "PendingInbound",
+          "type": "EventTransportPendingAction",
+          "declaration": "EventTransportPendingAction PendingInbound",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 1
+        }
+      ],
+      "fixed_bytes": 2,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportEnvelope",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 53,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Magic",
+          "type": "uint32_t",
+          "declaration": "uint32_t Magic",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Version",
+          "type": "uint8_t",
+          "declaration": "uint8_t Version",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "Reserved",
+          "type": "uint8_t",
+          "declaration": "uint8_t Reserved",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 5
+        },
+        {
+          "name": "EventTypeID",
+          "type": "EventTypeId",
+          "declaration": "EventTypeId EventTypeID",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeId)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "SchemaVersion",
+          "type": "uint32_t",
+          "declaration": "uint32_t SchemaVersion",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "MessageID",
+          "type": "uint64_t",
+          "declaration": "uint64_t MessageID",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 12
+        },
+        {
+          "name": "PayloadLength",
+          "type": "uint32_t",
+          "declaration": "uint32_t PayloadLength",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 20
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "22 bytes known members + sizeof(EventTypeId)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "EventTransportPacket",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 87,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_buffer",
+          "type": "EventTransportBufferPtr",
+          "declaration": "EventTransportBufferPtr _buffer",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTransportBufferPtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(EventTransportBufferPtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "EventTransportRegistrationResult",
+      "kind": "enum",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 123,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportRegistrationResult",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 124,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportUnregistrationResult",
+      "kind": "enum",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 132,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportUnregistrationResult",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 133,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportBulkOperationResult",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 140,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Requested",
+          "type": "std::size_t",
+          "declaration": "std::size_t Requested",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Changed",
+          "type": "std::size_t",
+          "declaration": "std::size_t Changed",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "Unchanged",
+          "type": "std::size_t",
+          "declaration": "std::size_t Unchanged",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "Failed",
+          "type": "std::size_t",
+          "declaration": "std::size_t Failed",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 12
+        }
+      ],
+      "fixed_bytes": 16,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportTransactionStage",
+      "kind": "enum",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 150,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportTransactionStage",
+      "kind": "class",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 151,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventTransportTransaction",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 164,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Stage",
+          "type": "EventTransportTransactionStage",
+          "declaration": "EventTransportTransactionStage Stage",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Direction",
+          "type": "EventTransportDirection",
+          "declaration": "EventTransportDirection Direction",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 1
+        },
+        {
+          "name": "EventTypeID",
+          "type": "EventTypeId",
+          "declaration": "EventTypeId EventTypeID",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeId)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "SchemaVersion",
+          "type": "uint32_t",
+          "declaration": "uint32_t SchemaVersion",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "Transport",
+          "type": "IEventTransport*",
+          "declaration": "IEventTransport* Transport",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "Event",
+          "type": "IEvent*",
+          "declaration": "const IEvent* Event",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 12
+        },
+        {
+          "name": "Payload",
+          "type": "uint8_t*",
+          "declaration": "const uint8_t* Payload",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        },
+        {
+          "name": "PayloadSize",
+          "type": "std::size_t",
+          "declaration": "std::size_t PayloadSize",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 20
+        },
+        {
+          "name": "DispatchMethod",
+          "type": "EventDispatchMethod",
+          "declaration": "EventDispatchMethod DispatchMethod",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 24
+        },
+        {
+          "name": "Priority",
+          "type": "EventPriority",
+          "declaration": "EventPriority Priority",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 28
+        },
+        {
+          "name": "Origin",
+          "type": "EventOrigin",
+          "declaration": "EventOrigin Origin",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 32
+        },
+        {
+          "name": "TransportAccepted",
+          "type": "bool",
+          "declaration": "bool TransportAccepted",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 33
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "32 bytes known members + sizeof(EventTypeId)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "EventTransportTypeTraits",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTransportTypes.hpp",
+      "line": 181,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 0,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventOrigin",
+      "kind": "enum",
+      "file": "src/ESPressio_EventTypes.hpp",
+      "line": 26,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "std::uint8_t",
+          "declaration": "std::uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventOrigin",
+      "kind": "class",
+      "file": "src/ESPressio_EventTypes.hpp",
+      "line": 27,
+      "bases": [
+        "std::uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventDispatchContext",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTypes.hpp",
+      "line": 37,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Origin",
+          "type": "EventOrigin",
+          "declaration": "EventOrigin Origin",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "EventMetadata",
+      "kind": "struct",
+      "file": "src/ESPressio_EventTypes.hpp",
+      "line": 55,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "TypeId",
+          "type": "EventTypeId",
+          "declaration": "EventTypeId TypeId",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeId)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "SchemaVersion",
+          "type": "EventSchemaVersion",
+          "declaration": "EventSchemaVersion SchemaVersion",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventSchemaVersion)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(EventTypeId) + sizeof(EventSchemaVersion)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableEvent",
+      "kind": "class",
+      "file": "src/ESPressio_Event_Serializable.hpp",
+      "line": 17,
+      "bases": [
+        "TypedEvent<TDerived, TTime>",
+        "Serializable::SerializableBase<TDerived>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "low"
+    },
+    {
+      "name": "IEvent",
+      "kind": "class",
+      "file": "src/ESPressio_IEvent.hpp",
+      "line": 23,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "IEventManagerObserver",
+      "kind": "class",
+      "file": "src/ESPressio_IEventManagerObserver.hpp",
+      "line": 11,
+      "bases": [
+        "Observable::IObserver"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "IEventTransportReceiver",
+      "kind": "class",
+      "file": "src/ESPressio_IEventTransport.hpp",
+      "line": 12,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "IEventTransport",
+      "kind": "class",
+      "file": "src/ESPressio_IEventTransport.hpp",
+      "line": 29,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "IEventTransportManagerObserver",
+      "kind": "class",
+      "file": "src/ESPressio_IEventTransportManagerObserver.hpp",
+      "line": 12,
+      "bases": [
+        "Observable::IObserver"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": true,
+      "confidence": "high"
+    },
+    {
+      "name": "PrecisionEventProcessOrder",
+      "kind": "enum",
+      "file": "src/ESPressio_PrecisionEventThread.hpp",
+      "line": 18,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "PrecisionEventProcessOrder",
+      "kind": "class",
+      "file": "src/ESPressio_PrecisionEventThread.hpp",
+      "line": 19,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "PrecisionEventArrivalPolicy",
+      "kind": "enum",
+      "file": "src/ESPressio_PrecisionEventThread.hpp",
+      "line": 24,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "PrecisionEventArrivalPolicy",
+      "kind": "class",
+      "file": "src/ESPressio_PrecisionEventThread.hpp",
+      "line": 25,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "PrecisionEventThread",
+      "kind": "class",
+      "file": "src/ESPressio_PrecisionEventThread.hpp",
+      "line": 31,
+      "bases": [
+        "Threads::PrecisionThread<TTime, TRepresentationTraits>",
+        "EventReceiver",
+        "IEventThreadBase",
+        "EventListener",
+        "IEventThread"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::PrecisionThread<TTime, TRepresentationTraits>) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_eventPolicyMutex",
+          "type": "std::mutex",
+          "declaration": "std::mutex _eventPolicyMutex",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(std::mutex)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_eventProcessOrder",
+          "type": "PrecisionEventProcessOrder",
+          "declaration": "PrecisionEventProcessOrder _eventProcessOrder",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "_eventArrivalPolicy",
+          "type": "PrecisionEventArrivalPolicy",
+          "declaration": "PrecisionEventArrivalPolicy _eventArrivalPolicy",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 1
+        },
+        {
+          "name": "_lifecycleObserverHandle",
+          "type": "Observable::ObserverHandlePtr",
+          "declaration": "Observable::ObserverHandlePtr _lifecycleObserverHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Observable::ObserverHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Threads::PrecisionThread<TTime, TRepresentationTraits>) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + 2 bytes known members + sizeof(std::mutex) + sizeof(Observable::ObserverHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": true,
+      "polymorphic": true,
+      "confidence": "low"
+    },
+    {
+      "name": "LifecycleObserver",
+      "kind": "class",
+      "file": "src/ESPressio_PrecisionEventThread.hpp",
+      "line": 52,
+      "bases": [
+        "Threads::IThreadObserver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::IThreadObserver)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_owner",
+          "type": "PrecisionEventThread*",
+          "declaration": "PrecisionEventThread* _owner",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Threads::IThreadObserver) + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableEventDescriptor",
+      "kind": "struct",
+      "file": "src/ESPressio_SerializableEventDescriptor.hpp",
+      "line": 17,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "TypeID",
+          "type": "EventTypeId",
+          "declaration": "EventTypeId TypeID",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(EventTypeId)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "TypeName",
+          "type": "std::string",
+          "declaration": "std::string TypeName",
+          "fixed_bytes": 24,
+          "fixed_text": "24 bytes",
+          "dynamic_terms": [
+            "Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+          ],
+          "confidence": "medium",
+          "offset": 0
+        },
+        {
+          "name": "SchemaVersion",
+          "type": "uint32_t",
+          "declaration": "uint32_t SchemaVersion",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 24
+        },
+        {
+          "name": "DefaultDirection",
+          "type": "EventTransportDirection",
+          "declaration": "EventTransportDirection DefaultDirection",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 28
+        },
+        {
+          "name": "Properties",
+          "type": "std::vector<Serializable::PropertySchemaInfo>",
+          "declaration": "std::vector<Serializable::PropertySchemaInfo> Properties",
+          "fixed_bytes": 12,
+          "fixed_text": "12 bytes",
+          "dynamic_terms": [
+            "Capacity * 64 bytes",
+            "N elements each may add: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO + Aliases: Capacity * 24 bytes + Aliases: N elements each may add: Capacity + 1 bytes when capacity exceeds 15-byte SSO + Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+          ],
+          "confidence": "medium",
+          "offset": 32
+        },
+        {
+          "name": "CanConstruct",
+          "type": "bool",
+          "declaration": "bool CanConstruct",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 44
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "42 bytes known members + sizeof(EventTypeId)",
+      "align": 4,
+      "dynamic_terms": [
+        "TypeName: Capacity + 1 bytes when capacity exceeds 15-byte SSO",
+        "Properties: Capacity * 64 bytes",
+        "Properties: N elements each may add: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO + Aliases: Capacity * 24 bytes + Aliases: N elements each may add: Capacity + 1 bytes when capacity exceeds 15-byte SSO + Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+      ],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableEventConstructionResult",
+      "kind": "struct",
+      "file": "src/ESPressio_SerializableEventDescriptor.hpp",
+      "line": 33,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Event",
+          "type": "std::unique_ptr<IEvent>",
+          "declaration": "std::unique_ptr<IEvent> Event",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [
+            "owned object: 4 bytes"
+          ],
+          "confidence": "medium",
+          "offset": 0
+        },
+        {
+          "name": "Deserialization",
+          "type": "Serializable::DeserializationResult",
+          "declaration": "Serializable::DeserializationResult Deserialization",
+          "fixed_bytes": 12,
+          "fixed_text": "12 bytes",
+          "dynamic_terms": [
+            "_issues: Capacity * 52 bytes",
+            "_issues: N elements each may add: Path: Capacity + 1 bytes when capacity exceeds 15-byte SSO + Message: Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+          ],
+          "confidence": "medium",
+          "offset": 4
+        },
+        {
+          "name": "TypeRegistered",
+          "type": "bool",
+          "declaration": "bool TypeRegistered",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        },
+        {
+          "name": "Constructible",
+          "type": "bool",
+          "declaration": "bool Constructible",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 17
+        }
+      ],
+      "fixed_bytes": 20,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [
+        "Event: owned object: 4 bytes",
+        "Deserialization: _issues: Capacity * 52 bytes",
+        "Deserialization: _issues: N elements each may add: Path: Capacity + 1 bytes when capacity exceeds 15-byte SSO + Message: Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+      ],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "medium"
+    },
+    {
+      "name": "RuntimeEventDispatchResult",
+      "kind": "enum",
+      "file": "src/ESPressio_SerializableEventDescriptor.hpp",
+      "line": 52,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "<underlying>",
+          "type": "uint8_t",
+          "declaration": "uint8_t"
+        }
+      ],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "RuntimeEventDispatchResult",
+      "kind": "class",
+      "file": "src/ESPressio_SerializableEventDescriptor.hpp",
+      "line": 53,
+      "bases": [
+        "uint8_t"
+      ],
+      "inherited_fixed_bytes": 1,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 1,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "SystemClockEventBridge",
+      "kind": "class",
+      "file": "src/ESPressio_SystemClockEventBridge.hpp",
+      "line": 10,
+      "bases": [
+        "Timing::ISystemClockObserver<Timing::ClockTick>"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_observerHandle",
+          "type": "Observable::ObserverHandlePtr",
+          "declaration": "Observable::ObserverHandlePtr _observerHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Observable::ObserverHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_initialized",
+          "type": "bool",
+          "declaration": "bool _initialized",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 1 bytes known members + sizeof(Observable::ObserverHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSystemClockEventBridge",
+      "kind": "class",
+      "file": "src/ESPressio_SystemClockEventBridge_Serializable.hpp",
+      "line": 13,
+      "bases": [
+        "Timing::ISystemClockObserver<Timing::ClockTick>"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_observerHandle",
+          "type": "Observable::ObserverHandlePtr",
+          "declaration": "Observable::ObserverHandlePtr _observerHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Observable::ObserverHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_initialized",
+          "type": "bool",
+          "declaration": "bool _initialized",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 1 bytes known members + sizeof(Observable::ObserverHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadManagerEventBridge",
+      "kind": "class",
+      "file": "src/ESPressio_ThreadManagerEventBridge.hpp",
+      "line": 13,
+      "bases": [
+        "Threads::IThreadManagerObserver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::IThreadManagerObserver)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_observerHandle",
+          "type": "Observable::ObserverHandlePtr",
+          "declaration": "Observable::ObserverHandlePtr _observerHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Observable::ObserverHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_initialized",
+          "type": "bool",
+          "declaration": "bool _initialized",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Threads::IThreadManagerObserver) + 1 bytes known members + sizeof(Observable::ObserverHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableThreadManagerEventBridge",
+      "kind": "class",
+      "file": "src/ESPressio_ThreadManagerEventBridge_Serializable.hpp",
+      "line": 14,
+      "bases": [
+        "Threads::IThreadManagerObserver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::IThreadManagerObserver)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_observerHandle",
+          "type": "Observable::ObserverHandlePtr",
+          "declaration": "Observable::ObserverHandlePtr _observerHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Observable::ObserverHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_initialized",
+          "type": "bool",
+          "declaration": "bool _initialized",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Threads::IThreadManagerObserver) + 1 bytes known members + sizeof(Observable::ObserverHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadTerminationDispatcherEventBridge",
+      "kind": "class",
+      "file": "src/ESPressio_ThreadTerminationDispatcherEventBridge.hpp",
+      "line": 11,
+      "bases": [
+        "Threads::IThreadTerminationDispatcherObserver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::IThreadTerminationDispatcherObserver)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_observerHandle",
+          "type": "Observable::ObserverHandlePtr",
+          "declaration": "Observable::ObserverHandlePtr _observerHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Observable::ObserverHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_initialized",
+          "type": "bool",
+          "declaration": "bool _initialized",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Threads::IThreadTerminationDispatcherObserver) + 1 bytes known members + sizeof(Observable::ObserverHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableThreadTerminationDispatcherEventBridge",
+      "kind": "class",
+      "file": "src/ESPressio_ThreadTerminationDispatcherEventBridge_Serializable.hpp",
+      "line": 11,
+      "bases": [
+        "Threads::IThreadTerminationDispatcherObserver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(Threads::IThreadTerminationDispatcherObserver)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_observerHandle",
+          "type": "Observable::ObserverHandlePtr",
+          "declaration": "Observable::ObserverHandlePtr _observerHandle",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(Observable::ObserverHandlePtr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_initialized",
+          "type": "bool",
+          "declaration": "bool _initialized",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(Threads::IThreadTerminationDispatcherObserver) + 1 bytes known members + sizeof(Observable::ObserverHandlePtr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadRegisteredEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 18,
+      "bases": [
+        "TypedEvent<ThreadRegisteredEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Snapshot",
+          "type": "ThreadSnapshot",
+          "declaration": "const ThreadSnapshot Snapshot",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(ThreadSnapshot)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + sizeof(ThreadSnapshot)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadRegistrationFailedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 26,
+      "bases": [
+        "TypedEvent<ThreadRegistrationFailedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ThreadAddress",
+          "type": "uintptr_t",
+          "declaration": "const uintptr_t ThreadAddress",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Cause",
+          "type": "std::exception_ptr",
+          "declaration": "const std::exception_ptr Cause",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(std::exception_ptr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members + sizeof(std::exception_ptr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadRemovedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 35,
+      "bases": [
+        "TypedEvent<ThreadRemovedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Snapshot",
+          "type": "ThreadSnapshot",
+          "declaration": "const ThreadSnapshot Snapshot",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(ThreadSnapshot)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + sizeof(ThreadSnapshot)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadCleanupClaimedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 43,
+      "bases": [
+        "TypedEvent<ThreadCleanupClaimedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Snapshot",
+          "type": "ThreadSnapshot",
+          "declaration": "const ThreadSnapshot Snapshot",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(ThreadSnapshot)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + sizeof(ThreadSnapshot)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "CLASS_NAME",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 52,
+      "bases": [
+        "TypedEvent<CLASS_NAME>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Result",
+          "type": "\\ public: \\ ThreadCleanupResult",
+          "declaration": "\\ public: \\ const ThreadCleanupResult Result",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadCleanupFailedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 64,
+      "bases": [
+        "TypedEvent<ThreadCleanupFailedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Result",
+          "type": "ThreadCleanupResult",
+          "declaration": "const ThreadCleanupResult Result",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 0
+        },
+        {
+          "name": "Cause",
+          "type": "std::exception_ptr",
+          "declaration": "const std::exception_ptr Cause",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(std::exception_ptr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members + sizeof(std::exception_ptr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadManagerInitializationCompletedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 75,
+      "bases": [
+        "TypedEvent<ThreadManagerInitializationCompletedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Result",
+          "type": "ThreadInitializationResult",
+          "declaration": "const ThreadInitializationResult Result",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ThreadTerminationDispatcherInitializedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 84,
+      "bases": [
+        "TypedEvent<ThreadTerminationDispatcherInitializedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Available",
+          "type": "bool",
+          "declaration": "const bool Available",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 1 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "CLASS_NAME",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes.hpp",
+      "line": 93,
+      "bases": [
+        "TypedEvent<CLASS_NAME>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Snapshot",
+          "type": "\\ public: \\ ThreadSnapshot",
+          "declaration": "\\ public: \\ const ThreadSnapshot Snapshot",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(\\ public: \\ ThreadSnapshot)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + sizeof(\\ public: \\ ThreadSnapshot)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableThreadSnapshotData",
+      "kind": "struct",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes_Serializable.hpp",
+      "line": 17,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ThreadID",
+          "type": "uint8_t",
+          "declaration": "uint8_t ThreadID",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "CoreID",
+          "type": "int32_t",
+          "declaration": "int32_t CoreID",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "State",
+          "type": "uint8_t",
+          "declaration": "uint8_t State",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "FreeOnTerminate",
+          "type": "bool",
+          "declaration": "bool FreeOnTerminate",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 9
+        },
+        {
+          "name": "StartOnInitialize",
+          "type": "bool",
+          "declaration": "bool StartOnInitialize",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 10
+        }
+      ],
+      "fixed_bytes": 12,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "CLASS_NAME",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes_Serializable.hpp",
+      "line": 89,
+      "bases": [
+        "SerializableEvent<CLASS_NAME>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableThreadRegistrationFailedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes_Serializable.hpp",
+      "line": 112,
+      "bases": [
+        "SerializableEvent<SerializableThreadRegistrationFailedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ThreadAddress",
+          "type": "uint64_t",
+          "declaration": "uint64_t ThreadAddress",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "ExceptionMessage",
+          "type": "std::string",
+          "declaration": "std::string ExceptionMessage",
+          "fixed_bytes": 24,
+          "fixed_text": "24 bytes",
+          "dynamic_terms": [
+            "Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+          ],
+          "confidence": "medium",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 32 bytes known members",
+      "align": 4,
+      "dynamic_terms": [
+        "ExceptionMessage: Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+      ],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "CLASS_NAME",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes_Serializable.hpp",
+      "line": 137,
+      "bases": [
+        "SerializableEvent<CLASS_NAME>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableThreadCleanupFailedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes_Serializable.hpp",
+      "line": 155,
+      "bases": [
+        "SerializableEvent<SerializableThreadCleanupFailedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ExceptionMessage",
+          "type": "ESPRESSIO_THREAD_CLEANUP_MEMBERS std::string",
+          "declaration": "ESPRESSIO_THREAD_CLEANUP_MEMBERS std::string ExceptionMessage",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(ESPRESSIO_THREAD_CLEANUP_MEMBERS std::string)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + sizeof(ESPRESSIO_THREAD_CLEANUP_MEMBERS std::string)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableThreadManagerInitializationCompletedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes_Serializable.hpp",
+      "line": 179,
+      "bases": [
+        "SerializableEvent<SerializableThreadManagerInitializationCompletedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ThreadsExamined",
+          "type": "uint32_t",
+          "declaration": "uint32_t ThreadsExamined",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "ThreadsInitializedSuccessfully",
+          "type": "uint32_t",
+          "declaration": "uint32_t ThreadsInitializedSuccessfully",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "ThreadsInitializationFailed",
+          "type": "uint32_t",
+          "declaration": "uint32_t ThreadsInitializationFailed",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 12 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableThreadTerminationDispatcherInitializedEvent",
+      "kind": "class",
+      "file": "src/thread-events/ESPressio_ThreadEventTypes_Serializable.hpp",
+      "line": 209,
+      "bases": [
+        "SerializableEvent<SerializableThreadTerminationDispatcherInitializedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Available",
+          "type": "bool",
+          "declaration": "bool Available",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 1 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SystemClockTimeChangedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 17,
+      "bases": [
+        "TypedEvent<SystemClockTimeChangedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PreviousTimeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick PreviousTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "NewTimeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick NewTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "DifferenceNanoseconds",
+          "type": "int64_t",
+          "declaration": "const int64_t DifferenceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SynchronizationSampleAcceptedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 26,
+      "bases": [
+        "TypedEvent<SynchronizationSampleAcceptedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ClockBeforeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ClockBeforeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "ClockAfterNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ClockAfterNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "ImmediateDifferenceNanoseconds",
+          "type": "int64_t",
+          "declaration": "const int64_t ImmediateDifferenceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Result",
+          "type": "SynchronizationResult",
+          "declaration": "const SynchronizationResult Result",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 8
+        },
+        {
+          "name": "Status",
+          "type": "SynchronizationStatus",
+          "declaration": "const SynchronizationStatus Status",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 12
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 16 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SynchronizationSampleRejectedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 39,
+      "bases": [
+        "TypedEvent<SynchronizationSampleRejectedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Result",
+          "type": "SynchronizationResult",
+          "declaration": "const SynchronizationResult Result",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 0
+        },
+        {
+          "name": "Status",
+          "type": "SynchronizationStatus",
+          "declaration": "const SynchronizationStatus Status",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SystemClockSynchronizedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 47,
+      "bases": [
+        "TypedEvent<SystemClockSynchronizedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ClockBeforeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ClockBeforeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "ClockAfterNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ClockAfterNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "ImmediateDifferenceNanoseconds",
+          "type": "int64_t",
+          "declaration": "const int64_t ImmediateDifferenceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Result",
+          "type": "SynchronizationResult",
+          "declaration": "const SynchronizationResult Result",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 8
+        },
+        {
+          "name": "Status",
+          "type": "SynchronizationStatus",
+          "declaration": "const SynchronizationStatus Status",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 12
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 16 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SynchronizationStateChangedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 60,
+      "bases": [
+        "TypedEvent<SynchronizationStateChangedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PreviousState",
+          "type": "Timing::ClockSynchronizationState",
+          "declaration": "const Timing::ClockSynchronizationState PreviousState",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "NewState",
+          "type": "Timing::ClockSynchronizationState",
+          "declaration": "const Timing::ClockSynchronizationState NewState",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 1
+        },
+        {
+          "name": "Status",
+          "type": "SynchronizationStatus",
+          "declaration": "const SynchronizationStatus Status",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 6 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SynchronizationResetEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 70,
+      "bases": [
+        "TypedEvent<SynchronizationResetEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PreviousStatus",
+          "type": "SynchronizationStatus",
+          "declaration": "const SynchronizationStatus PreviousStatus",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 0
+        },
+        {
+          "name": "NewStatus",
+          "type": "SynchronizationStatus",
+          "declaration": "const SynchronizationStatus NewStatus",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SynchronizationConfigurationChangedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 78,
+      "bases": [
+        "TypedEvent<SynchronizationConfigurationChangedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PreviousConfig",
+          "type": "Timing::ClockSynchronizationConfig",
+          "declaration": "const Timing::ClockSynchronizationConfig PreviousConfig",
+          "fixed_bytes": 76,
+          "fixed_text": "76 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "NewConfig",
+          "type": "Timing::ClockSynchronizationConfig",
+          "declaration": "const Timing::ClockSynchronizationConfig NewConfig",
+          "fixed_bytes": 76,
+          "fixed_text": "76 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 76
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 152 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SystemClockCallbackScheduledEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 87,
+      "bases": [
+        "TypedEvent<SystemClockCallbackScheduledEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ScheduledTimeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ScheduledTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + sizeof(TimingClockTick)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SystemClockCallbackScheduleFailedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 93,
+      "bases": [
+        "TypedEvent<SystemClockCallbackScheduleFailedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ScheduledTimeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ScheduledTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + sizeof(TimingClockTick)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SystemClockCallbackExecutedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 99,
+      "bases": [
+        "TypedEvent<SystemClockCallbackExecutedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ScheduledTimeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ScheduledTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "ActualTimeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ActualTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "DifferenceNanoseconds",
+          "type": "int64_t",
+          "declaration": "const int64_t DifferenceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SystemClockCallbackExecutionFailedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 108,
+      "bases": [
+        "TypedEvent<SystemClockCallbackExecutionFailedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ScheduledTimeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ScheduledTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "ActualTimeNanoseconds",
+          "type": "TimingClockTick",
+          "declaration": "const TimingClockTick ActualTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(TimingClockTick)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "DifferenceNanoseconds",
+          "type": "int64_t",
+          "declaration": "const int64_t DifferenceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "Cause",
+          "type": "std::exception_ptr",
+          "declaration": "const std::exception_ptr Cause",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(std::exception_ptr)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick) + sizeof(std::exception_ptr)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SystemClockCallbacksClearedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes.hpp",
+      "line": 120,
+      "bases": [
+        "TypedEvent<SystemClockCallbacksClearedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ClearedCallbackCount",
+          "type": "std::size_t",
+          "declaration": "const std::size_t ClearedCallbackCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSynchronizationSnapshot",
+      "kind": "struct",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 16,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Accepted",
+          "type": "bool",
+          "declaration": "bool Accepted",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "MeasuredOffsetNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t MeasuredOffsetNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "FilteredOffsetNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t FilteredOffsetNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 12
+        },
+        {
+          "name": "RoundTripDelayNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t RoundTripDelayNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 20
+        },
+        {
+          "name": "PendingPhaseCorrectionNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t PendingPhaseCorrectionNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 28
+        },
+        {
+          "name": "AppliedCorrectionNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t AppliedCorrectionNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 36
+        },
+        {
+          "name": "EstimatedDriftPpm",
+          "type": "double",
+          "declaration": "double EstimatedDriftPpm",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 44
+        },
+        {
+          "name": "AcceptedSampleCount",
+          "type": "uint32_t",
+          "declaration": "uint32_t AcceptedSampleCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 52
+        },
+        {
+          "name": "RejectedSampleCount",
+          "type": "uint32_t",
+          "declaration": "uint32_t RejectedSampleCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 56
+        },
+        {
+          "name": "SynchronizationState",
+          "type": "uint8_t",
+          "declaration": "uint8_t SynchronizationState",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 60
+        },
+        {
+          "name": "LastAcceptedSampleLocalTime",
+          "type": "uint64_t",
+          "declaration": "uint64_t LastAcceptedSampleLocalTime",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 64
+        },
+        {
+          "name": "HasAcceptedSample",
+          "type": "bool",
+          "declaration": "bool HasAcceptedSample",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 72
+        }
+      ],
+      "fixed_bytes": 76,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "SerializableSystemClockTimeChangedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 93,
+      "bases": [
+        "SerializableEvent<SerializableSystemClockTimeChangedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PreviousTimeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t PreviousTimeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "NewTimeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t NewTimeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "DifferenceNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t DifferenceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 24 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "CLASS_NAME",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 112,
+      "bases": [
+        "SerializableEvent<CLASS_NAME>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ClockBeforeNanoseconds",
+          "type": "\\ public: \\ uint64_t",
+          "declaration": "\\ public: \\ uint64_t ClockBeforeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(\\ public: \\ uint64_t)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "ClockAfterNanoseconds",
+          "type": "\\ uint64_t",
+          "declaration": "\\ uint64_t ClockAfterNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(\\ uint64_t)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "ImmediateDifferenceNanoseconds",
+          "type": "\\ int64_t",
+          "declaration": "\\ int64_t ImmediateDifferenceNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(\\ int64_t)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + sizeof(\\ public: \\ uint64_t) + sizeof(\\ uint64_t) + sizeof(\\ int64_t)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSynchronizationSampleRejectedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 139,
+      "bases": [
+        "SerializableEvent<SerializableSynchronizationSampleRejectedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSynchronizationStateChangedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 155,
+      "bases": [
+        "SerializableEvent<SerializableSynchronizationStateChangedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PreviousState",
+          "type": "uint8_t",
+          "declaration": "uint8_t PreviousState",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "NewState",
+          "type": "uint8_t",
+          "declaration": "uint8_t NewState",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 1
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 2 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSynchronizationResetEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 186,
+      "bases": [
+        "SerializableEvent<SerializableSynchronizationResetEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PreviousState",
+          "type": "uint8_t",
+          "declaration": "uint8_t PreviousState",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "NewState",
+          "type": "uint8_t",
+          "declaration": "uint8_t NewState",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 1
+        },
+        {
+          "name": "PreviousFilteredOffsetNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t PreviousFilteredOffsetNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "NewFilteredOffsetNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t NewFilteredOffsetNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 12
+        },
+        {
+          "name": "PreviousAcceptedSampleCount",
+          "type": "uint32_t",
+          "declaration": "uint32_t PreviousAcceptedSampleCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 20
+        },
+        {
+          "name": "NewAcceptedSampleCount",
+          "type": "uint32_t",
+          "declaration": "uint32_t NewAcceptedSampleCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 24
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 26 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSynchronizationConfigurationChangedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 216,
+      "bases": [
+        "SerializableEvent<SerializableSynchronizationConfigurationChangedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "PreviousMaximumRoundTripDelayNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t PreviousMaximumRoundTripDelayNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "NewMaximumRoundTripDelayNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t NewMaximumRoundTripDelayNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "PreviousMaximumSlewRatePpm",
+          "type": "uint32_t",
+          "declaration": "uint32_t PreviousMaximumSlewRatePpm",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        },
+        {
+          "name": "NewMaximumSlewRatePpm",
+          "type": "uint32_t",
+          "declaration": "uint32_t NewMaximumSlewRatePpm",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 20
+        },
+        {
+          "name": "PreviousMaximumDriftCorrectionPpm",
+          "type": "double",
+          "declaration": "double PreviousMaximumDriftCorrectionPpm",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 24
+        },
+        {
+          "name": "NewMaximumDriftCorrectionPpm",
+          "type": "double",
+          "declaration": "double NewMaximumDriftCorrectionPpm",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 32
+        },
+        {
+          "name": "PreviousOffsetFilterWeight",
+          "type": "double",
+          "declaration": "double PreviousOffsetFilterWeight",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 40
+        },
+        {
+          "name": "NewOffsetFilterWeight",
+          "type": "double",
+          "declaration": "double NewOffsetFilterWeight",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 48
+        },
+        {
+          "name": "PreviousDriftFilterWeight",
+          "type": "double",
+          "declaration": "double PreviousDriftFilterWeight",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 56
+        },
+        {
+          "name": "NewDriftFilterWeight",
+          "type": "double",
+          "declaration": "double NewDriftFilterWeight",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 64
+        },
+        {
+          "name": "PreviousDriftLearningPhaseThresholdNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t PreviousDriftLearningPhaseThresholdNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 72
+        },
+        {
+          "name": "NewDriftLearningPhaseThresholdNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t NewDriftLearningPhaseThresholdNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 80
+        },
+        {
+          "name": "PreviousMinimumDriftLearningIntervalNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t PreviousMinimumDriftLearningIntervalNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 88
+        },
+        {
+          "name": "NewMinimumDriftLearningIntervalNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t NewMinimumDriftLearningIntervalNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 96
+        },
+        {
+          "name": "PreviousSynchronizationToleranceNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t PreviousSynchronizationToleranceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 104
+        },
+        {
+          "name": "NewSynchronizationToleranceNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t NewSynchronizationToleranceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 112
+        },
+        {
+          "name": "PreviousMinimumSamplesForSynchronizedState",
+          "type": "uint32_t",
+          "declaration": "uint32_t PreviousMinimumSamplesForSynchronizedState",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 120
+        },
+        {
+          "name": "NewMinimumSamplesForSynchronizedState",
+          "type": "uint32_t",
+          "declaration": "uint32_t NewMinimumSamplesForSynchronizedState",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 124
+        },
+        {
+          "name": "PreviousMaximumSampleAgeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t PreviousMaximumSampleAgeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 128
+        },
+        {
+          "name": "NewMaximumSampleAgeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t NewMaximumSampleAgeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 136
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 144 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "CLASS_NAME",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 292,
+      "bases": [
+        "SerializableEvent<CLASS_NAME>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ScheduledTimeNanoseconds",
+          "type": "\\ public: uint64_t",
+          "declaration": "\\ public: uint64_t ScheduledTimeNanoseconds",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(\\ public: uint64_t)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + sizeof(\\ public: uint64_t)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSystemClockCallbackExecutedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 302,
+      "bases": [
+        "SerializableEvent<SerializableSystemClockCallbackExecutedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ScheduledTimeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t ScheduledTimeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "ActualTimeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t ActualTimeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "DifferenceNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t DifferenceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 24 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSystemClockCallbackExecutionFailedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 320,
+      "bases": [
+        "SerializableEvent<SerializableSystemClockCallbackExecutionFailedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ScheduledTimeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t ScheduledTimeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "ActualTimeNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t ActualTimeNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "DifferenceNanoseconds",
+          "type": "int64_t",
+          "declaration": "int64_t DifferenceNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        },
+        {
+          "name": "ExceptionMessage",
+          "type": "std::string",
+          "declaration": "std::string ExceptionMessage",
+          "fixed_bytes": 24,
+          "fixed_text": "24 bytes",
+          "dynamic_terms": [
+            "Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+          ],
+          "confidence": "medium",
+          "offset": 24
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 48 bytes known members",
+      "align": 4,
+      "dynamic_terms": [
+        "ExceptionMessage: Capacity + 1 bytes when capacity exceeds 15-byte SSO"
+      ],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "SerializableSystemClockCallbacksClearedEvent",
+      "kind": "class",
+      "file": "src/timing-events/ESPressio_TimingEventTypes_Serializable.hpp",
+      "line": 342,
+      "bases": [
+        "SerializableEvent<SerializableSystemClockCallbacksClearedEvent>"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "ClearedCallbackCount",
+          "type": "uint32_t",
+          "declaration": "uint32_t ClearedCallbackCount",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ReadWriteMutex",
+      "kind": "class",
+      "file": "tests/stubs/ESPressio_ThreadSafe.hpp",
+      "line": 9,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_value",
+          "type": "T",
+          "declaration": "T _value",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(T)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        },
+        {
+          "name": "_mutex",
+          "type": "std::mutex",
+          "declaration": "std::mutex _mutex",
+          "fixed_bytes": null,
+          "fixed_text": "sizeof(std::mutex)",
+          "dynamic_terms": [],
+          "confidence": "low",
+          "offset": null
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "sizeof(T) + sizeof(std::mutex)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "BrokerTestEvent",
+      "kind": "class",
+      "file": "tests/test_event_broker_nonblocking.cpp",
+      "line": 8,
+      "bases": [
+        "IEvent"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_references",
+          "type": "int",
+          "declaration": "int _references",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": 8,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "BrokerTestReceiver",
+      "kind": "class",
+      "file": "tests/test_event_broker_nonblocking.cpp",
+      "line": 30,
+      "bases": [
+        "EventReceiver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "Processed",
+          "type": "int",
+          "declaration": "int Processed",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 4 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "BrokerTestDispatcher",
+      "kind": "class",
+      "file": "tests/test_event_broker_nonblocking.cpp",
+      "line": 43,
+      "bases": [
+        "EventDispatcher"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "CompletionEvent",
+      "kind": "class",
+      "file": "tests/test_event_dispatch_completion.cpp",
+      "line": 8,
+      "bases": [
+        "IEvent"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_references",
+          "type": "int",
+          "declaration": "int _references",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": 8,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "CompletionReceiver",
+      "kind": "class",
+      "file": "tests/test_event_dispatch_completion.cpp",
+      "line": 23,
+      "bases": [
+        "EventReceiver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection)",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "CompletionDispatcher",
+      "kind": "class",
+      "file": "tests/test_event_dispatch_completion.cpp",
+      "line": 34,
+      "bases": [
+        "EventDispatcher"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "TestEvent",
+      "kind": "class",
+      "file": "tests/test_event_observer.cpp",
+      "line": 10,
+      "bases": [
+        "IEvent"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_references",
+          "type": "int",
+          "declaration": "int _references",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_ageNanoseconds",
+          "type": "uint64_t",
+          "declaration": "uint64_t _ageNanoseconds",
+          "fixed_bytes": 8,
+          "fixed_text": "8 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": 16,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "OtherEvent",
+      "kind": "class",
+      "file": "tests/test_event_observer.cpp",
+      "line": 35,
+      "bases": [
+        "IEvent"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 4,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "TestObserver",
+      "kind": "class",
+      "file": "tests/test_event_observer.cpp",
+      "line": 49,
+      "bases": [
+        "IEventObserver<TestEvent>"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "calls",
+          "type": "int",
+          "declaration": "int calls",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "interested",
+          "type": "bool",
+          "declaration": "bool interested",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "lastEvent",
+          "type": "TestEvent*",
+          "declaration": "TestEvent* lastEvent",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 12
+        },
+        {
+          "name": "lastMethod",
+          "type": "EventDispatchMethod",
+          "declaration": "EventDispatchMethod lastMethod",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 16
+        },
+        {
+          "name": "lastPriority",
+          "type": "EventPriority",
+          "declaration": "EventPriority lastPriority",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 20
+        },
+        {
+          "name": "lastOrigin",
+          "type": "EventOrigin",
+          "declaration": "EventOrigin lastOrigin",
+          "fixed_bytes": 1,
+          "fixed_text": "1 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 24
+        },
+        {
+          "name": "unregisterOnEvent",
+          "type": "IEventListenerHandle*",
+          "declaration": "IEventListenerHandle* unregisterOnEvent",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 28
+        }
+      ],
+      "fixed_bytes": 32,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "MultiEventObserver",
+      "kind": "class",
+      "file": "tests/test_event_observer.cpp",
+      "line": 80,
+      "bases": [
+        "IEventObserver<TestEvent>",
+        "IEventObserver<OtherEvent>"
+      ],
+      "inherited_fixed_bytes": 8,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "testCalls",
+          "type": "int",
+          "declaration": "int testCalls",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        },
+        {
+          "name": "otherCalls",
+          "type": "int",
+          "declaration": "int otherCalls",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 12
+        }
+      ],
+      "fixed_bytes": 16,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "TrackingEventListener",
+      "kind": "class",
+      "file": "tests/test_event_observer.cpp",
+      "line": 100,
+      "bases": [
+        "EventListener"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "registrations",
+          "type": "int",
+          "declaration": "int registrations",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 0
+        },
+        {
+          "name": "unregistrations",
+          "type": "int",
+          "declaration": "int unregistrations",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + 8 bytes known members",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "ReferenceTrackingEvent",
+      "kind": "class",
+      "file": "tests/test_event_references.cpp",
+      "line": 12,
+      "bases": [
+        "IEvent"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_references",
+          "type": "int",
+          "declaration": "int _references",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        }
+      ],
+      "fixed_bytes": 8,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "TrackingReceiver",
+      "kind": "class",
+      "file": "tests/test_event_references.cpp",
+      "line": 33,
+      "bases": [
+        "EventReceiver"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection)",
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "methods",
+          "type": "std::vector<EventDispatchMethod>",
+          "declaration": "std::vector<EventDispatchMethod> methods",
+          "fixed_bytes": 12,
+          "fixed_text": "12 bytes",
+          "dynamic_terms": [
+            "Capacity * 4 bytes"
+          ],
+          "confidence": "medium",
+          "offset": 0
+        },
+        {
+          "name": "origins",
+          "type": "std::vector<EventOrigin>",
+          "declaration": "std::vector<EventOrigin> origins",
+          "fixed_bytes": 12,
+          "fixed_text": "12 bytes",
+          "dynamic_terms": [
+            "Capacity * 1 bytes"
+          ],
+          "confidence": "medium",
+          "offset": 12
+        }
+      ],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + 24 bytes known members",
+      "align": 4,
+      "dynamic_terms": [
+        "methods: Capacity * 4 bytes",
+        "origins: Capacity * 1 bytes"
+      ],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "TestDispatcher",
+      "kind": "class",
+      "file": "tests/test_event_references.cpp",
+      "line": 66,
+      "bases": [
+        "EventDispatcher"
+      ],
+      "inherited_fixed_bytes": null,
+      "inherited_fixed_expr": "4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": null,
+      "fixed_expr": "4 bytes known bases + sizeof(EventReceiver) + 5 bytes known members + sizeof(ReceiverStorage) + sizeof(System::Synchronization::RecursiveMutex)",
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "low"
+    },
+    {
+      "name": "HeapTrackingEvent",
+      "kind": "class",
+      "file": "tests/test_event_references.cpp",
+      "line": 71,
+      "bases": [
+        "IEvent"
+      ],
+      "inherited_fixed_bytes": 4,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [
+        {
+          "name": "_references",
+          "type": "int",
+          "declaration": "int _references",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 4
+        },
+        {
+          "name": "_liveEvents",
+          "type": "int&",
+          "declaration": "int& _liveEvents",
+          "fixed_bytes": 4,
+          "fixed_text": "4 bytes",
+          "dynamic_terms": [],
+          "confidence": "high",
+          "offset": 8
+        }
+      ],
+      "fixed_bytes": 12,
+      "fixed_expr": null,
+      "align": 4,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "ExplicitType",
+      "kind": "struct",
+      "file": "tests/test_event_transport_packet_ownership.cpp",
+      "line": 8,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 0,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    },
+    {
+      "name": "UnregisteredType",
+      "kind": "struct",
+      "file": "tests/test_event_transport_packet_ownership.cpp",
+      "line": 9,
+      "bases": [],
+      "inherited_fixed_bytes": 0,
+      "inherited_fixed_expr": null,
+      "inherited_dynamic_terms": [],
+      "members": [],
+      "fixed_bytes": 0,
+      "fixed_expr": null,
+      "align": 1,
+      "dynamic_terms": [],
+      "requires_preallocation": false,
+      "polymorphic": false,
+      "confidence": "high"
+    }
+  ]
+}

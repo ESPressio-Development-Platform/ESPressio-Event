@@ -9,6 +9,14 @@ namespace ESPressio::Event {
 
 /// <summary>Observes Event transport registration, routing, and inbound/outbound transaction activity.</summary>
 /// <remarks>Callbacks have default no-op implementations so observers may subscribe only to the transport activity they require.</remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IEventTransportManagerObserver :
     public virtual Observable::IObserver {
 

@@ -78,6 +78,25 @@ namespace ESPressio::Event {
 /// packet ownership to physical transports. Inbound physical packets enter as owned buffers and are deserialized before
 /// being submitted to EventManager with Remote dispatch provenance.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(Threads::Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) [0 bytes dynamic allocation]
+ * Requires Stack/Heap Preallocation
+ * Members:
+ * - _mutex (System::Synchronization::Mutex): 0 bytes [0 bytes dynamic allocation]
+ * - _registrations (RegistrationMap): sizeof(RegistrationMap) [0 bytes dynamic allocation]
+ * - _runtimeTypes (RuntimeTypeMap): sizeof(RuntimeTypeMap) [0 bytes dynamic allocation]
+ * - _transports (TransportVector): sizeof(TransportVector) [0 bytes dynamic allocation]
+ * - _subscriptions (SubscriptionVector): sizeof(SubscriptionVector) [0 bytes dynamic allocation]
+ * - _inbound (InboundQueue): sizeof(InboundQueue) [0 bytes dynamic allocation]
+ * - _messageIds (Primitive::ConceptualMessageIdGenerator): 0 bytes [0 bytes dynamic allocation]
+ * - _outboundExecutor (Task::TaskExecutor<OutboundWork>): sizeof(Task::TaskExecutor<OutboundWork>) [0 bytes dynamic allocation]
+ * - _outboundTargets (TransportVector): sizeof(TransportVector) [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + sizeof(Threads::Thread) + 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) + sizeof(RegistrationMap) + sizeof(RuntimeTypeMap) + sizeof(TransportVector) + sizeof(SubscriptionVector) + sizeof(InboundQueue) + sizeof(Task::TaskExecutor<OutboundWork>) + sizeof(TransportVector) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class EventTransportManager final :
     public Threads::Thread,
     public EventReceiver,
@@ -91,7 +110,19 @@ private:
         ExternalPreferred
     >;
 
-    struct RuntimeRegistration {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - EventType (EventTypeKey): sizeof(EventTypeKey) [0 bytes dynamic allocation]
+ * - TypeID (EventTypeId): sizeof(EventTypeId) [0 bytes dynamic allocation]
+ * - SchemaVersion (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - Properties (RuntimePropertyVector): sizeof(RuntimePropertyVector) [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known members + sizeof(EventTypeKey) + sizeof(EventTypeId) + sizeof(RuntimePropertyVector) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+struct RuntimeRegistration {
         EventTypeKey EventType = nullptr;
         EventTypeId TypeID = 0;
         std::string_view TypeName{};
@@ -107,7 +138,18 @@ private:
 
     using RuntimeRegistrationPtr = std::shared_ptr<const RuntimeRegistration>;
 
-    struct Registration {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Runtime (RuntimeRegistrationPtr): sizeof(RuntimeRegistrationPtr) [0 bytes dynamic allocation]
+ * - DefaultDirection (EventTransportDirection): 1 bytes [0 bytes dynamic allocation]
+ * - TransportDirections (System::Memory::UnorderedMap<IEventTransport*, EventTransportDirection, ExternalPreferred>): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 5 bytes known members + sizeof(RuntimeRegistrationPtr) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+struct Registration {
         RuntimeRegistrationPtr Runtime;
         EventTransportDirection DefaultDirection = EventTransportDirection::None;
         System::Memory::UnorderedMap<
@@ -144,14 +186,36 @@ private:
         }
     };
 
-    struct InboundWork {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Transport (IEventTransport*): 4 bytes [0 bytes dynamic allocation]
+ * - TypeID (EventTypeId): sizeof(EventTypeId) [0 bytes dynamic allocation]
+ * - Runtime (RuntimeRegistrationPtr): sizeof(RuntimeRegistrationPtr) [0 bytes dynamic allocation]
+ * - Packet (EventTransportPacket): sizeof(EventTransportBufferPtr) [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known members + sizeof(EventTypeId) + sizeof(RuntimeRegistrationPtr) + sizeof(EventTransportBufferPtr) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
+struct InboundWork {
         IEventTransport* Transport = nullptr;
         EventTypeId TypeID = 0;
         RuntimeRegistrationPtr Runtime;
         EventTransportPacket Packet;
     };
 
-    struct OutboundWork {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - Event (IEvent*): 4 bytes [0 bytes dynamic allocation]
+ * - Method (EventDispatchMethod): 4 bytes [0 bytes dynamic allocation]
+ * - Priority (EventPriority): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct OutboundWork {
         IEvent* Event = nullptr;
         EventDispatchMethod Method = EventDispatchMethod::Queue;
         EventPriority Priority = EventPriority::Normal;
@@ -365,7 +429,15 @@ private:
     }
 
     void ProcessOutboundWork(const OutboundWork& work) {
-        class EventReferenceGuard final {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _event (IEvent*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class EventReferenceGuard final {
         private:
             IEvent* _event = nullptr;
         public:

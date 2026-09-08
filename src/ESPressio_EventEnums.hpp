@@ -8,7 +8,14 @@ namespace ESPressio {
     namespace Event {
 
         /// <summary>Priority used to order pending Event dispatch work.</summary>
-        enum EventPriority {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 4 bytes
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum EventPriority {
             Low = 0,
             Normal = 1,
             High = 2
@@ -56,7 +63,14 @@ namespace ESPressio {
 
 
         /// <summary>Determines how an Event listener decides whether a matching Event should invoke its callback.</summary>
-        enum EventListenerInterest {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 4 bytes
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum EventListenerInterest {
             All,
             YoungerThan,
             Custom
@@ -104,7 +118,14 @@ namespace ESPressio {
 
 
         /// <summary>Selects LIFO stack or FIFO queue dispatch semantics for an Event.</summary>
-        enum EventDispatchMethod {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 4 bytes
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum EventDispatchMethod {
             Stack,
             Queue
         };

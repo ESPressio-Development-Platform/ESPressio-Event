@@ -9,6 +9,13 @@ namespace ESPressio::Event {
 class IEventTransport;
 
 /// <summary>Receives complete ownership-bearing inbound wire packets from a registered Event transport.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IEventTransportReceiver {
 public:
     virtual ~IEventTransportReceiver() = default;
@@ -26,6 +33,13 @@ public:
 /// Event owns serialization and routing metadata. A transport receives independent shared ownership of immutable serialized
 /// bytes and may move that packet into its own asynchronous execution context without copying the payload.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IEventTransport {
 public:
     virtual ~IEventTransport() = default;

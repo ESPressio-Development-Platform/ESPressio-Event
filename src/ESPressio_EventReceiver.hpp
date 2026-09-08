@@ -22,20 +22,59 @@
 namespace ESPressio {
 namespace Event {
 
-enum class EventQueueOverflowPolicy : uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class EventQueueOverflowPolicy : uint8_t {
     BlockProducer,
     RejectIncoming,
     DropOldest,
     DropLowestPriority
 };
 
-enum class EventCollectionCapacityPolicy : uint8_t {
+/**
+ * ESPressio Memory Audit
+ * Underlying storage: 1 bytes
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+enum
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
+ * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class EventCollectionCapacityPolicy : uint8_t {
     Retain,
     ShrinkWhenUnderutilized,
     ReleaseAfterDrain
 };
 
 /// <summary>Contract for an object that can retain queued or stacked Event references with dispatch provenance.</summary>
+/**
+ * ESPressio Memory Audit
+ * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class IEventReceiver {
 public:
     virtual ~IEventReceiver() = default;
@@ -78,9 +117,44 @@ public:
 /// Queue entries are FIFO, stack entries LIFO, higher priorities drain first, and backing storage prefers external memory.
 /// Dispatch provenance travels beside the retained reference and is never written into the Event object itself.
 /// </remarks>
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _eventsMutex (System::Synchronization::Mutex): 0 bytes [0 bytes dynamic allocation]
+ * - _priorityQueues (EventCollection): sizeof(EventCollection) [0 bytes dynamic allocation]
+ * - _priorityStacks (EventCollection): sizeof(EventCollection) [0 bytes dynamic allocation]
+ * - _pendingEventCount (size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _processingEventCount (size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _peakPendingEventCount (size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _maximumPendingEventCount (size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _overflowPolicy (EventQueueOverflowPolicy): 1 bytes [0 bytes dynamic allocation]
+ * - _capacityPolicy (EventCollectionCapacityPolicy): 1 bytes [0 bytes dynamic allocation]
+ * - _minimumRetainedCapacity (size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _capacityExcessFactor (size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _recentDrainIndex (size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _recentDrainCount (size_t): 4 bytes [0 bytes dynamic allocation]
+ * - _nextSequence (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - _rejectedEventCount (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - _droppedEventCount (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * - _acceptingPendingEvents (bool): 1 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + 59 bytes known members + sizeof(EventCollection) + sizeof(EventCollection) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class EventReceiver : public IEventReceiver {
 private:
-    struct PendingEvent {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - event (IEvent*): 4 bytes [0 bytes dynamic allocation]
+ * - sequence (uint64_t): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 12 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+struct PendingEvent {
         IEvent* event = nullptr;
         uint64_t sequence = 0;
         EventDispatchContext context{};
@@ -371,7 +445,16 @@ private:
             RecordDrainSizeLocked(pending.size());
         }
 
-        class ProcessingGuard final {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _receiver (EventReceiver&): 4 bytes [0 bytes dynamic allocation]
+ * - _count (size_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class ProcessingGuard final {
             EventReceiver& _receiver;
             size_t _count;
         public:
@@ -386,7 +469,15 @@ private:
             }
         } processing(*this, pending.size());
 
-        class PendingReferences final {
+/**
+ * ESPressio Memory Audit
+ * Members:
+ * - _events (EventDispatchCollection&): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
+class PendingReferences final {
             EventDispatchCollection& _events;
         public:
             explicit PendingReferences(EventDispatchCollection& events) : _events(events) {}

@@ -7,6 +7,16 @@
 
 using namespace ESPressio;
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Members:
+ * - Counter (int32_t): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class DistributedCounterEvent :
     public Event::Event<>,
     public Serializable::SerializableBase<DistributedCounterEvent> {
@@ -26,6 +36,15 @@ ESPRESSIO_EVENT_TRANSPORT_TYPE(
     "flowduino.example.distributed-counter.v1"
 )
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
+ * Members:
+ * - _receiver (Event::IEventTransportReceiver*): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 8 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * End ESPressio Memory Audit
+ */
 class LoopbackEventTransport final : public Event::IEventTransport {
 private:
     Event::IEventTransportReceiver* _receiver = nullptr;
@@ -46,6 +65,16 @@ public:
     }
 };
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * Members:
+ * - _handle (Event::EventListenerHandlePtr): sizeof(Event::EventListenerHandlePtr) [0 bytes dynamic allocation]
+ * Total Memory: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + sizeof(Event::EventListenerHandlePtr) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class DemoListener final : public Event::EventListener {
 private:
     Event::EventListenerHandlePtr _handle;

@@ -8,6 +8,19 @@
 
 using namespace ESPressio;
 
+/**
+ * ESPressio Memory Audit
+ * Inherited Memory Total: sizeof(EventThreadBase) + sizeof(EventListener) [0 bytes dynamic allocation]
+ * Requires Stack/Heap Preallocation
+ * Members:
+ * - _registeredHandle (Event::EventListenerHandlePtr): sizeof(Event::EventListenerHandlePtr) [0 bytes dynamic allocation]
+ * - _cleanupHandle (Event::EventListenerHandlePtr): sizeof(Event::EventListenerHandlePtr) [0 bytes dynamic allocation]
+ * - _terminationHandle (Event::EventListenerHandlePtr): sizeof(Event::EventListenerHandlePtr) [0 bytes dynamic allocation]
+ * Total Memory: sizeof(EventThreadBase) + sizeof(EventListener) + sizeof(Event::EventListenerHandlePtr) + sizeof(Event::EventListenerHandlePtr) + sizeof(Event::EventListenerHandlePtr) [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * End ESPressio Memory Audit
+ */
 class InfrastructureEventThread final :
     public Event::EventThread {
 

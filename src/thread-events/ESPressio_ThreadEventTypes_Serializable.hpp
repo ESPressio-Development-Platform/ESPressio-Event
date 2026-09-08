@@ -23,7 +23,7 @@ namespace Event {
  * - FreeOnTerminate (bool): 1 bytes [0 bytes dynamic allocation]
  * - StartOnInitialize (bool): 1 bytes [0 bytes dynamic allocation]
  * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct SerializableThreadSnapshotData {
@@ -98,15 +98,6 @@ struct SerializableThreadSnapshotData {
     ESPRESSIO_PROPERTY("threadCountAfter", ThreadCountAfter)
 
 #define ESPRESSIO_DEFINE_SERIALIZABLE_SNAPSHOT_EVENT(CLASS_NAME) \
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
 class CLASS_NAME final : public SerializableEvent<CLASS_NAME> { \
 public: \
     ESPRESSIO_THREAD_SNAPSHOT_MEMBERS \
@@ -132,13 +123,13 @@ ESPRESSIO_DEFINE_SERIALIZABLE_SNAPSHOT_EVENT(SerializableThreadTerminationDispat
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
  * - ThreadAddress (uint64_t): 8 bytes [0 bytes dynamic allocation]
  * - ExceptionMessage (std::string): 24 bytes [Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Total Memory: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 32 bytes known members [ExceptionMessage: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 56 bytes [ExceptionMessage: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class SerializableThreadRegistrationFailedEvent final :
@@ -166,15 +157,6 @@ public:
 };
 
 #define ESPRESSIO_DEFINE_SERIALIZABLE_CLEANUP_EVENT(CLASS_NAME) \
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
 class CLASS_NAME final : public SerializableEvent<CLASS_NAME> { \
 public: \
     ESPRESSIO_THREAD_CLEANUP_MEMBERS \
@@ -195,12 +177,20 @@ ESPRESSIO_DEFINE_SERIALIZABLE_CLEANUP_EVENT(SerializableThreadCleanupCompletedEv
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - ExceptionMessage (ESPRESSIO_THREAD_CLEANUP_MEMBERS std::string): sizeof(ESPRESSIO_THREAD_CLEANUP_MEMBERS std::string) [0 bytes dynamic allocation]
- * Total Memory: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + sizeof(ESPRESSIO_THREAD_CLEANUP_MEMBERS std::string) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - ThreadsExamined (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - ThreadsClaimed (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - ThreadsRemoved (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - ThreadsDeleted (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - WasDeferred (bool): 1 bytes [0 bytes dynamic allocation]
+ * - ActiveIterationCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - ThreadCountBefore (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - ThreadCountAfter (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - ExceptionMessage (std::string): 24 bytes [Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * Total Memory: 80 bytes [ExceptionMessage: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class SerializableThreadCleanupFailedEvent final :
@@ -229,14 +219,13 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
  * - ThreadsExamined (uint32_t): 4 bytes [0 bytes dynamic allocation]
  * - ThreadsInitializedSuccessfully (uint32_t): 4 bytes [0 bytes dynamic allocation]
  * - ThreadsInitializationFailed (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 12 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 36 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SerializableThreadManagerInitializationCompletedEvent final :
@@ -271,12 +260,11 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
  * - Available (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 1 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 28 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SerializableThreadTerminationDispatcherInitializedEvent final :

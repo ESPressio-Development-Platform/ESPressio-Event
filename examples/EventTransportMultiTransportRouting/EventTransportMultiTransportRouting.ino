@@ -11,7 +11,7 @@ using namespace ESPressio;
  * - _name (char*): 4 bytes [0 bytes dynamic allocation]
  * - _receiver (Event::IEventTransportReceiver*): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class ExampleTransport : public Event::IEventTransport {
@@ -39,12 +39,11 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
  * - Value (int32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(TypedEvent<TDerived, TTime>) + 4 bytes vptr + 4 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 28 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class TelemetryEvent final : public Event::SerializableEvent<TelemetryEvent> {

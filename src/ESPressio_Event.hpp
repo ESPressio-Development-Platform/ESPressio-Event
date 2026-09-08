@@ -20,10 +20,12 @@ namespace Event {
  * ESPressio Memory Audit
  * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
  * Members:
- * - _dispatchStateGuard (std::atomic_flag): sizeof(std::atomic_flag) [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known bases + sizeof(std::atomic_flag) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _dispatchStateGuard (std::atomic_flag): 1 bytes [0 bytes dynamic allocation]
+ * - _dispatchState (DispatchState): 12 bytes [0 bytes dynamic allocation]
+ * - _refCount (std::atomic<uint32_t>): 4 bytes [0 bytes dynamic allocation]
+ * Total Memory: 24 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 template<typename TTime = Timing::DefaultClockTime>
@@ -35,7 +37,7 @@ private:
  * - WasDispatched (bool): 1 bytes [0 bytes dynamic allocation]
  * - DispatchTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
  * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct DispatchState {
@@ -48,7 +50,7 @@ struct DispatchState {
  * Members:
  * - _flag (std::atomic_flag&): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class AtomicFlagGuard {
@@ -170,11 +172,10 @@ public:
 /// <typeparam name="TTime">Public time representation used by the Event.</typeparam>
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes known bases + sizeof(std::atomic_flag) [0 bytes dynamic allocation]
- * Members: none; polymorphic interface/object includes vptr storage where not supplied by a base.
- * Total Memory: 4 bytes known bases + sizeof(std::atomic_flag) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
+ * Total Memory: 24 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<

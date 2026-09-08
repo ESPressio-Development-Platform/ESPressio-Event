@@ -14,7 +14,7 @@ using namespace ESPressio::Event;
  * - _references (int): 4 bytes [0 bytes dynamic allocation]
  * - _ageNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
  * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class TestEvent final : public IEvent {
@@ -45,9 +45,9 @@ class TestEvent final : public IEvent {
 /**
  * ESPressio Memory Audit
  * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
+ * Members: none; polymorphic/virtual-base object metadata is included in the total.
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class OtherEvent final : public IEvent {
@@ -76,7 +76,7 @@ class OtherEvent final : public IEvent {
  * - lastOrigin (EventOrigin): 1 bytes [0 bytes dynamic allocation]
  * - unregisterOnEvent (IEventListenerHandle*): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class TestObserver final : public IEventObserver<TestEvent> {
@@ -117,7 +117,7 @@ class TestObserver final : public IEventObserver<TestEvent> {
  * - testCalls (int): 4 bytes [0 bytes dynamic allocation]
  * - otherCalls (int): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class MultiEventObserver final :
@@ -142,13 +142,12 @@ class MultiEventObserver final :
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * Inherited Memory Total: 76 bytes [EventListener: _listeners: implementation blocks containing N * (40 bytes) plus block-map pointers; EventListener: _listeners: N elements each: Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listeners: N elements each: CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listenersMutex: _owned: owned object: 4 bytes; EventListener: _listenersMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
  * Members:
  * - registrations (int): 4 bytes [0 bytes dynamic allocation]
  * - unregistrations (int): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + 8 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 84 bytes [EventListener: _listeners: implementation blocks containing N * (40 bytes) plus block-map pointers; EventListener: _listeners: N elements each: Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listeners: N elements each: CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listenersMutex: _owned: owned object: 4 bytes; EventListener: _listenersMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class TrackingEventListener final : public EventListener {

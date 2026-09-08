@@ -10,9 +10,9 @@ namespace ESPressio {
  * ESPressio Memory Audit
  * Members:
  * - _value (T): sizeof(T) [0 bytes dynamic allocation]
- * - _mutex (std::mutex): sizeof(std::mutex) [0 bytes dynamic allocation]
- * Total Memory: sizeof(T) + sizeof(std::mutex) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * - _mutex (std::mutex): 4 bytes [native synchronization state may allocate platform resources lazily]
+ * Total Memory: 4 bytes known/aligned storage + sizeof(T) [_mutex: native synchronization state may allocate platform resources lazily]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */

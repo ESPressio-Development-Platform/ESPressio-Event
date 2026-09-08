@@ -21,18 +21,10 @@ inline constexpr Primitive::PrimitiveFamilyId EventFamilyId = Primitive::FamilyI
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class EventTransportDirection : uint8_t {
     None = 0,
     Inbound = 1u << 0,
@@ -60,18 +52,10 @@ constexpr bool HasDirection(EventTransportDirection value, EventTransportDirecti
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class EventTransportPendingAction : uint8_t { Complete, Discard };
 
 /**
@@ -80,7 +64,7 @@ class EventTransportPendingAction : uint8_t { Complete, Discard };
  * - PendingOutbound (EventTransportPendingAction): 1 bytes [0 bytes dynamic allocation]
  * - PendingInbound (EventTransportPendingAction): 1 bytes [0 bytes dynamic allocation]
  * Total Memory: 2 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct EventTransportUnregistrationOptions {
@@ -94,14 +78,15 @@ struct EventTransportUnregistrationOptions {
  * Members:
  * - Magic (uint32_t): 4 bytes [0 bytes dynamic allocation]
  * - Version (uint8_t): 1 bytes [0 bytes dynamic allocation]
+ * - DispatchMethod (uint8_t): 1 bytes [0 bytes dynamic allocation]
+ * - Priority (uint8_t): 1 bytes [0 bytes dynamic allocation]
  * - Reserved (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - EventTypeID (EventTypeId): sizeof(EventTypeId) [0 bytes dynamic allocation]
+ * - EventTypeID (EventTypeId): 8 bytes [0 bytes dynamic allocation]
  * - SchemaVersion (uint32_t): 4 bytes [0 bytes dynamic allocation]
  * - MessageID (uint64_t): 8 bytes [0 bytes dynamic allocation]
  * - PayloadLength (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 22 bytes known members + sizeof(EventTypeId) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 32 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct EventTransportEnvelope {
@@ -141,10 +126,11 @@ using EventTransportBufferPtr = std::shared_ptr<const EventTransportBuffer>;
 /**
  * ESPressio Memory Audit
  * Members:
- * - _buffer (EventTransportBufferPtr): sizeof(EventTransportBufferPtr) [0 bytes dynamic allocation]
- * Total Memory: sizeof(EventTransportBufferPtr) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _buffer (EventTransportBufferPtr): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 16 bytes; pointee: Capacity * (1 bytes) element storage]
+ * - _messageID (EventMessageId): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 16 bytes [_buffer: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 16 bytes; _buffer: pointee: Capacity * (1 bytes) element storage]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class EventTransportPacket {
@@ -187,18 +173,10 @@ public:
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class EventTransportRegistrationResult : uint8_t {
     Registered,
     Updated,
@@ -211,18 +189,10 @@ class EventTransportRegistrationResult : uint8_t {
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class EventTransportUnregistrationResult : uint8_t {
     Updated,
     Removed,
@@ -238,7 +208,7 @@ class EventTransportUnregistrationResult : uint8_t {
  * - Unchanged (std::size_t): 4 bytes [0 bytes dynamic allocation]
  * - Failed (std::size_t): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct EventTransportBulkOperationResult {
@@ -255,18 +225,10 @@ class IEventTransport;
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class EventTransportTransactionStage : uint8_t {
     OutboundAccepted,
     OutboundSerialized,
@@ -285,8 +247,10 @@ class EventTransportTransactionStage : uint8_t {
  * Members:
  * - Stage (EventTransportTransactionStage): 1 bytes [0 bytes dynamic allocation]
  * - Direction (EventTransportDirection): 1 bytes [0 bytes dynamic allocation]
- * - EventTypeID (EventTypeId): sizeof(EventTypeId) [0 bytes dynamic allocation]
+ * - EventTypeID (EventTypeId): 8 bytes [0 bytes dynamic allocation]
+ * - EventTypeName (std::string_view): 8 bytes [0 bytes dynamic allocation]
  * - SchemaVersion (uint32_t): 4 bytes [0 bytes dynamic allocation]
+ * - MessageID (EventMessageId): 8 bytes [0 bytes dynamic allocation]
  * - Transport (IEventTransport*): 4 bytes [0 bytes dynamic allocation]
  * - Event (IEvent*): 4 bytes [0 bytes dynamic allocation]
  * - Payload (uint8_t*): 4 bytes [0 bytes dynamic allocation]
@@ -295,9 +259,8 @@ class EventTransportTransactionStage : uint8_t {
  * - Priority (EventPriority): 4 bytes [0 bytes dynamic allocation]
  * - Origin (EventOrigin): 1 bytes [0 bytes dynamic allocation]
  * - TransportAccepted (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes known members + sizeof(EventTypeId) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 60 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct EventTransportTransaction {
@@ -319,9 +282,9 @@ struct EventTransportTransaction {
 
 /**
  * ESPressio Memory Audit
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 0 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+ * Total Memory: 1 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 template<typename TEvent>

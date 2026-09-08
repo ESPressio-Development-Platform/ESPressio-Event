@@ -13,13 +13,13 @@ namespace Event {
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(Threads::IThreadManagerObserver) [0 bytes dynamic allocation]
+ * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
  * Members:
- * - _observerHandle (Observable::ObserverHandlePtr): sizeof(Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
+ * - _observerHandle (Observable::ObserverHandlePtr): 12 bytes [owned object: 4 bytes]
  * - _initialized (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(Threads::IThreadManagerObserver) + 1 bytes known members + sizeof(Observable::ObserverHandlePtr) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 20 bytes [_observerHandle: owned object: 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class SerializableThreadManagerEventBridge final :

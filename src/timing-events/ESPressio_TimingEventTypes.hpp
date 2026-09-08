@@ -16,14 +16,13 @@ using SynchronizationStatus = Timing::ClockSynchronizationStatus<TimingClockTick
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - PreviousTimeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * - NewTimeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
+ * - PreviousTimeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
+ * - NewTimeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
  * - DifferenceNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 48 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SystemClockTimeChangedEvent final : public TypedEvent<SystemClockTimeChangedEvent> {
@@ -37,16 +36,15 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - ClockBeforeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * - ClockAfterNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
+ * - ClockBeforeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
+ * - ClockAfterNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
  * - ImmediateDifferenceNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - Result (SynchronizationResult): 4 bytes [0 bytes dynamic allocation]
- * - Status (SynchronizationStatus): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 16 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - Result (SynchronizationResult): 44 bytes [0 bytes dynamic allocation]
+ * - Status (SynchronizationStatus): 72 bytes [0 bytes dynamic allocation]
+ * Total Memory: 164 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SynchronizationSampleAcceptedEvent final : public TypedEvent<SynchronizationSampleAcceptedEvent> {
@@ -64,13 +62,12 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - Result (SynchronizationResult): 4 bytes [0 bytes dynamic allocation]
- * - Status (SynchronizationStatus): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - Result (SynchronizationResult): 44 bytes [0 bytes dynamic allocation]
+ * - Status (SynchronizationStatus): 72 bytes [0 bytes dynamic allocation]
+ * Total Memory: 140 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SynchronizationSampleRejectedEvent final : public TypedEvent<SynchronizationSampleRejectedEvent> {
@@ -83,16 +80,15 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - ClockBeforeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * - ClockAfterNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
+ * - ClockBeforeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
+ * - ClockAfterNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
  * - ImmediateDifferenceNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - Result (SynchronizationResult): 4 bytes [0 bytes dynamic allocation]
- * - Status (SynchronizationStatus): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 16 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - Result (SynchronizationResult): 44 bytes [0 bytes dynamic allocation]
+ * - Status (SynchronizationStatus): 72 bytes [0 bytes dynamic allocation]
+ * Total Memory: 164 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SystemClockSynchronizedEvent final : public TypedEvent<SystemClockSynchronizedEvent> {
@@ -110,14 +106,13 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
  * - PreviousState (Timing::ClockSynchronizationState): 1 bytes [0 bytes dynamic allocation]
  * - NewState (Timing::ClockSynchronizationState): 1 bytes [0 bytes dynamic allocation]
- * - Status (SynchronizationStatus): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 6 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - Status (SynchronizationStatus): 72 bytes [0 bytes dynamic allocation]
+ * Total Memory: 100 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SynchronizationStateChangedEvent final : public TypedEvent<SynchronizationStateChangedEvent> {
@@ -132,13 +127,12 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - PreviousStatus (SynchronizationStatus): 4 bytes [0 bytes dynamic allocation]
- * - NewStatus (SynchronizationStatus): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - PreviousStatus (SynchronizationStatus): 72 bytes [0 bytes dynamic allocation]
+ * - NewStatus (SynchronizationStatus): 72 bytes [0 bytes dynamic allocation]
+ * Total Memory: 168 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SynchronizationResetEvent final : public TypedEvent<SynchronizationResetEvent> {
@@ -151,13 +145,12 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
  * - PreviousConfig (Timing::ClockSynchronizationConfig): 76 bytes [0 bytes dynamic allocation]
  * - NewConfig (Timing::ClockSynchronizationConfig): 76 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 152 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 176 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SynchronizationConfigurationChangedEvent final : public TypedEvent<SynchronizationConfigurationChangedEvent> {
@@ -171,12 +164,11 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - ScheduledTimeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - ScheduledTimeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 32 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SystemClockCallbackScheduledEvent final : public TypedEvent<SystemClockCallbackScheduledEvent> {
@@ -187,12 +179,11 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - ScheduledTimeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - ScheduledTimeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 32 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SystemClockCallbackScheduleFailedEvent final : public TypedEvent<SystemClockCallbackScheduleFailedEvent> {
@@ -203,14 +194,13 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - ScheduledTimeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * - ActualTimeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
+ * - ScheduledTimeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
+ * - ActualTimeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
  * - DifferenceNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 48 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SystemClockCallbackExecutedEvent final : public TypedEvent<SystemClockCallbackExecutedEvent> {
@@ -224,15 +214,15 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
- * - ScheduledTimeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
- * - ActualTimeNanoseconds (TimingClockTick): sizeof(TimingClockTick) [0 bytes dynamic allocation]
+ * - ScheduledTimeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
+ * - ActualTimeNanoseconds (TimingClockTick): 8 bytes [0 bytes dynamic allocation]
  * - DifferenceNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - Cause (std::exception_ptr): sizeof(std::exception_ptr) [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 8 bytes known members + sizeof(TimingClockTick) + sizeof(TimingClockTick) + sizeof(std::exception_ptr) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - Cause (std::exception_ptr): 4 bytes [referenced exception object/control storage is external]
+ * Total Memory: 52 bytes [Cause: referenced exception object/control storage is external]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class SystemClockCallbackExecutionFailedEvent final : public TypedEvent<SystemClockCallbackExecutionFailedEvent> {
@@ -249,12 +239,11 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
  * - ClearedCallbackCount (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 28 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class SystemClockCallbacksClearedEvent final : public TypedEvent<SystemClockCallbacksClearedEvent> {

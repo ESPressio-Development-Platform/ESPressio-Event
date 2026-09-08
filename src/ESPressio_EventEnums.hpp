@@ -12,7 +12,7 @@ namespace ESPressio {
  * ESPressio Memory Audit
  * Underlying storage: 4 bytes
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum EventPriority {
@@ -67,7 +67,7 @@ enum EventPriority {
  * ESPressio Memory Audit
  * Underlying storage: 4 bytes
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum EventListenerInterest {
@@ -122,7 +122,7 @@ enum EventListenerInterest {
  * ESPressio Memory Audit
  * Underlying storage: 4 bytes
  * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum EventDispatchMethod {
@@ -177,7 +177,14 @@ enum EventDispatchMethod {
 
 namespace std {
 
-    template<>
+        /**
+     * ESPressio Memory Audit
+     * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
+     * Total Memory: 1 bytes [0 bytes dynamic allocation]
+     * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+     * End ESPressio Memory Audit
+     */
+template<>
     struct hash<
         ESPressio::Event::
             EventPriority

@@ -9,12 +9,11 @@ using namespace ESPressio;
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr [0 bytes dynamic allocation]
+ * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
  * Members:
  * - Counter (int32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: sizeof(IEvent) + sizeof(std::atomic_flag) + 4 bytes vptr + 4 bytes known members [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * Total Memory: 28 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class DistributedCounterEvent :
@@ -42,7 +41,7 @@ ESPRESSIO_EVENT_TRANSPORT_TYPE(
  * Members:
  * - _receiver (Event::IEventTransportReceiver*): 4 bytes [0 bytes dynamic allocation]
  * Total Memory: 8 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 class LoopbackEventTransport final : public Event::IEventTransport {
@@ -67,12 +66,12 @@ public:
 
 /**
  * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) [0 bytes dynamic allocation]
+ * Inherited Memory Total: 76 bytes [EventListener: _listeners: implementation blocks containing N * (40 bytes) plus block-map pointers; EventListener: _listeners: N elements each: Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listeners: N elements each: CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listenersMutex: _owned: owned object: 4 bytes; EventListener: _listenersMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
  * Members:
- * - _handle (Event::EventListenerHandlePtr): sizeof(Event::EventListenerHandlePtr) [0 bytes dynamic allocation]
- * Total Memory: 4 bytes known bases + 5 bytes known members + sizeof(ListenerStorage) + sizeof(System::Synchronization::RecursiveMutex) + sizeof(Event::EventListenerHandlePtr) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - _handle (Event::EventListenerHandlePtr): 12 bytes [owned object: 4 bytes]
+ * Total Memory: 88 bytes [EventListener: _listeners: implementation blocks containing N * (40 bytes) plus block-map pointers; EventListener: _listeners: N elements each: Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listeners: N elements each: CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listenersMutex: _owned: owned object: 4 bytes; EventListener: _listenersMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; _handle: owned object: 4 bytes]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
+ * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
  * End ESPressio Memory Audit
  */
 class DemoListener final : public Event::EventListener {

@@ -27,18 +27,10 @@ using EventProtocolVersion = Primitive::PrimitiveProtocolVersion;
  * ESPressio Memory Audit
  * Underlying storage: 1 bytes
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 enum
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 1 bytes [0 bytes dynamic allocation]
- * Members: none (empty object still occupies at least 1 byte unless empty-base optimisation applies).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * End ESPressio Memory Audit
- */
 class EventOrigin : std::uint8_t {
     Local,
     Remote
@@ -54,7 +46,7 @@ class EventOrigin : std::uint8_t {
  * Members:
  * - Origin (EventOrigin): 1 bytes [0 bytes dynamic allocation]
  * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct EventDispatchContext final {
@@ -78,11 +70,12 @@ struct EventDispatchContext final {
 /**
  * ESPressio Memory Audit
  * Members:
- * - TypeId (EventTypeId): sizeof(EventTypeId) [0 bytes dynamic allocation]
- * - SchemaVersion (EventSchemaVersion): sizeof(EventSchemaVersion) [0 bytes dynamic allocation]
- * Total Memory: sizeof(EventTypeId) + sizeof(EventSchemaVersion) [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI; GNU libstdc++ container control-block sizes are implementation-sensitive.
- * Confidence: low; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
+ * - TypeId (EventTypeId): 8 bytes [0 bytes dynamic allocation]
+ * - SchemaVersion (EventSchemaVersion): 4 bytes [0 bytes dynamic allocation]
+ * - MessageId (EventMessageId): 8 bytes [0 bytes dynamic allocation]
+ * - Correlation (EventCorrelationId): 8 bytes [0 bytes dynamic allocation]
+ * Total Memory: 28 bytes [0 bytes dynamic allocation]
+ * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
  * End ESPressio Memory Audit
  */
 struct EventMetadata final {

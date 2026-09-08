@@ -1,0 +1,12 @@
+name: ESPressio Memory Audit V2
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[memory-audit-final]') }}
+    permissions:
+      contents: write
+    uses: ESPressio-Development-Platform/ESPressio-Primitive/.github/workflows/memory-audit-v2-reusable.yml@structural_realignment_propagation_ESPressio-Mesh

@@ -1,0 +1,181 @@
+name: Temporary Reusable Release Flattening
+on:
+  workflow_call:
+permissions:
+  contents: write
+jobs:
+  flatten:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: primitives_redesign
+          fetch-depth: 0
+      - name: Flatten historical ESPressio release material
+        shell: python
+        run: |
+          import pathlib,re,shutil
+          root=pathlib.Path('.')
+          caller=root/'.github/workflows/primitives-redesign-release-flatten.yml'
+          named={'dependency_boundaries.md','optimisations.md','platform_abstractions.md','security_integration.md'}
+
+          # Release/history artifacts that are intentionally regenerated later.
+          for p in list(root.iterdir()):
+              if p.is_file() and (((p.name.lower().startswith('changelog')) and p.suffix.lower()=='.md') or p.name.lower() in named): p.unlink()
+              elif p.is_dir() and p.name.lower()=='wiki': shutil.rmtree(p)
+          for p in list(root.rglob('*')):
+              if not p.is_file() or p==caller or p.suffix.lower()!='.md': continue
+              n=p.name.lower()
+              if n.startswith('changelog') or n.startswith('release_notes') or n.startswith('release-notes') or re.match(r'release[_-]\d',n): p.unlink()
+
+          ver=r'\d+\.(?:\d+|x)(?:\.(?:\d+|x))?(?:[-+][0-9A-Za-z.-]+)?'
+          libs=r'(?:Command|ESP-Now|ESP32|Event|Logging|MeshAdapters|Mesh|NRF24|Observable|Persistence|Primitive|Radio|Security|Serial|Serializable|Sockets|State|System|Task|Threads|Timing|Units|Web|WiFi)'
+          libver=re.compile(rf'(?i)\b((?:ESPressio[- ]?)?{libs})\s+(?:v(?:ersion)?\s*)?(?:[<>=~^]+\s*)?{ver}(?:\s*[<>=~^]+\s*{ver})?\+?')
+          histverb=re.compile(rf'(?i)\b(introduced|added|changed|fixed|removed|updated|corrected|released|implemented|established|raised|lowered|migrated)\s+(?:back\s+)?in\s+(?:release\s+|version\s+)?v?{ver}\b')
+          histadj=re.compile(rf'(?i)\b(old|legacy|prior|previous|historical)\s+(?:release\s+|version\s+)?v?{ver}\b')
+          since=re.compile(rf'(?i)\b(?:since|as of)\s+(?:release\s+|version\s+)?v?{ver}\b')
+          vernoun=re.compile(rf'(?i)\b(?:the\s+)?v?{ver}\s+(migration|architecture|release|baseline|series|line|model|contract|layer|restructuring)\b')
+          generic=re.compile(rf'(?i)\b(?:current\s+)?(?:library\s+)?(?:release|version)\s*:?[ \t]*v?{ver}\b')
+          deleted_ref=re.compile(r'(?i)(?:CHANGELOG(?:[-_][^\s)\]]*)?\.md|DEPENDENCY_BOUNDARIES\.md|OPTIMISATIONS\.md|PLATFORM_ABSTRACTIONS\.md|SECURITY_INTEGRATION\.md|(?:^|[/`])wiki/[^\s)`\]]*)')
+          tagurl=re.compile(rf'(?i)(https?://github\.com/ESPressio-Development-Platform/[^/\s)\]]+)/(?:releases/tag|tree|blob)/(?:v?{ver})(?=[/\s)\]]|$)')
+          protected=re.compile(rf'(?i)\b(?:Arduino-ESP32|ESP-IDF|Lua|FreeRTOS|GCC|Clang|Python|OpenSSL|mbedTLS|NimBLE)\s+(?:v(?:ersion)?\s*)?{ver}\b|\b(?:protocol|schema|wire|format|serialization|envelope)\s+version\s*:?[ \t]*{ver}\b')
+
+          def clean(s):
+              keep=[]
+              def hold(m): keep.append(m.group(0)); return f'@@KEEP{len(keep)-1}@@'
+              s=protected.sub(hold,s)
+              s=tagurl.sub(lambda m:m.group(1)+'/tree/primitives_redesign',s)
+              s=libver.sub(lambda m:m.group(1),s)
+              s=histverb.sub(lambda m:m.group(1),s)
+              s=histadj.sub(lambda m:m.group(1),s)
+              s=since.sub('',s)
+              s=vernoun.sub(lambda m:m.group(1),s)
+              if re.search(r'(?i)ESPressio|\b'+libs+r'\b',s): s=generic.sub(lambda m:m.group(0).split(':')[0].split()[0],s)
+              s=re.sub(r'\b1\.0\.0\b','',s)
+              for i,v in enumerate(keep): s=s.replace(f'@@KEEP{i}@@',v)
+              s=re.sub(r'\b(?:for|at|in|from|since|as of)\s+([,.;:])',r'\1',s,flags=re.I)
+              s=re.sub(r'\s+([,.;:])',r'\1',s)
+              s=re.sub(r'\b(the|for|in|at|from|since) {2,}',r'\1 ',s,flags=re.I)
+              return s
+
+          docs={'.md','.markdown','.rst','.adoc','.svg','.html','.htm','.txt'}
+          cstyle={'.h','.hh','.hpp','.hxx','.c','.cc','.cpp','.cxx','.ipp','.tpp','.ino','.js','.ts'}
+          hashstyle={'.py','.sh','.bash','.zsh','.cmake','.yml','.yaml','.toml','.ini'}
+
+          def clean_c_comments(old):
+              out=[];i=0;block=False;q=None
+              while i<len(old):
+                  if block:
+                      j=old.find('*/',i)
+                      if j<0: out.append(clean(old[i:])); break
+                      out.append(clean(old[i:j]));out.append('*/');i=j+2;block=False;continue
+                  c=old[i]
+                  if q:
+                      out.append(c)
+                      if c=='\\' and i+1<len(old):out.append(old[i+1]);i+=2;continue
+                      if c==q:q=None
+                      i+=1;continue
+                  if c in {'"',"'"}:q=c;out.append(c);i+=1;continue
+                  if old.startswith('//',i):
+                      j=old.find('\n',i);j=len(old) if j<0 else j;out.append('//'+clean(old[i+2:j]));i=j;continue
+                  if old.startswith('/*',i):out.append('/*');i+=2;block=True;continue
+                  out.append(c);i+=1
+              return ''.join(out)
+
+          def clean_hash_comments(old):
+              out=[]
+              for line in old.splitlines(keepends=True):
+                  nl='\n' if line.endswith('\n') else ''; body=line[:-1] if nl else line
+                  q=None;esc=False;idx=None
+                  for i,c in enumerate(body):
+                      if esc:esc=False;continue
+                      if c=='\\' and q:esc=True;continue
+                      if c in {'"',"'"}:q=None if q==c else (c if q is None else q);continue
+                      if c=='#' and q is None:idx=i;break
+                  if idx is not None:body=body[:idx+1]+clean(body[idx+1:])
+                  out.append(body+nl)
+              return ''.join(out)
+
+          for p in sorted(root.rglob('*')):
+              if not p.is_file() or '.git' in p.parts or p==caller:continue
+              ext=p.suffix.lower()
+              if p.name=='CMakeLists.txt':continue
+              if ext in docs:
+                  try:old=p.read_text(encoding='utf-8')
+                  except UnicodeDecodeError:continue
+                  out=[]
+                  for line in old.splitlines(keepends=True):
+                      nl='\n' if line.endswith('\n') else '';body=line[:-1] if nl else line
+                      if deleted_ref.search(body):continue
+                      if re.match(r'^#{1,6}\s+(?:(?:Release|Version)\s+)?v?'+ver+r'\s*$',body,re.I):continue
+                      if re.match(r'^#{1,6}\s+(?:Changelog|Release History|Version History)\s*$',body,re.I):continue
+                      # In SVGs only text-node content is scrubbed; numeric drawing attributes remain untouched.
+                      if ext=='.svg':
+                          body=re.sub(r'(<(?:text|tspan)\b[^>]*>)(.*?)(</(?:text|tspan)>)',lambda m:m.group(1)+clean(m.group(2))+m.group(3),body,flags=re.I)
+                      else:body=clean(body)
+                      if body!=line.rstrip('\n'):body=body.rstrip()
+                      out.append(body+nl)
+                  new=''.join(out)
+                  if new!=old:p.write_text(new.rstrip('\n')+'\n',encoding='utf-8')
+              elif ext in cstyle:
+                  try:old=p.read_text(encoding='utf-8')
+                  except UnicodeDecodeError:continue
+                  new=clean_c_comments(old)
+                  if new!=old:p.write_text(new,encoding='utf-8')
+              elif ext in hashstyle:
+                  try:old=p.read_text(encoding='utf-8')
+                  except UnicodeDecodeError:continue
+                  new=clean_hash_comments(old)
+                  if new!=old:p.write_text(new,encoding='utf-8')
+
+          if caller.exists():caller.unlink()
+      - name: Verify and commit
+        shell: python
+        run: |
+          import pathlib,re,subprocess,sys
+          r=pathlib.Path('.');bad=[]
+          named={'dependency_boundaries.md','optimisations.md','platform_abstractions.md','security_integration.md'}
+          for p in r.iterdir():
+              if p.is_file() and (p.name.lower() in named or (p.name.lower().startswith('changelog') and p.suffix.lower()=='.md')):bad.append(str(p))
+              if p.is_dir() and p.name.lower()=='wiki':bad.append(str(p))
+          for p in r.rglob('*'):
+              if p.is_file() and p.suffix.lower()=='.md':
+                  n=p.name.lower()
+                  if n.startswith('changelog') or n.startswith('release_notes') or n.startswith('release-notes') or re.match(r'release[_-]\d',n):bad.append(str(p))
+          ver=r'\d+\.(?:\d+|x)(?:\.(?:\d+|x))?(?:[-+][0-9A-Za-z.-]+)?';libs=r'(?:Command|ESP-Now|ESP32|Event|Logging|MeshAdapters|Mesh|NRF24|Observable|Persistence|Primitive|Radio|Security|Serial|Serializable|Sockets|State|System|Task|Threads|Timing|Units|Web|WiFi)'
+          suspect=re.compile(rf'(?i)(?:\b(?:ESPressio[- ]?)?{libs}\s+(?:v(?:ersion)?\s*)?(?:[<>=~^]+\s*)?{ver}|\b(?:old|legacy|prior|previous|historical)\s+(?:release\s+|version\s+)?v?{ver}|\b(?:introduced|added|changed|fixed|removed|updated|corrected|released|implemented|established|raised|lowered|migrated)\s+(?:back\s+)?in\s+(?:release\s+|version\s+)?v?{ver}|\b(?:since|as of)\s+(?:release\s+|version\s+)?v?{ver}|\b1\.0\.0\b)')
+          docs={'.md','.markdown','.rst','.adoc','.html','.htm','.txt'};code={'.h','.hh','.hpp','.hxx','.c','.cc','.cpp','.cxx','.ipp','.tpp','.ino','.js','.ts'}
+          def comments(t):
+              z=[];i=0;b=False;q=None
+              while i<len(t):
+                  if b:
+                      j=t.find('*/',i)
+                      if j<0:z.append(t[i:]);break
+                      z.append(t[i:j]);i=j+2;b=False;continue
+                  c=t[i]
+                  if q:
+                      if c=='\\' and i+1<len(t):i+=2;continue
+                      if c==q:q=None
+                      i+=1;continue
+                  if c in {'"',"'"}:q=c;i+=1;continue
+                  if t.startswith('//',i):j=t.find('\n',i);j=len(t) if j<0 else j;z.append(t[i+2:j]);i=j;continue
+                  if t.startswith('/*',i):b=True;i+=2;continue
+                  i+=1
+              return '\n'.join(z)
+          protected=re.compile(rf'(?i)\b(?:Arduino-ESP32|ESP-IDF|Lua|FreeRTOS|GCC|Clang|Python|OpenSSL|mbedTLS|NimBLE)\s+(?:v(?:ersion)?\s*)?{ver}\b|\b(?:protocol|schema|wire|format|serialization|envelope)\s+version\s*:?[ \t]*{ver}\b')
+          for p in r.rglob('*'):
+              if not p.is_file() or '.git' in p.parts or p.name=='CMakeLists.txt' or p.suffix.lower() not in docs|code:continue
+              try:t=p.read_text(encoding='utf-8')
+              except UnicodeDecodeError:continue
+              scan=t if p.suffix.lower() in docs else comments(t)
+              scan=protected.sub('',scan)
+              for n,line in enumerate(scan.splitlines(),1):
+                  if suspect.search(line):bad.append(f'{p}:{n}:{line}')
+          if bad:print('\n'.join(bad));sys.exit(1)
+          subprocess.run(['git','config','user.name','github-actions[bot]'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','add','-A'],check=True)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          if subprocess.run(['git','diff','--cached','--quiet']).returncode==0:sys.exit(0)
+          subprocess.run(['git','commit','-m','chore: flatten historical release references'],check=True)
+          subprocess.run(['git','push','origin','HEAD:primitives_redesign'],check=True)

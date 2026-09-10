@@ -1,0 +1,56 @@
+name: Temporary Public Release Reference Audit
+on:
+  push:
+    branches: [primitives_redesign]
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Audit public primitives_redesign branches
+        shell: python
+        run: |
+          import pathlib,re,subprocess,sys
+          repos='System Task Command ESP32 Event MeshAdapters NRF24 Primitive Radio Security State Timing Mesh Logging Observable Persistence Serial Serializable Sockets Threads Units Web WiFi'.split()
+          v=re.compile(r'(?<![\w.])(?:v\s*)?\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?',re.I)
+          release_words=re.compile(r'(?i)\b(?:release|released|version|versions|baseline|generation|cascade|compatib|introduced|added|changed|fixed|removed|updated|corrected|implemented|established|raised|lowered|migrated|old|legacy|prior|previous|historical|since|as of|requires?|minimum)\b')
+          esp=re.compile(r'(?i)\b(?:ESPressio|Command|ESP-Now|ESP32|Event|Logging|MeshAdapters|Mesh|NRF24|Observable|Persistence|Primitive|Radio|Security|Serial|Serializable|Sockets|State|System|Task|Threads|Timing|Units|Web|WiFi)\b')
+          exempt=re.compile(r'(?i)(?:Apache License\s+2\.0|Arduino-ESP32|ESP-IDF|Lua|FreeRTOS|GCC|Clang|Python|OpenSSL|mbedTLS|NimBLE|C\+\+\d+|protocol(?:-v|\s+v|\s+version)|schema\s+version|wire\s+version|format\s+version|serialization\s+version|envelope\s+version|payload\s+limit|\b\d+\.\d+f\b)')
+          docs={'.md','.markdown','.rst','.adoc','.html','.htm','.txt'}
+          code={'.h','.hh','.hpp','.hxx','.c','.cc','.cpp','.cxx','.ipp','.tpp','.ino','.js','.ts'}
+          bad=[]
+          def comments(t):
+              z=[];i=0;b=False;q=None
+              while i<len(t):
+                  if b:
+                      j=t.find('*/',i)
+                      if j<0:z.append(t[i:]);break
+                      z.append(t[i:j]);i=j+2;b=False;continue
+                  c=t[i]
+                  if q:
+                      if c=='\\' and i+1<len(t):i+=2;continue
+                      if c==q:q=None
+                      i+=1;continue
+                  if c in {'"',"'"}:q=c;i+=1;continue
+                  if t.startswith('//',i):
+                      j=t.find('\n',i);j=len(t) if j<0 else j;z.append(t[i+2:j]);i=j;continue
+                  if t.startswith('/*',i):b=True;i+=2;continue
+                  i+=1
+              return '\n'.join(z)
+          for short in repos:
+              repo='ESPressio-'+short
+              subprocess.run(['git','clone','--quiet','--depth','1','--branch','primitives_redesign',f'https://github.com/ESPressio-Development-Platform/{repo}.git',repo],check=True)
+              root=pathlib.Path(repo)
+              for p in root.rglob('*'):
+                  if not p.is_file() or '.git' in p.parts or p.name=='CMakeLists.txt' or p.suffix.lower() not in docs|code:continue
+                  try:t=p.read_text(encoding='utf-8')
+                  except UnicodeDecodeError:continue
+                  scan=t if p.suffix.lower() in docs else comments(t)
+                  for n,line in enumerate(scan.splitlines(),1):
+                      if not v.search(line):continue
+                      stripped=exempt.sub('',line)
+                      if not v.search(stripped):continue
+                      if esp.search(stripped) or release_words.search(stripped):bad.append(f'{repo}/{p.relative_to(root)}:{n}:{line}')
+          if bad:
+              print('\n'.join(bad));sys.exit(1)
+          print('All public repositories are free of detected historical release-version references.')

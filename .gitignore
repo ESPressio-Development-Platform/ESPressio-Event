@@ -188,7 +188,7 @@ publish/
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
-# checkin your Azure Web App publish settings, but sensitive information contained
+# checkin your web deploy settings, but sensitive information contained
 # in these scripts will be unencrypted
 PublishScripts/
 
@@ -397,8 +397,40 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-# Mac
-.DS_Store
-
 # VisualStudioCode
 .vscode
+
+# Cross-platform filesystem metadata
+# macOS
+*.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100/
+.Trashes/
+.fseventsd/
+.DocumentRevisions-V100/
+.TemporaryItems/
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder/
+Temporary Items/
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+System Volume Information/
+*.stackdump
+
+# Linux / freedesktop
+.directory
+.Trash-*/
+.nfs*
+.fuse_hidden*

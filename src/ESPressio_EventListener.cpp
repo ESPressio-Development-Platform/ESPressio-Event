@@ -1,7 +1,7 @@
 #include "ESPressio_EventListener.hpp"
 
 /*
- * ESPressio Event 5.0.1
+ * ESPressio Event
  *
  * EventListener template members are defined in ESPressio_EventListener.hpp.
  * The old 5.0.0 out-of-line template definitions were stale and did not match

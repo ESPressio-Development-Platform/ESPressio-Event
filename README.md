@@ -6,9 +6,9 @@ The stable ESPressio primitive family for transported Event occurrences is `Even
 
 ESPressio Event provides the asynchronous counterpart to ESPressio Observable: producers dispatch strongly typed occurrence contracts without knowing which consumers exist, while listeners process those Events independently on Event-aware Threads.
 
-## 1.0.0 baseline
+## baseline
 
-The structural-realignment branch is the source of truth for the platform-wide 1.0.0 baseline. Historical Event releases and transport contracts are not compatibility targets for this tranche.
+The structural-realignment branch is the source of truth for the platform-wide baseline. Historical Event releases and transport contracts are not compatibility targets for this tranche.
 
 # Why Event-Driven Development?
 
@@ -64,14 +64,14 @@ Every concrete locally routable Event provides a compiler-backed `EventTypeKey`.
 ```cpp
 #include <ESPressio_Event.hpp>
 
-class TemperatureChangedEvent final :
+class TemperatureChangedEvent final:
     public ESPressio::Event::TypedEvent<TemperatureChangedEvent> {
 private:
     const float _previous;
     const float _current;
 
 public:
-    TemperatureChangedEvent(float previous, float current) :
+    TemperatureChangedEvent(float previous, float current):
         _previous(previous),
         _current(current) {}
 
@@ -104,7 +104,7 @@ Once dispatched, application code should treat an Event as immutable and should 
 
 Transport provenance is deliberately not stored on the Event object. `EventDispatchContext` accompanies a queued reference through EventManager, EventDispatcher, EventThread/PrecisionEventThread, listeners and observers.
 
-For the 1.0.0 Event layer the context contains only transport-independent provenance:
+For the  Event layer the context contains only transport-independent provenance:
 
 ```cpp
 Event::EventOrigin::Local
@@ -141,9 +141,9 @@ Listener registration/unregistration is safe during dispatch. Listener storage u
 Event-aware Threads use the explicit Threads ownership policy. Boolean `freeOnTerminate` constructors are not supported.
 
 ```cpp
-class WorkerThread final : public Event::EventThread {
+class WorkerThread final: public Event::EventThread {
 public:
-    WorkerThread() :
+    WorkerThread():
         Event::EventThread(
             Threads::ThreadReleasePolicy::ExplicitRelease
         ) {}
@@ -163,14 +163,14 @@ This keeps lifecycle ownership explicit throughout the ESPressio stack.
 `PrecisionEventThread` combines periodic deterministic work with Event reception. Its construction is also policy-based:
 
 ```cpp
-class SetpointEvent final :
+class SetpointEvent final:
     public Event::TypedEvent<SetpointEvent> {
 public:
     const int Setpoint;
-    explicit SetpointEvent(int value) : Setpoint(value) {}
+    explicit SetpointEvent(int value): Setpoint(value) {}
 };
 
-class ControlThread final : public Event::PrecisionEventThread<> {
+class ControlThread final: public Event::PrecisionEventThread<> {
 private:
     int _setpoint = 0;
 
@@ -184,7 +184,7 @@ protected:
     }
 
 public:
-    ControlThread() :
+    ControlThread():
         Event::PrecisionEventThread<>(
             Threads::ThreadReleasePolicy::ExplicitRelease
         ) {}
@@ -233,14 +233,14 @@ Serializable support is optional. Local-only Events do not require ESPressio Ser
 A Serializable Event automatically participates in typed local Event identity:
 
 ```cpp
-class OperatorCommandEvent final :
+class OperatorCommandEvent final:
     public Event::SerializableEvent<OperatorCommandEvent> {
 public:
     // serializable members/schema
 };
 ```
 
-Event Transport uses the bounded EVTT envelope plus the ESPressio Serializable binary payload representation. The structural realignment intentionally advances the EVTT envelope to version 2 and removes hop-count semantics from that envelope. Historical envelope compatibility is not preserved for the 1.0.0 restructuring.
+Event Transport uses the bounded EVTT envelope plus the ESPressio Serializable binary payload representation. The structural realignment intentionally advances the EVTT envelope to version 2 and removes hop-count semantics from that envelope. Historical envelope compatibility is not preserved for restructuring.
 
 Every transported Event contract declares its explicit stable non-zero 64-bit `EventTypeId`; the accompanying name is diagnostic and is not hashed into identity. Outbound conceptual occurrences use a non-wrapping `EventMessageId` sequence scoped externally by authenticated source identity plus source incarnation. The same occurrence identifier is retained across serialization, transport fan-out, retries and Mesh delivery integration.
 
@@ -251,7 +251,7 @@ The Serializable Event registry can be inspected without compile-time knowledge 
 ```cpp
 auto& manager = Event::EventTransportManager::GetInstance();
 
-for (const auto& descriptor :
+for (const auto& descriptor:
      manager.GetRegisteredSerializableEvents()) {
     // descriptor.TypeID
     // descriptor.TypeName
@@ -383,7 +383,3 @@ ESPressio Event targets ESP32-family microcontrollers using Arduino-ESP32 and C+
 # License
 
 Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
-
-# Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for the current 1.0.0 restructuring history.

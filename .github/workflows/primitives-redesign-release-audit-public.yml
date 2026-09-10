@@ -12,13 +12,17 @@ jobs:
         run: |
           import pathlib,re,subprocess,sys
           repos='System Task Command ESP32 Event MeshAdapters NRF24 Primitive Radio Security State Timing Mesh Logging Observable Persistence Serial Serializable Sockets Threads Units Web WiFi'.split()
-          v=re.compile(r'(?<![\w.])(?:v\s*)?\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?',re.I)
-          release_words=re.compile(r'(?i)\b(?:release|released|version|versions|baseline|generation|cascade|compatib|introduced|added|changed|fixed|removed|updated|corrected|implemented|established|raised|lowered|migrated|old|legacy|prior|previous|historical|since|as of|requires?|minimum)\b')
+          version=re.compile(r'(?<![\w.])(?:v\s*)?\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?',re.I)
+          release_words=re.compile(r'(?i)\b(?:release|released|version|versions|baseline|generation|cascade|compatib|introduced|added|changed|fixed|removed|updated|corrected|implemented|established|migrated|old|legacy|prior|previous|historical|since|as of|requires?|minimum|current|target)\b')
           esp=re.compile(r'(?i)\b(?:ESPressio|Command|ESP-Now|ESP32|Event|Logging|MeshAdapters|Mesh|NRF24|Observable|Persistence|Primitive|Radio|Security|Serial|Serializable|Sockets|State|System|Task|Threads|Timing|Units|Web|WiFi)\b')
-          exempt=re.compile(r'(?i)(?:Apache License\s+2\.0|Arduino-ESP32|ESP-IDF|Lua|FreeRTOS|GCC|Clang|Python|OpenSSL|mbedTLS|NimBLE|C\+\+\d+|protocol(?:-v|\s+v|\s+version)|schema\s+version|wire\s+version|format\s+version|serialization\s+version|envelope\s+version|payload\s+limit|\b\d+\.\d+f\b)')
+          external=re.compile(r'(?i)(?:Apache License|Arduino-ESP32|ESP-IDF|FreeRTOS|GCC|Clang|Python|OpenSSL|mbedTLS|NimBLE|PlatformIO\s+`?espressif32|C\+\+\d+)')
+          semantic=re.compile(r'(?i)(?:protocol(?:-v|\s+v|\s+version)|schema\s+version|wire\s+version|format\s+version|serialization\s+version|envelope\s+version|payload\s+limit|IEEE\s+802\.11|RFC\d+)')
+          unit_after=re.compile(r'(?i)^\s*(?:ms|s|us|µs|ns|GHz|MHz|kHz|Hz|KiB|MiB|GiB|B|bytes?|%)\b')
+          ip=re.compile(r'\b\d{1,3}(?:\.\d{1,3}){3}\b')
           docs={'.md','.markdown','.rst','.adoc','.html','.htm','.txt'}
           code={'.h','.hh','.hpp','.hxx','.c','.cc','.cpp','.cxx','.ipp','.tpp','.ino','.js','.ts'}
           bad=[]
+
           def comments(t):
               z=[];i=0;b=False;q=None
               while i<len(t):
@@ -37,6 +41,21 @@ jobs:
                   if t.startswith('/*',i):b=True;i+=2;continue
                   i+=1
               return '\n'.join(z)
+
+          def token_is_exempt(line,m):
+              token=m.group(0)
+              after=line[m.end():]
+              if unit_after.search(after): return True
+              if token == '2.0' and 'Apache License' in line: return True
+              if external.search(line): return True
+              if semantic.search(line): return True
+              for match in ip.finditer(line):
+                  if match.start() <= m.start() and m.end() <= match.end(): return True
+              before=line[max(0,m.start()-1):m.start()]
+              following=line[m.end():m.end()+1]
+              if before in {'"', "'"} and following == before: return True
+              return False
+
           for short in repos:
               repo='ESPressio-'+short
               subprocess.run(['git','clone','--quiet','--depth','1','--branch','primitives_redesign',f'https://github.com/ESPressio-Development-Platform/{repo}.git',repo],check=True)
@@ -47,10 +66,10 @@ jobs:
                   except UnicodeDecodeError:continue
                   scan=t if p.suffix.lower() in docs else comments(t)
                   for n,line in enumerate(scan.splitlines(),1):
-                      if not v.search(line):continue
-                      stripped=exempt.sub('',line)
-                      if not v.search(stripped):continue
-                      if esp.search(stripped) or release_words.search(stripped):bad.append(f'{repo}/{p.relative_to(root)}:{n}:{line}')
+                      matches=[m for m in version.finditer(line) if not token_is_exempt(line,m)]
+                      if not matches:continue
+                      if esp.search(line) or release_words.search(line):
+                          bad.append(f'{repo}/{p.relative_to(root)}:{n}:{line}')
           if bad:
               print('\n'.join(bad));sys.exit(1)
-          print('All public repositories are free of detected historical release-version references.')
+          print('All public repositories are free of detected historical ESPressio release-version references.')

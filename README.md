@@ -104,7 +104,7 @@ Once dispatched, application code should treat an Event as immutable and should 
 
 Transport provenance is deliberately not stored on the Event object. `EventDispatchContext` accompanies a queued reference through EventManager, EventDispatcher, EventThread/PrecisionEventThread, listeners and observers.
 
-For the  Event layer the context contains only transport-independent provenance:
+For the Event layer the context contains only transport-independent provenance:
 
 ```cpp
 Event::EventOrigin::Local

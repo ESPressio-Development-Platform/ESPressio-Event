@@ -78,35 +78,7 @@ namespace ESPressio::Event {
 /// packet ownership to physical transports. Inbound physical packets enter as owned buffers and are deserialized before
 /// being submitted to EventManager with Remote dispatch provenance.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 424 bytes [Thread: _taskExited: owned object: 4 bytes; Thread: _taskStartGate: owned object: 4 bytes; Thread: _taskConfigurationMutex: _owned: owned object: 4 bytes; Thread: _taskConfigurationMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _stateTransitionMutex: _owned: owned object: 4 bytes; Thread: _stateTransitionMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _lifecycleObservable: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 96 bytes; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: enable_shared_from_this: embedded weak_ptr shares a control block when activated; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 20 bytes; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: pointee: _mutex: native synchronization state may allocate platform resources lazily; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: pointee: _condition: native condition-variable state may allocate platform synchronization resources; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: _registrations: Capacity * (12 bytes) element storage; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: _bindings: Capacity * (12 bytes) element storage; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: _mutex: _owned: owned object: 4 bytes; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: _mutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: _notificationMutex: _owned: owned object: 4 bytes; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: _notificationMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _callbackMutex: _owned: owned object: 4 bytes; Thread: _callbackMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _onDestroy: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onInitialize: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onStart: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onPause: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onTerminate: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onTerminated: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onInitializationFailed: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onExecutionFailed: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onStateChange: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventReceiver: _eventsMutex: _owned: owned object: 4 bytes; EventReceiver: _eventsMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; EventReceiver: _capacityAvailable: owned object: 4 bytes; EventReceiver: _priorityQueues: 3 elements each: Capacity * (16 bytes) element storage; EventReceiver: _priorityStacks: 3 elements each: Capacity * (16 bytes) element storage]
- * Requires Stack/Heap Preallocation
- * Members:
- * - _mutex (System::Synchronization::Mutex): 20 bytes [_owned: owned object: 4 bytes; _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * - _registrations (RegistrationMap): 32 bytes [BucketCount * 4 bytes + N * (hash-node/link overhead + 24 bytes value); key/value: Runtime: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 36 bytes; key/value: Runtime: pointee: Properties: Capacity * (64 bytes) element storage; key/value: Runtime: pointee: Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; key/value: Runtime: pointee: Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; key/value: Runtime: pointee: Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; key/value: Runtime: pointee: Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * - _runtimeTypes (RuntimeTypeMap): 32 bytes [BucketCount * 4 bytes + N * (hash-node/link overhead + 12 bytes value)]
- * - _transports (TransportVector): 4 bytes [0 bytes dynamic allocation]
- * - _subscriptions (SubscriptionVector): 12 bytes [Capacity * (4 bytes) element storage]
- * - _inbound (InboundQueue): 44 bytes [implementation blocks containing N * (36 bytes) plus block-map pointers; N elements each: Runtime: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 36 bytes; N elements each: Runtime: pointee: Properties: Capacity * (64 bytes) element storage; N elements each: Runtime: pointee: Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; N elements each: Runtime: pointee: Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; N elements each: Runtime: pointee: Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; N elements each: Runtime: pointee: Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO; N elements each: Packet: _buffer: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 16 bytes; N elements each: Packet: _buffer: pointee: Capacity * (1 bytes) element storage]
- * - _workSignal (std::unique_ptr<System::Synchronization::ISignal>): 4 bytes [owned object: 4 bytes]
- * - _observable (std::shared_ptr<EventTransportManagerObservable>): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 96 bytes; pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: enable_shared_from_this: embedded weak_ptr shares a control block when activated; pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 20 bytes; pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: pointee: _mutex: native synchronization state may allocate platform resources lazily; pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: pointee: _condition: native condition-variable state may allocate platform synchronization resources; pointee: ThreadSafeObservable: Observable: _registrations: Capacity * (12 bytes) element storage; pointee: ThreadSafeObservable: Observable: _bindings: Capacity * (12 bytes) element storage; pointee: ThreadSafeObservable: _mutex: _owned: owned object: 4 bytes; pointee: ThreadSafeObservable: _mutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; pointee: ThreadSafeObservable: _notificationMutex: _owned: owned object: 4 bytes; pointee: ThreadSafeObservable: _notificationMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * - _messageIds (Primitive::ConceptualMessageIdGenerator): 8 bytes [0 bytes dynamic allocation]
- * - _rejectedInboundCount (std::atomic<uint64_t>): 8 bytes [0 bytes dynamic allocation]
- * - _processedInboundCount (std::atomic<uint64_t>): 8 bytes [0 bytes dynamic allocation]
- * - _processedOutboundCount (std::atomic<uint64_t>): 8 bytes [0 bytes dynamic allocation]
- * - _rejectedOutboundWorkCount (std::atomic<uint64_t>): 8 bytes [0 bytes dynamic allocation]
- * - _peakInboundCount (std::atomic<std::size_t>): 4 bytes [0 bytes dynamic allocation]
- * - _outboundExecutor (Task::TaskExecutor<OutboundWork>): 160 bytes [_handler: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _handler: LastId: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _queue: owned object: 4 bytes; _startGate: owned object: 4 bytes; _lifecycleMutex: _owned: owned object: 4 bytes; _lifecycleMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * - _outboundTargets (TransportVector): 4 bytes [0 bytes dynamic allocation]
- * - _outboundExecutorInitialized (std::atomic<bool>): 1 bytes [0 bytes dynamic allocation]
- * - _outboundExecutorReady (std::atomic<bool>): 1 bytes [0 bytes dynamic allocation]
- * - _initialized (std::atomic<bool>): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 792 bytes [Thread: _taskExited: owned object: 4 bytes; Thread: _taskStartGate: owned object: 4 bytes; Thread: _taskConfigurationMutex: _owned: owned object: 4 bytes; Thread: _taskConfigurationMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _stateTransitionMutex: _owned: owned object: 4 bytes; Thread: _stateTransitionMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _lifecycleObservable: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 96 bytes; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: enable_shared_from_this: embedded weak_ptr shares a control block when activated; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 20 bytes; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: pointee: _mutex: native synchronization state may allocate platform resources lazily; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: pointee: _condition: native condition-variable state may allocate platform synchronization resources; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: _registrations: Capacity * (12 bytes) element storage; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: Observable: _bindings: Capacity * (12 bytes) element storage; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: _mutex: _owned: owned object: 4 bytes; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: _mutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: _notificationMutex: _owned: owned object: 4 bytes; Thread: _lifecycleObservable: pointee: ThreadSafeObservable: _notificationMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _callbackMutex: _owned: owned object: 4 bytes; Thread: _callbackMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; Thread: _onDestroy: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onInitialize: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onStart: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onPause: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onTerminate: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onTerminated: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onInitializationFailed: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onExecutionFailed: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; Thread: _onStateChange: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventReceiver: _eventsMutex: _owned: owned object: 4 bytes; EventReceiver: _eventsMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; EventReceiver: _capacityAvailable: owned object: 4 bytes; EventReceiver: _priorityQueues: 3 elements each: Capacity * (16 bytes) element storage; EventReceiver: _priorityStacks: 3 elements each: Capacity * (16 bytes) element storage; _mutex: _owned: owned object: 4 bytes; _mutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; _registrations: BucketCount * 4 bytes + N * (hash-node/link overhead + 24 bytes value); _registrations: key/value: Runtime: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 36 bytes; _registrations: key/value: Runtime: pointee: Properties: Capacity * (64 bytes) element storage; _registrations: key/value: Runtime: pointee: Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _registrations: key/value: Runtime: pointee: Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; _registrations: key/value: Runtime: pointee: Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _registrations: key/value: Runtime: pointee: Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _runtimeTypes: BucketCount * 4 bytes + N * (hash-node/link overhead + 12 bytes value); _subscriptions: Capacity * (4 bytes) element storage; _inbound: implementation blocks containing N * (36 bytes) plus block-map pointers; _inbound: N elements each: Runtime: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 36 bytes; _inbound: N elements each: Runtime: pointee: Properties: Capacity * (64 bytes) element storage; _inbound: N elements each: Runtime: pointee: Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _inbound: N elements each: Runtime: pointee: Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; _inbound: N elements each: Runtime: pointee: Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _inbound: N elements each: Runtime: pointee: Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _inbound: N elements each: Packet: _buffer: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 16 bytes; _inbound: N elements each: Packet: _buffer: pointee: Capacity * (1 bytes) element storage; _workSignal: owned object: 4 bytes; _observable: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 96 bytes; _observable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: enable_shared_from_this: embedded weak_ptr shares a control block when activated; _observable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 20 bytes; _observable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: pointee: _mutex: native synchronization state may allocate platform resources lazily; _observable: pointee: ThreadSafeObservable: Observable: IUntypedObservable: IObservable: _lifetimeControl: pointee: _condition: native condition-variable state may allocate platform synchronization resources; _observable: pointee: ThreadSafeObservable: Observable: _registrations: Capacity * (12 bytes) element storage; _observable: pointee: ThreadSafeObservable: Observable: _bindings: Capacity * (12 bytes) element storage; _observable: pointee: ThreadSafeObservable: _mutex: _owned: owned object: 4 bytes; _observable: pointee: ThreadSafeObservable: _mutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; _observable: pointee: ThreadSafeObservable: _notificationMutex: _owned: owned object: 4 bytes; _observable: pointee: ThreadSafeObservable: _notificationMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily; _outboundExecutor: _handler: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _outboundExecutor: _handler: LastId: Capacity + 1 bytes when capacity exceeds 15-byte SSO; _outboundExecutor: _queue: owned object: 4 bytes; _outboundExecutor: _startGate: owned object: 4 bytes; _outboundExecutor: _lifecycleMutex: _owned: owned object: 4 bytes; _outboundExecutor: _lifecycleMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class EventTransportManager final :
     public Threads::Thread,
     public EventReceiver,
@@ -120,19 +92,7 @@ private:
         ExternalPreferred
     >;
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - EventType (EventTypeKey): 4 bytes [0 bytes dynamic allocation]
- * - TypeID (EventTypeId): 8 bytes [0 bytes dynamic allocation]
- * - TypeName (std::string_view): 8 bytes [0 bytes dynamic allocation]
- * - SchemaVersion (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - Properties (RuntimePropertyVector): 12 bytes [Capacity * (64 bytes) element storage; N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; N live elements each: Aliases: Capacity * (24 bytes) element storage; N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Total Memory: 36 bytes [Properties: Capacity * (64 bytes) element storage; Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct RuntimeRegistration {
         EventTypeKey EventType = nullptr;
         EventTypeId TypeID = 0;
@@ -149,17 +109,7 @@ struct RuntimeRegistration {
 
     using RuntimeRegistrationPtr = std::shared_ptr<const RuntimeRegistration>;
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Runtime (RuntimeRegistrationPtr): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 36 bytes; pointee: Properties: Capacity * (64 bytes) element storage; pointee: Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; pointee: Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; pointee: Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; pointee: Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * - DefaultDirection (EventTransportDirection): 1 bytes [0 bytes dynamic allocation]
- * - TransportDirections (System::Memory::UnorderedMap<IEventTransport*, EventTransportDirection, ExternalPreferred>): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [Runtime: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 36 bytes; Runtime: pointee: Properties: Capacity * (64 bytes) element storage; Runtime: pointee: Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Runtime: pointee: Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; Runtime: pointee: Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Runtime: pointee: Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct Registration {
         RuntimeRegistrationPtr Runtime;
         EventTransportDirection DefaultDirection = EventTransportDirection::None;
@@ -197,18 +147,7 @@ struct Registration {
         }
     };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Transport (IEventTransport*): 4 bytes [0 bytes dynamic allocation]
- * - TypeID (EventTypeId): 8 bytes [0 bytes dynamic allocation]
- * - Runtime (RuntimeRegistrationPtr): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 36 bytes; pointee: Properties: Capacity * (64 bytes) element storage; pointee: Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; pointee: Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; pointee: Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; pointee: Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * - Packet (EventTransportPacket): 16 bytes [_buffer: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 16 bytes; _buffer: pointee: Capacity * (1 bytes) element storage]
- * Total Memory: 36 bytes [Runtime: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 36 bytes; Runtime: pointee: Properties: Capacity * (64 bytes) element storage; Runtime: pointee: Properties: N live elements each: Name: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Runtime: pointee: Properties: N live elements each: Aliases: Capacity * (24 bytes) element storage; Runtime: pointee: Properties: N live elements each: Aliases: N live elements each: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Runtime: pointee: Properties: N live elements each: Type: Capacity + 1 bytes when capacity exceeds 15-byte SSO; Packet: _buffer: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 16 bytes; Packet: _buffer: pointee: Capacity * (1 bytes) element storage]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct InboundWork {
         IEventTransport* Transport = nullptr;
         EventTypeId TypeID = 0;
@@ -216,17 +155,7 @@ struct InboundWork {
         EventTransportPacket Packet;
     };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Event (IEvent*): 4 bytes [0 bytes dynamic allocation]
- * - Method (EventDispatchMethod): 4 bytes [0 bytes dynamic allocation]
- * - Priority (EventPriority): 4 bytes [0 bytes dynamic allocation]
- * - Context (EventDispatchContext): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct OutboundWork {
         IEvent* Event = nullptr;
         EventDispatchMethod Method = EventDispatchMethod::Queue;
@@ -441,14 +370,7 @@ struct OutboundWork {
     }
 
     void ProcessOutboundWork(const OutboundWork& work) {
-/**
- * ESPressio Memory Audit
- * Members:
- * - _event (IEvent*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class EventReferenceGuard final {
         private:
             IEvent* _event = nullptr;

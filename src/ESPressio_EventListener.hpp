@@ -23,13 +23,7 @@
 namespace ESPressio {
 namespace Event {
 
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IEventListenerHandle {
 public:
     virtual ~IEventListenerHandle() = default;
@@ -39,13 +33,7 @@ public:
 
 using EventListenerHandlePtr = System::Memory::PolymorphicUniquePtr<IEventListenerHandle>;
 
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IEventListener {
 public:
     virtual ~IEventListener() = default;
@@ -142,17 +130,7 @@ protected:
     }
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _isRegistered (std::atomic<bool>): 1 bytes [0 bytes dynamic allocation]
- * - _eventType (EventTypeKey): 4 bytes [0 bytes dynamic allocation]
- * - _listener (IEventListener*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class EventListenerHandle final : public IEventListenerHandle {
 private:
     std::atomic<bool> _isRegistered{true};
@@ -184,19 +162,7 @@ public:
 
 /// <summary>Thread-safe listener registry that filters and invokes callbacks for matching Event types.</summary>
 /// <remarks>Registration bookkeeping is protected by a System recursive mutex, but application callbacks and custom-interest predicates execute outside that registry lock. Stable externally preferred shared callback ownership keeps in-flight callbacks valid while concurrent unregistration is deferred through processing depth. Dispatch provenance is supplied separately from the Event object.</remarks>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _listeners (ListenerStorage): 44 bytes [implementation blocks containing N * (40 bytes) plus block-map pointers; N elements each: Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; N elements each: CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
- * - _listenersMutex (System::Synchronization::RecursiveMutex): 20 bytes [_owned: owned object: 4 bytes; _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * - _processingDepth (std::size_t): 4 bytes [0 bytes dynamic allocation]
- * - _needsCompaction (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 76 bytes [_listeners: implementation blocks containing N * (40 bytes) plus block-map pointers; _listeners: N elements each: Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; _listeners: N elements each: CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; _listenersMutex: _owned: owned object: 4 bytes; _listenersMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class EventListener : public IEventListener {
 private:
     using EventCallback = std::function<void(IEvent*, EventDispatchMethod, EventPriority, const EventDispatchContext&)>;
@@ -205,21 +171,7 @@ private:
     using StableInterestCallback = std::shared_ptr<const InterestCallback>;
     static constexpr auto ExternalPreferred = System::Memory::MemoryPolicy::ExternalPreferred;
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - EventType (EventTypeKey): 4 bytes [0 bytes dynamic allocation]
- * - Handler (IEventListenerHandle*): 4 bytes [0 bytes dynamic allocation]
- * - Callback (StableEventCallback): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
- * - Interest (EventListenerInterest): 4 bytes [0 bytes dynamic allocation]
- * - MaximumTimeSinceDispatchNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - CustomInterest (StableInterestCallback): 8 bytes [shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
- * - Active (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 struct ListenerRecord {
         EventTypeKey EventType = nullptr;
         IEventListenerHandle* Handler = nullptr;

@@ -16,43 +16,17 @@ namespace Event {
 
 /// <summary>Default Event implementation providing intrusive lifetime, dispatch timing, and manager queueing.</summary>
 /// <typeparam name="TTime">Public time representation returned by typed dispatch-time accessors.</typeparam>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _dispatchStateGuard (std::atomic_flag): 1 bytes [0 bytes dynamic allocation]
- * - _dispatchState (DispatchState): 12 bytes [0 bytes dynamic allocation]
- * - _refCount (std::atomic<uint32_t>): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 24 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 template<typename TTime = Timing::DefaultClockTime>
 class Event : public IEvent {
 private:
-/**
- * ESPressio Memory Audit
- * Members:
- * - WasDispatched (bool): 1 bytes [0 bytes dynamic allocation]
- * - DispatchTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 12 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct DispatchState {
         bool WasDispatched = false;
         uint64_t DispatchTimeNanoseconds = 0;
     };
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - _flag (std::atomic_flag&): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class AtomicFlagGuard {
     private:
         std::atomic_flag& _flag;
@@ -170,14 +144,7 @@ public:
 /// <summary>CRTP Event base that supplies a stable RTTI-free local type identity for a concrete Event type.</summary>
 /// <typeparam name="TDerived">Concrete Event type whose identity is exposed.</typeparam>
 /// <typeparam name="TTime">Public time representation used by the Event.</typeparam>
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 24 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<
     typename TDerived,
     typename TTime = Timing::DefaultClockTime

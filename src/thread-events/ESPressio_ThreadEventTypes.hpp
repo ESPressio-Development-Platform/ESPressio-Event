@@ -15,15 +15,7 @@ using ThreadSnapshot = Threads::ThreadManagerThreadSnapshot;
 using ThreadCleanupResult = Threads::ThreadManagerCleanupResult;
 using ThreadInitializationResult = Threads::ThreadManagerInitializationResult;
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Snapshot (ThreadSnapshot): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class ThreadRegisteredEvent final :
     public TypedEvent<ThreadRegisteredEvent> {
 public:
@@ -32,17 +24,7 @@ public:
         : Snapshot(snapshot) {}
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - ThreadAddress (uintptr_t): 4 bytes [0 bytes dynamic allocation]
- * - Cause (std::exception_ptr): 4 bytes [referenced exception object/control storage is external]
- * Total Memory: 32 bytes [Cause: referenced exception object/control storage is external]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class ThreadRegistrationFailedEvent final :
     public TypedEvent<ThreadRegistrationFailedEvent> {
 public:
@@ -52,15 +34,7 @@ public:
         : ThreadAddress(threadAddress), Cause(cause) {}
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Snapshot (ThreadSnapshot): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class ThreadRemovedEvent final :
     public TypedEvent<ThreadRemovedEvent> {
 public:
@@ -69,15 +43,7 @@ public:
         : Snapshot(snapshot) {}
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Snapshot (ThreadSnapshot): 16 bytes [0 bytes dynamic allocation]
- * Total Memory: 40 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class ThreadCleanupClaimedEvent final :
     public TypedEvent<ThreadCleanupClaimedEvent> {
 public:
@@ -99,17 +65,7 @@ ESPRESSIO_DEFINE_THREAD_CLEANUP_EVENT(ThreadCleanupCompletedEvent)
 
 #undef ESPRESSIO_DEFINE_THREAD_CLEANUP_EVENT
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Result (ThreadCleanupResult): 32 bytes [0 bytes dynamic allocation]
- * - Cause (std::exception_ptr): 4 bytes [referenced exception object/control storage is external]
- * Total Memory: 60 bytes [Cause: referenced exception object/control storage is external]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class ThreadCleanupFailedEvent final :
     public TypedEvent<ThreadCleanupFailedEvent> {
 public:
@@ -121,15 +77,7 @@ public:
     ) : Result(result), Cause(cause) {}
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Result (ThreadInitializationResult): 2 bytes [0 bytes dynamic allocation]
- * Total Memory: 28 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class ThreadManagerInitializationCompletedEvent final :
     public TypedEvent<ThreadManagerInitializationCompletedEvent> {
 public:
@@ -139,15 +87,7 @@ public:
     ) : Result(result) {}
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Available (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 28 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class ThreadTerminationDispatcherInitializedEvent final :
     public TypedEvent<ThreadTerminationDispatcherInitializedEvent> {
 public:

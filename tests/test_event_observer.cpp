@@ -7,16 +7,7 @@
 
 using namespace ESPressio::Event;
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - _references (int): 4 bytes [0 bytes dynamic allocation]
- * - _ageNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TestEvent final : public IEvent {
     private:
         int _references = 1;
@@ -42,14 +33,7 @@ class TestEvent final : public IEvent {
         int References() const { return _references; }
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class OtherEvent final : public IEvent {
     public:
         void __ref() noexcept override {}
@@ -64,21 +48,7 @@ class OtherEvent final : public IEvent {
         uint64_t GetTimeSinceDispatchNanoseconds() const override { return 0; }
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 4 bytes [0 bytes dynamic allocation]
- * Members:
- * - calls (int): 4 bytes [0 bytes dynamic allocation]
- * - interested (bool): 1 bytes [0 bytes dynamic allocation]
- * - lastEvent (TestEvent*): 4 bytes [0 bytes dynamic allocation]
- * - lastMethod (EventDispatchMethod): 4 bytes [0 bytes dynamic allocation]
- * - lastPriority (EventPriority): 4 bytes [0 bytes dynamic allocation]
- * - lastOrigin (EventOrigin): 1 bytes [0 bytes dynamic allocation]
- * - unregisterOnEvent (IEventListenerHandle*): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TestObserver final : public IEventObserver<TestEvent> {
     public:
         int calls = 0;
@@ -110,16 +80,7 @@ class TestObserver final : public IEventObserver<TestEvent> {
         }
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 8 bytes [0 bytes dynamic allocation]
- * Members:
- * - testCalls (int): 4 bytes [0 bytes dynamic allocation]
- * - otherCalls (int): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 16 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class MultiEventObserver final :
     public IEventObserver<TestEvent>,
     public IEventObserver<OtherEvent> {
@@ -140,16 +101,7 @@ class MultiEventObserver final :
         }
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 76 bytes [EventListener: _listeners: implementation blocks containing N * (40 bytes) plus block-map pointers; EventListener: _listeners: N elements each: Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listeners: N elements each: CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listenersMutex: _owned: owned object: 4 bytes; EventListener: _listenersMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * Members:
- * - registrations (int): 4 bytes [0 bytes dynamic allocation]
- * - unregistrations (int): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 84 bytes [EventListener: _listeners: implementation blocks containing N * (40 bytes) plus block-map pointers; EventListener: _listeners: N elements each: Callback: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listeners: N elements each: CustomInterest: shared control block (~12+ bytes; allocate_shared may co-locate object) + object 4 bytes; EventListener: _listenersMutex: _owned: owned object: 4 bytes; EventListener: _listenersMutex: _fallback: _mutex: native synchronization state may allocate platform resources lazily]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TrackingEventListener final : public EventListener {
     public:
         int registrations = 0;

@@ -8,13 +8,7 @@ namespace ESPressio {
     namespace Event {
 
         /// <summary>Priority used to order pending Event dispatch work.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 4 bytes
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum EventPriority {
             Low = 0,
             Normal = 1,
@@ -63,13 +57,7 @@ enum EventPriority {
 
 
         /// <summary>Determines how an Event listener decides whether a matching Event should invoke its callback.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 4 bytes
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum EventListenerInterest {
             All,
             YoungerThan,
@@ -118,13 +106,7 @@ enum EventListenerInterest {
 
 
         /// <summary>Selects LIFO stack or FIFO queue dispatch semantics for an Event.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 4 bytes
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum EventDispatchMethod {
             Stack,
             Queue
@@ -177,13 +159,7 @@ enum EventDispatchMethod {
 
 namespace std {
 
-/**
- * ESPressio Memory Audit
- * Members: none (standalone empty object occupies 1 byte; an eligible empty base may be optimized to 0 bytes).
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 template<>
     struct hash<
         ESPressio::Event::

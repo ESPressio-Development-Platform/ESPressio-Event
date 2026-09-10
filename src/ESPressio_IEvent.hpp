@@ -20,13 +20,7 @@ using EventTime = Timing::DefaultClockTime;
 /// local type key is supplied automatically. Transport provenance is carried by dispatch context,
 /// not retained intrinsically by the Event object.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members: none; polymorphic/virtual-base object metadata is included in the total.
- * Total Memory: 4 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class IEvent {
 public:
     virtual ~IEvent() = default;

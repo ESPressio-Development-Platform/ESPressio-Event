@@ -3,16 +3,7 @@
 
 using namespace ESPressio;
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - _temperature (float): 4 bytes [0 bytes dynamic allocation]
- * - _sensorId (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 32 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class TemperatureEvent final :
     public Event::
         SerializableEvent<

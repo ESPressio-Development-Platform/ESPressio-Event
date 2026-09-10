@@ -23,13 +23,7 @@ using EventCorrelationId = Primitive::CorrelationId;
 using EventProtocolVersion = Primitive::PrimitiveProtocolVersion;
 
 /// <summary>Provenance of an Event at the current local dispatch boundary.</summary>
-/**
- * ESPressio Memory Audit
- * Underlying storage: 1 bytes
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 enum
 class EventOrigin : std::uint8_t {
     Local,
@@ -41,14 +35,7 @@ class EventOrigin : std::uint8_t {
 /// This context belongs to the dispatch operation rather than to the Event object.
 /// Transport-local message identifiers, routes and hop counts are deliberately absent.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - Origin (EventOrigin): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 1 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct EventDispatchContext final {
     EventOrigin Origin = EventOrigin::Local;
 
@@ -67,17 +54,7 @@ struct EventDispatchContext final {
 /// deliberately absent. Those values belong to receive/dispatch context owned by
 /// the integration layer rather than to the Event occurrence itself.
 /// </remarks>
-/**
- * ESPressio Memory Audit
- * Members:
- * - TypeId (EventTypeId): 8 bytes [0 bytes dynamic allocation]
- * - SchemaVersion (EventSchemaVersion): 4 bytes [0 bytes dynamic allocation]
- * - MessageId (EventMessageId): 8 bytes [0 bytes dynamic allocation]
- * - Correlation (EventCorrelationId): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 28 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct EventMetadata final {
     /// <summary>Stable semantic Event type identifier.</summary>
     EventTypeId TypeId = 0;

@@ -13,25 +13,7 @@
 namespace ESPressio {
 namespace Event {
 
-/**
- * ESPressio Memory Audit
- * Members:
- * - Accepted (bool): 1 bytes [0 bytes dynamic allocation]
- * - MeasuredOffsetNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - FilteredOffsetNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - RoundTripDelayNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - PendingPhaseCorrectionNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - AppliedCorrectionNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - EstimatedDriftPpm (double): 8 bytes [0 bytes dynamic allocation]
- * - AcceptedSampleCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - RejectedSampleCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - SynchronizationState (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - LastAcceptedSampleLocalTime (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - HasAcceptedSample (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 76 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 struct SerializableSynchronizationSnapshot {
     bool Accepted = false;
     int64_t MeasuredOffsetNanoseconds = 0;
@@ -109,17 +91,7 @@ struct SerializableSynchronizationSnapshot {
     ESPRESSIO_PROPERTY("lastAcceptedSampleLocalTime", LastAcceptedSampleLocalTime), \
     ESPRESSIO_PROPERTY("hasAcceptedSample", HasAcceptedSample)
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - PreviousTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - NewTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - DifferenceNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 48 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class SerializableSystemClockTimeChangedEvent final :
     public SerializableEvent<SerializableSystemClockTimeChangedEvent> {
 public:
@@ -166,26 +138,7 @@ public: \
 ESPRESSIO_DEFINE_SERIALIZABLE_SYNC_EVENT(SerializableSynchronizationSampleAcceptedEvent)
 ESPRESSIO_DEFINE_SERIALIZABLE_SYNC_EVENT(SerializableSystemClockSynchronizedEvent)
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - Accepted (bool): 1 bytes [0 bytes dynamic allocation]
- * - MeasuredOffsetNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - FilteredOffsetNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - RoundTripDelayNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - PendingPhaseCorrectionNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - AppliedCorrectionNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - EstimatedDriftPpm (double): 8 bytes [0 bytes dynamic allocation]
- * - AcceptedSampleCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - RejectedSampleCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - SynchronizationState (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - LastAcceptedSampleLocalTime (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - HasAcceptedSample (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 100 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class SerializableSynchronizationSampleRejectedEvent final :
     public SerializableEvent<SerializableSynchronizationSampleRejectedEvent> {
 public:
@@ -202,28 +155,7 @@ public:
     ESPRESSIO_SERIALIZABLE_PROPERTIES(ESPRESSIO_TIMING_SNAPSHOT_PROPERTIES)
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - PreviousState (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - NewState (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - Accepted (bool): 1 bytes [0 bytes dynamic allocation]
- * - MeasuredOffsetNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - FilteredOffsetNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - RoundTripDelayNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - PendingPhaseCorrectionNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - AppliedCorrectionNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - EstimatedDriftPpm (double): 8 bytes [0 bytes dynamic allocation]
- * - AcceptedSampleCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - RejectedSampleCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - SynchronizationState (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - LastAcceptedSampleLocalTime (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - HasAcceptedSample (bool): 1 bytes [0 bytes dynamic allocation]
- * Total Memory: 100 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class SerializableSynchronizationStateChangedEvent final :
     public SerializableEvent<SerializableSynchronizationStateChangedEvent> {
 public:
@@ -255,20 +187,7 @@ public:
     )
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - PreviousState (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - NewState (uint8_t): 1 bytes [0 bytes dynamic allocation]
- * - PreviousFilteredOffsetNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - NewFilteredOffsetNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - PreviousAcceptedSampleCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - NewAcceptedSampleCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 52 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class SerializableSynchronizationResetEvent final :
     public SerializableEvent<SerializableSynchronizationResetEvent> {
 public:
@@ -299,34 +218,7 @@ public:
     )
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - PreviousMaximumRoundTripDelayNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - NewMaximumRoundTripDelayNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - PreviousMaximumSlewRatePpm (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - NewMaximumSlewRatePpm (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - PreviousMaximumDriftCorrectionPpm (double): 8 bytes [0 bytes dynamic allocation]
- * - NewMaximumDriftCorrectionPpm (double): 8 bytes [0 bytes dynamic allocation]
- * - PreviousOffsetFilterWeight (double): 8 bytes [0 bytes dynamic allocation]
- * - NewOffsetFilterWeight (double): 8 bytes [0 bytes dynamic allocation]
- * - PreviousDriftFilterWeight (double): 8 bytes [0 bytes dynamic allocation]
- * - NewDriftFilterWeight (double): 8 bytes [0 bytes dynamic allocation]
- * - PreviousDriftLearningPhaseThresholdNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - NewDriftLearningPhaseThresholdNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - PreviousMinimumDriftLearningIntervalNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - NewMinimumDriftLearningIntervalNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - PreviousSynchronizationToleranceNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - NewSynchronizationToleranceNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - PreviousMinimumSamplesForSynchronizedState (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - NewMinimumSamplesForSynchronizedState (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * - PreviousMaximumSampleAgeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - NewMaximumSampleAgeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 168 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class SerializableSynchronizationConfigurationChangedEvent final :
     public SerializableEvent<SerializableSynchronizationConfigurationChangedEvent> {
 public:
@@ -413,17 +305,7 @@ public: uint64_t ScheduledTimeNanoseconds = 0; \
 ESPRESSIO_DEFINE_SERIALIZABLE_SCHEDULE_EVENT(SerializableSystemClockCallbackScheduledEvent)
 ESPRESSIO_DEFINE_SERIALIZABLE_SCHEDULE_EVENT(SerializableSystemClockCallbackScheduleFailedEvent)
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - ScheduledTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - ActualTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - DifferenceNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * Total Memory: 48 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class SerializableSystemClockCallbackExecutedEvent final :
     public SerializableEvent<SerializableSystemClockCallbackExecutedEvent> {
 public:
@@ -442,19 +324,7 @@ public:
     )
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - ScheduledTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - ActualTimeNanoseconds (uint64_t): 8 bytes [0 bytes dynamic allocation]
- * - DifferenceNanoseconds (int64_t): 8 bytes [0 bytes dynamic allocation]
- * - ExceptionMessage (std::string): 24 bytes [Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Total Memory: 72 bytes [ExceptionMessage: Capacity + 1 bytes when capacity exceeds 15-byte SSO]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * Confidence: medium; compile-time sizeof on the concrete target remains authoritative for ABI-sensitive/opaque members.
- * End ESPressio Memory Audit
- */
+
 class SerializableSystemClockCallbackExecutionFailedEvent final :
     public SerializableEvent<SerializableSystemClockCallbackExecutionFailedEvent> {
 public:
@@ -477,15 +347,7 @@ public:
     )
 };
 
-/**
- * ESPressio Memory Audit
- * Inherited Memory Total: 24 bytes [0 bytes dynamic allocation]
- * Members:
- * - ClearedCallbackCount (uint32_t): 4 bytes [0 bytes dynamic allocation]
- * Total Memory: 28 bytes [0 bytes dynamic allocation]
- * Basis: ESP32/Xtensa ILP32 reference ABI (4-byte pointers/size_t); ESPressio stateful allocators/deleters included; ABI-sensitive STL/platform internals are identified explicitly.
- * End ESPressio Memory Audit
- */
+
 class SerializableSystemClockCallbacksClearedEvent final :
     public SerializableEvent<SerializableSystemClockCallbacksClearedEvent> {
 public:

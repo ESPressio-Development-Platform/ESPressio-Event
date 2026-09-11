@@ -1,4 +1,0 @@
-#pragma once
-
-#include "ESPressio_ThreadManagerEventBridge_Serializable.hpp"
-#include "ESPressio_ThreadTerminationDispatcherEventBridge_Serializable.hpp"

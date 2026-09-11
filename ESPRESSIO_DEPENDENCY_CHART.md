@@ -1,66 +1,12 @@
-# ESPressio Dependency Chart — Current Released Generation
+# Event dependency boundary
 
-![ESPressio Library Dependency Chart](ESPRESSIO_DEPENDENCY_CHART.svg)
+| Direct production dependency | Purpose |
+| --- | --- |
+| System | Identity, synchronization, provider execution contracts |
+| Primitive | Frozen metadata, fingerprints, IDs and delivery policy |
+| Task | One bounded joinable dispatch lane per Type |
+| Threads | Composable consumer capability and common work wake |
+| Timing | Qualified origin observations and monotonic receipt expiry |
+| Serializable | Bounded schemas and selected-format typed codecs |
 
-## Released generation
-
-```text
-Observable
-Serializable
-Units
-Timing
-Threads
-Event
-Command
-Security
-Persistence
-Sockets
-ESP-Now
-WiFi
-Serial
-```
-
-## Event dependencies
-
-```text
-Event
-    -> Threads main
-    -> Timing main
-    -> Observable main
-    - - -> Serializable main
-            opt-in Serializable Events / Event Transport
-```
-
-Event remains a mechanism-only library. Domain-specific Event types and bridges are owned by their respective downstream libraries.
-
-## Downstream integration direction
-
-```text
-Command  - - -> Event main
-Security - - -> Event main
-Sockets  - - -> Event main
-ESP-Now  - - -> Event main
-WiFi     - - -> Event main
-
-Event -> Command   NONE
-Event -> Security  NONE
-Event -> Sockets   NONE
-Event -> ESP-Now   NONE
-Event -> WiFi      NONE
-```
-
-## Completed cascade
-
-```text
-Serializable
-    -> Units
-    -> Timing
-    -> Threads
-    -> Event
-    -> Command / Security
-    -> Persistence / Sockets / ESP-Now
-    -> WiFi
-    -> Serial
-```
-
-Timing and Threads Event bridges remain in Event because Event already requires Timing and Threads for its core responsibilities. Serializable support remains opt-in. Serial remains terminal/downstream; ESPressio Tree remains standalone.
+Units and Observable are reached by Timing and the host validation fixture, not declared Event production dependencies. Generic Adapters and concrete transports depend on the Event binding seam. Event never imports those implementations. Run `python tools/check_dependency_boundaries.py` for the enforced boundary.

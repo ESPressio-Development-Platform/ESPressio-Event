@@ -1,14 +1,17 @@
 {
     "name": "ESPressio-Event",
-    "description": "Event occurrence, dispatch and optional transport integration for the ESPressio Development Platform",
-    "keywords": "event,events,event-driven,occurrence,dispatch,observable,bridge,espressio",
+    "description": "Fixed-capacity Local, Serializable and Transmissible Event occurrences with frozen typed dispatch",
+    "keywords": "event,occurrence,bounded,dispatch,espressio",
     "authors": {
         "name": "Simon J. Stuart",
         "maintainer": true,
         "url": "https://espressio.org"
     },
     "build": {
-        "flags": ["-std=gnu++17","-DESPRESSIO_EVENT"]
+        "flags": [
+            "-std=gnu++17",
+            "-DESPRESSIO_EVENT"
+        ]
     },
     "repository": {
         "type": "git",
@@ -37,16 +40,16 @@
         {
             "name": "ESPressio-Threads",
             "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Threads.git#primitives_redesign",
-            "platforms": "espressif32"
-        },
-        {
-            "name": "ESPressio-Observable",
-            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Observable.git#primitives_redesign",
             "platforms": "*"
         },
         {
             "name": "ESPressio-Timing",
             "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Timing.git#primitives_redesign",
+            "platforms": "*"
+        },
+        {
+            "name": "ESPressio-Serializable",
+            "version": "https://github.com/ESPressio-Development-Platform/ESPressio-Serializable.git#primitives_redesign",
             "platforms": "*"
         }
     ]

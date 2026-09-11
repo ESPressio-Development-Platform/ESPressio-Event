@@ -1,73 +1,61 @@
 #pragma once
-
+#include <cstddef>
 #include <cstdint>
+#include <type_traits>
+#include <ESPressio_PrimitiveTypeId.hpp>
+#include <ESPressio_PrimitiveTypes.hpp>
+#include <ESPressio_DeviceRuntimeIdentity.hpp>
+#include <ESPressio_TimeReliability.hpp>
 
-#include <ESPressio_Primitive.hpp>
+namespace ESPressio::Event {
+/// Stable family-qualified semantic Type identity; never a process-local address.
+using EventTypeId = Primitive::EventTypeId;
+using ConceptualMessageId = Primitive::ConceptualMessageId;
+inline constexpr Primitive::PrimitiveFamilyId EventFamilyId = Primitive::FamilyIds::Event;
+inline constexpr Primitive::PrimitiveProtocolVersion EventProtocolVersion = 1;
+inline constexpr std::size_t EventWireHeaderSize = 53;
 
-namespace ESPressio {
-namespace Event {
-
-/// <summary>Stable semantic identifier of an Event type within the Event family.</summary>
-using EventTypeId = std::uint64_t;
-
-/// <summary>Schema revision used to interpret one Event type's payload.</summary>
-using EventSchemaVersion = std::uint32_t;
-
-/// <summary>Conceptual identity of one Event occurrence.</summary>
-using EventMessageId = Primitive::ConceptualMessageId;
-
-/// <summary>Optional causal/workflow correlation shared with other conceptual messages.</summary>
-using EventCorrelationId = Primitive::CorrelationId;
-
-/// <summary>Primitive-family protocol revision used by Event family adapters.</summary>
-using EventProtocolVersion = Primitive::PrimitiveProtocolVersion;
-
-/// <summary>Provenance of an Event at the current local dispatch boundary.</summary>
-
-enum
-class EventOrigin : std::uint8_t {
-    Local,
-    Remote
+/// Source admission is complete when the single Type lane owns the occurrence.
+enum class EventDispatchStatus : std::uint8_t {
+    Accepted, NotInitialized, Stopping, CapacityUnavailable,
+    IdentityUnavailable, IdentifierExhausted
 };
-
-/// <summary>Transport-independent provenance accompanying one local Event dispatch.</summary>
-/// <remarks>
-/// This context belongs to the dispatch operation rather than to the Event object.
-/// Transport-local message identifiers, routes and hop counts are deliberately absent.
-/// </remarks>
-
-struct EventDispatchContext final {
-    EventOrigin Origin = EventOrigin::Local;
-
-    constexpr bool operator==(const EventDispatchContext& other) const noexcept {
-        return Origin == other.Origin;
+struct EventDispatchResult final {
+    EventDispatchStatus Status = EventDispatchStatus::NotInitialized;
+    ConceptualMessageId MessageId{};
+    constexpr explicit operator bool() const noexcept { return Status == EventDispatchStatus::Accepted; }
+};
+enum class EventRuntimeStatus : std::uint8_t {
+    Success, AlreadyInitialized, NotInitialized, InvalidConfiguration,
+    InvalidDirectory, TypeConflict, InvalidTopology, Frozen, StorageUnavailable,
+    TaskCreationFailed, Stopping, JoinFailed
+};
+/// These facts are published once, before any consumer can acquire the occurrence.
+/// Local/Serializable occurrences carry no redundant origin or route metadata.
+struct EventOccurrenceFacts final {
+    EventTypeId TypeId{};
+    ConceptualMessageId MessageId{};
+    Timing::QualifiedTime OriginDispatchTime{};
+};
+/// Distributed receipt identity excludes transport routes and previous-hop identity.
+struct EventOccurrenceKey final {
+    EventTypeId TypeId{};
+    System::DeviceRuntimeIdentity Origin{};
+    ConceptualMessageId MessageId{};
+    constexpr bool IsValid() const noexcept { return bool(TypeId) && bool(Origin) && bool(MessageId); }
+    constexpr bool operator==(const EventOccurrenceKey& b) const noexcept {
+        return TypeId == b.TypeId && Origin == b.Origin && MessageId == b.MessageId;
     }
-
-    constexpr bool operator!=(const EventDispatchContext& other) const noexcept {
-        return !(*this == other);
-    }
 };
-
-/// <summary>Intrinsic transport-independent metadata of one Event occurrence.</summary>
-/// <remarks>
-/// Transport origin, route, hop count and transport-local message identity are
-/// deliberately absent. Those values belong to receive/dispatch context owned by
-/// the integration layer rather than to the Event occurrence itself.
-/// </remarks>
-
-struct EventMetadata final {
-    /// <summary>Stable semantic Event type identifier.</summary>
-    EventTypeId TypeId = 0;
-
-    /// <summary>Payload schema version for this Event type.</summary>
-    EventSchemaVersion SchemaVersion = 1;
-
-    /// <summary>Conceptual identity of this occurrence. Zero means Unspecified until assigned.</summary>
-    EventMessageId MessageId{};
-
-    /// <summary>Optional correlation with other independent conceptual messages.</summary>
-    EventCorrelationId Correlation{};
-};
-
-} // namespace Event
-} // namespace ESPressio
+namespace Detail {
+template<class T> constexpr bool ValidateEventType() noexcept {
+    static_assert(std::is_same_v<std::remove_cv_t<decltype(T::TypeId)>, EventTypeId>,
+                  "Event TypeId must be a strong EventTypeId");
+    static_assert(bool(T::TypeId), "Event TypeId must be nonzero");
+    static_assert(T::MaximumLiveInstances > 0, "Event MaximumLiveInstances must be positive");
+    static_assert(T::MaximumPendingInstances >= 0, "Event pending capacity cannot be negative");
+    static_assert(std::is_nothrow_destructible_v<T>, "Event destruction must not throw");
+    return true;
+}
+}
+}

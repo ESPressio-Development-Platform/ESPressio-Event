@@ -1,385 +1,120 @@
 # ESPressio Event
 
-Generic Event-Driven Development infrastructure for the ESPressio Development Platform.
+Fixed-capacity occurrences with one compile-time Type, one owning pool and one serialized fanout lane per Type. This working branch implements the clean architecture reset; package version numbers remain unchanged pending separate release authorization.
 
-The stable ESPressio primitive family for transported Event occurrences is `EventFamilyId` (`0x0003`).
+Choose `Event<T>` for local occurrences, `SerializableEvent<T>` for local occurrences with a bounded schema, or `TransmissibleEvent<T>` for the same schema plus an occurrence delivery policy and remote identity. A Type has one tier, a strong nonzero 64-bit `EventTypeId`, a canonical diagnostic name, positive `MaximumLiveInstances`, and nonnegative `MaximumPendingInstances`. Transmissible Types require an installed durable System runtime identity before local source dispatch.
 
-ESPressio Event provides the asynchronous counterpart to ESPressio Observable: producers dispatch strongly typed occurrence contracts without knowing which consumers exist, while listeners process those Events independently on Event-aware Threads.
+## Local delivery and bootstrap
 
-## baseline
-
-The structural-realignment branch is the source of truth for the platform-wide baseline. Historical Event releases and transport contracts are not compatibility targets for this tranche.
-
-# Why Event-Driven Development?
-
-Event-driven design is useful when the producer of an occurrence should not depend on the implementation, execution context, or even existence of its consumers.
-
-```text
-Producer
-   |
-   | dispatches
-   v
-Typed Event
-   |
-   v
-EventManager
-   |
-   +----------+----------+
-   |          |          |
-   v          v          v
-Listener A Listener B Listener C
-```
-
-The Event itself is the occurrence data contract. The producer populates that contract; listeners read it. The producer never needs to retain references to listeners.
-
-`Queue()` and `Stack()` are asynchronous. Independent listeners do not have a meaningful globally guaranteed execution order. An Event is one-way occurrence information: it does not intrinsically contain acknowledgement, response, completion, RPC, transport-route, or hop semantics.
-
-# Namespace
-
-```cpp
-ESPressio::Event
-```
-
-Important public concepts include:
-
-- `IEvent` — type-erased Event interface used by routing infrastructure.
-- `Event<TTime>` — lifecycle/timestamp implementation base.
-- `TypedEvent<TDerived, TTime>` — concrete RTTI-free local Event identity base.
-- `SerializableEvent<TDerived>` — Serializable Event base with typed identity.
-- `EventMetadata` — transport-independent conceptual Event metadata backed by ESPressio Primitive vocabulary.
-- `EventDispatchContext` — local/remote provenance belonging to one dispatch operation rather than the Event object.
-- `EventManager` — central local dispatch/routing manager.
-- `EventListener` / listener handles — type-specific consumer registration.
-- `EventThread` — asynchronous Event-processing Thread.
-- `PrecisionEventThread` — deterministic periodic execution combined with Event processing.
-- `EventPriority` and `EventDispatchMethod` — local/application dispatch choices, not Mesh QoS.
-- `EventTransportManager` and `IEventTransport` — optional Event-family transport integration.
-
-# Type identity and RTTI
-
-Local Event routing is RTTI-free.
-
-Every concrete locally routable Event provides a compiler-backed `EventTypeKey`. The normal way to do that is to inherit from `TypedEvent<TDerived>`:
+Register Types in a fixed `Primitive::TypeDirectory<N>` and freeze it. Initialize the caller-owned Event `Runtime`, initialize consumer Threads and adapter bindings, then call `Runtime::Start()` to validate and freeze all targets before publishing family admission. Listener bindings are fixed owner/member thunks installed during `OnInitialization`; there is no runtime listener registry or first-use auto-registration.
 
 ```cpp
 #include <ESPressio_Event.hpp>
-
-class TemperatureChangedEvent final:
-    public ESPressio::Event::TypedEvent<TemperatureChangedEvent> {
-private:
-    const float _previous;
-    const float _current;
-
-public:
-    TemperatureChangedEvent(float previous, float current):
-        _previous(previous),
-        _current(current) {}
-
-    float GetPrevious() const { return _previous; }
-    float GetCurrent() const { return _current; }
+#include <ESPressio_ThreadWith.hpp>
+#include <ESPressio_Precision.hpp>
+namespace E = ESPressio::Event;
+using namespace ESPressio;
+struct Temperature final : E::Event<Temperature> {
+    static constexpr E::EventTypeId TypeId{0x1001};
+    static constexpr std::string_view CanonicalName="example.temperature";
+    static constexpr std::size_t MaximumLiveInstances=4, MaximumPendingInstances=2;
+    int MilliCelsius;
+    explicit Temperature(int value) noexcept : MilliCelsius(value) {}
 };
-```
-
-`EventTypeKey` is a local-process routing key and is not itself the distributed/wire `EventTypeId`. `Event<TTime>` supplies lifecycle and timing behavior but does not supply a concrete Event identity. A concrete routable Event therefore normally derives from `TypedEvent<TDerived, TTime>` rather than directly from `Event<TTime>`.
-
-There is no RTTI migration fallback. Listener dispatch uses `EventTypeKey` directly.
-
-# Dispatching Events
-
-Dispatch FIFO-style with `Queue()`:
-
-```cpp
-(new TemperatureChangedEvent(21.0f, 21.5f))->Queue();
-```
-
-or LIFO-style with `Stack()`:
-
-```cpp
-(new TemperatureChangedEvent(21.0f, 21.5f))->Stack();
-```
-
-Once dispatched, application code should treat an Event as immutable and should not retain ownership of the raw pointer. Event infrastructure manages its lifetime while interested receivers process it.
-
-# Dispatch provenance
-
-Transport provenance is deliberately not stored on the Event object. `EventDispatchContext` accompanies a queued reference through EventManager, EventDispatcher, EventThread/PrecisionEventThread, listeners and observers.
-
-For the Event layer the context contains only transport-independent provenance:
-
-```cpp
-Event::EventOrigin::Local
-Event::EventOrigin::Remote
-```
-
-Transport-local message identifiers, addresses, routes and hop counts do not belong to Event. In particular, a remotely received Event is dispatched locally with `Remote` provenance and is not automatically transmitted onward again.
-
-# Listening for Events
-
-Listener registration is typed and receives the dispatch context explicitly:
-
-```cpp
-Event::EventListenerHandlePtr handle =
-    eventThread.RegisterListener<TemperatureChangedEvent>(
-        [](TemperatureChangedEvent* event,
-           Event::EventDispatchMethod,
-           Event::EventPriority,
-           const Event::EventDispatchContext& context) {
-            if (context.Origin == Event::EventOrigin::Remote) {
-                // This occurrence arrived through an Event-family transport.
-            }
-            // consume event
-        }
-    );
-```
-
-Keep the returned `EventListenerHandlePtr` alive for as long as the listener should remain registered.
-
-Listener registration/unregistration is safe during dispatch. Listener storage uses stable records and deferred compaction so dispatch does not copy complete listener vectors or copy the callback merely to survive re-entrant registration.
-
-# `EventThread`
-
-Event-aware Threads use the explicit Threads ownership policy. Boolean `freeOnTerminate` constructors are not supported.
-
-```cpp
-class WorkerThread final: public Event::EventThread {
-public:
-    WorkerThread():
-        Event::EventThread(
-            Threads::ThreadReleasePolicy::ExplicitRelease
-        ) {}
-};
-```
-
-For an automatically released heap-owned Thread, use:
-
-```cpp
-Threads::ThreadReleasePolicy::ReleaseOnTerminate
-```
-
-This keeps lifecycle ownership explicit throughout the ESPressio stack.
-
-# `PrecisionEventThread`
-
-`PrecisionEventThread` combines periodic deterministic work with Event reception. Its construction is also policy-based:
-
-```cpp
-class SetpointEvent final:
-    public Event::TypedEvent<SetpointEvent> {
-public:
-    const int Setpoint;
-    explicit SetpointEvent(int value): Setpoint(value) {}
-};
-
-class ControlThread final: public Event::PrecisionEventThread<> {
-private:
-    int _setpoint = 0;
-
-protected:
-    void OnIteration(
-        IterationTime,
-        IterationTime,
-        Threads::SkippedIterationCount
-    ) override {
-        // deterministic periodic work
+using Inbox=E::ThreadCapability<E::SharedPendingCapacity<0>,Temperature>;
+class Display final : public Threads::ThreadWith<Inbox,Threads::Precision<8>> {
+    int _last=0;
+    void Receive(const Temperature& sample) { _last=sample.MilliCelsius; }
+    void OnInitialization() override {
+        if(!GetCapability<E::ThreadCapabilityTag>().Listen<Temperature>(*this,&Display::Receive))
+            throw 1;
     }
-
 public:
-    ControlThread():
-        Event::PrecisionEventThread<>(
-            Threads::ThreadReleasePolicy::ExplicitRelease
-        ) {}
-
-    void ApplySetpoint(SetpointEvent* event) {
-        _setpoint = event->Setpoint;
-    }
+    ~Display() override { (void)Shutdown(); }
+    int Last() const noexcept { return _last; } // Read after Shutdown, or in this Thread.
 };
-```
-
-Applications can select whether pending Events are processed before or after each iteration and how Events arriving between iteration boundaries are handled. Dispatch provenance is preserved whichever execution policy is selected.
-
-See:
-
-```text
-examples/PrecisionEventThread/PrecisionEventThread.ino
-```
-
-# Event lifecycle timing
-
-`Event<TTime>` uses ESPressio Timing for lifecycle timestamps. The default public representation is `Timing::DefaultClockTime`.
-
-```cpp
-auto dispatched = event.GetDispatchTime();
-auto age = event.GetTimeSinceDispatch();
-```
-
-The first dispatch timestamp is retained if the same Event is redispatched. Type-erased infrastructure also exposes nanosecond timing values so routing internals do not depend on a particular public Unit representation.
-
-# Bounded Event queues and diagnostics
-
-Event receiver queues are bounded by default so an embedded application cannot grow pending Event storage without limit merely because a consumer falls behind.
-
-The default maximum can be configured with:
-
-```cpp
-ESPRESSIO_EVENT_DEFAULT_MAX_PENDING_EVENT_COUNT
-```
-
-Each retained queue entry contains the Event reference, deterministic sequence and compact dispatch provenance. Queue diagnostics expose current/peak pending Events and rejected/dropped Event counts.
-
-# Serializable Events
-
-Serializable support is optional. Local-only Events do not require ESPressio Serializable.
-
-A Serializable Event automatically participates in typed local Event identity:
-
-```cpp
-class OperatorCommandEvent final:
-    public Event::SerializableEvent<OperatorCommandEvent> {
-public:
-    // serializable members/schema
-};
-```
-
-Event Transport uses the bounded EVTT envelope plus the ESPressio Serializable binary payload representation. The structural realignment intentionally advances the EVTT envelope to version 2 and removes hop-count semantics from that envelope. Historical envelope compatibility is not preserved for restructuring.
-
-Every transported Event contract declares its explicit stable non-zero 64-bit `EventTypeId`; the accompanying name is diagnostic and is not hashed into identity. Outbound conceptual occurrences use a non-wrapping `EventMessageId` sequence scoped externally by authenticated source identity plus source incarnation. The same occurrence identifier is retained across serialization, transport fan-out, retries and Mesh delivery integration.
-
-# Runtime Serializable Event discovery
-
-The Serializable Event registry can be inspected without compile-time knowledge of every concrete Event type:
-
-```cpp
-auto& manager = Event::EventTransportManager::GetInstance();
-
-for (const auto& descriptor:
-     manager.GetRegisteredSerializableEvents()) {
-    // descriptor.TypeID
-    // descriptor.TypeName
-    // descriptor.SchemaVersion
-    // descriptor.Properties
-    // descriptor.CanConstruct
+// Install platform execution/synchronization providers before setup.
+Primitive::TypeDirectory<1> directory;
+E::Runtime events;
+Display display;
+void InitializeExample() {
+    if(directory.Register<Temperature>()!=Primitive::TypeDirectoryRegistrationStatus::Success) return;
+    if(directory.Initialize()!=Primitive::TypeDirectoryInitializationStatus::Success) return;
+    if(events.Initialize(directory.View())!=E::EventRuntimeStatus::Success) return;
+    if(display.Initialize()!=Threads::ThreadStatus::Success) return;
+    if(events.Start()!=E::EventRuntimeStatus::Success) return;
+    if(display.Start()!=Threads::ThreadStatus::Success) return;
+    (void)Temperature::TryDispatch(23125);
 }
+
 ```
 
-Descriptors are snapshots; callers do not gain mutable references to Event Transport's private registration table.
+`TryDispatch(args...)` rejects immediately when the admission gate, pool or single lane is unavailable, without constructing a payload. `Dispatch(args...)` waits for capacity on a provider signal; never call it from an ISR or from a context that must release the same capacity. Synchronous same-Type redispatch from a callback that holds capacity needed by that dispatch is unsupported; there is no hidden cycle detector. Both capture qualified System time at API entry, before any wait. Once accepted, the original pool object and conceptual message ID remain the same across all consumers. A failed constructor returns its reserved slot; consumed identifiers may leave gaps and never wrap.
 
-# Event Transport
+A Thread capability owns one pointer FIFO. Positive per-Type pending quotas are private; zero selects the explicitly configured shared quota. Private Types cannot borrow shared capacity. The Type lane tries every healthy target before waiting on owed capacity; a slow consumer cannot delay the first admission attempt to another target. Consumer dequeue frees quota and publishes capacity before invoking its const callback. Callbacks execute on the owning Thread, with lease release on both return and exception. Pause preserves queued work; quiescence drops queued leases without callbacks.
 
-Event owns its Event-family transport integration without owning any physical or Mesh route semantics:
-
-```text
-Serializable Event
-       |
-       v
-EventTransportManager
-       |
-       v
-IEventTransport
-       |
-       +--> concrete transport/adaptor supplied downstream
-```
-
-Outbound transport subscription applies only to locally originated dispatches. Inbound packets are deserialized and submitted to EventManager with `EventOrigin::Remote`; that provenance travels beside the local dispatch and prevents automatic re-forwarding by EventTransportManager.
-
-The Event Transport registration path stores immutable runtime registration metadata once and queued inbound/outbound work retains shared references to that metadata rather than deep-copying complete registration records. Runtime local Event matching uses `EventTypeKey`; no `std::type_index`, `typeid`, or `dynamic_cast` routing fallback is required.
-
-# Primitive vocabulary
-
-Event depends on `ESPressio-Primitive` for common conceptual-message vocabulary. `EventMessageId`, `EventCorrelationId` and `EventProtocolVersion` are aliases of the corresponding Primitive types. `EventMetadata` keeps this conceptual identity separate from transport-specific envelope mechanics.
-
-Event uses the centrally allocated ESPressio `PrimitiveFamilyId` value `0x0003`.
-
-# Timing/SystemClock Event bridge
-
-Timing is a required upstream dependency of Event, so its Observer-to-Event bridge lives in Event without introducing a reciprocal dependency.
+## Serialization and transmission
 
 ```cpp
-#include <ESPressio_SystemClockEventBridge.hpp>
+#include <ESPressio_Event.hpp>
+namespace E = ESPressio::Event;
+using namespace ESPressio;
+struct Sample final : E::SerializableEvent<Sample> {
+    static constexpr E::EventTypeId TypeId{0x1002};
+    static constexpr std::string_view CanonicalName="example.sample";
+    static constexpr std::size_t MaximumLiveInstances=4, MaximumPendingInstances=1;
+    std::int32_t Value=0;
+    ESPRESSIO_SERIALIZABLE_TYPE(Sample)
+    ESPRESSIO_SERIALIZABLE_SCHEMA_VERSION(1)
+    ESPRESSIO_SERIALIZABLE_PROPERTIES(ESPRESSIO_PROPERTY("value",Value))
+};
+static_assert(Serializable::IsBoundedSerializable<Sample>);
+
+
 ```
 
-A Serializable counterpart is also available when Serializable Event transport of Timing lifecycle observations is required:
+Use bounded Serializable properties and containers; unbounded schema graphs are rejected. A `TransmissibleEvent<T>` additionally declares `using DeliveryPolicy = ...` satisfying the Primitive occurrence-policy contract. `MaximumCompletePrimitiveWireBytes<T, Format>` is the exact bounded allocation requirement for the selected binding format. The binding selects DirectBinary, CBOR or JSON; occurrences do not carry an independent format selector.
 
-```cpp
-#include <ESPressio_SystemClockEventBridge_Serializable.hpp>
+The Event v1 header is exactly 53 little-endian bytes followed by payload. It contains family u16 at 0, version u16 at 2, Type u64 at 4, conceptual message u64 at 12, origin device 16 bytes at 20, incarnation u32 at 36, qualified origin time u64 at 40, reliability u8 at 48, and payload length u32 at 49. Receivers require the exact complete frame length and reject invalid identifiers, reliability, version, schema and bounds. Native struct layout is never a wire representation.
+
+Supply a fixed receipt array in `RuntimeConfiguration` before initializing inbound bindings with `BindInbound<T, Format>()`. `TryAdmitRemote` reserves an in-progress receipt and Type capacity before bounded decode, commits the admitted receipt only after the lane accepts, and returns admission evidence only after that commit. Concurrent duplicates cannot produce another delivery. Failed attempts free their provisional receipt; live entries are never evicted. Expiry uses canonical monotonic time and the declared residence budget. Remote occurrences preserve source identity/time and fan out locally without creating another external campaign.
+
+`EventOutboundBinding<T>` is an adapter-owned fixed seam. Its framework admission thunk must synchronously encode into generic Adapter-owned bounded bytes before returning acceptance. It retains no application payload pointer after admission and contains no physical transport, retry or acknowledgement engine. Link completion is not primitive admission evidence. The adapter owns policy scheduling and notifies capacity changes through the binding.
+
+P1 descriptors expose immutable tier/schema/policy/size metadata. Full SHA-256 contract fingerprints consume canonical schema semantics, the normalized policy bytes and wire contract. Deployment capacities, diagnostic names, routes and selected binding format do not affect compatibility. Changes to application validator semantics must be represented by a schema/contract version change; function addresses are never semantic fingerprints.
+
+## Ownership, shutdown and resources
+
+Runtime configuration, directory entries, caller-provided receipts, adapter owners and consumer objects must outlive their uses. Stop external ingress before destroying the family runtime. Shutdown closes admission, drains already registered remote calls, quiesces targets, wakes blocked producers and joins Type lanes. Failed joins retain ownership for retry. Consumer classes call `Shutdown()` before their own callback state is destroyed; adapters detach their binding before destroying resources used by admission. Process-static Type runtimes retain their capacity-notification latches for late lease releases and cannot restart after final shutdown. Bootstrap failures can roll back before topology is installed.
+
+`EventLease` is one move-only control pointer. `Retain()` is explicit, bounded and refcount-overflow checked; final release destroys the in-place payload before freeing its pool slot. Retained application leases keep their original slot occupied, so their lifetime is a capacity decision. Detached payload copies have no occurrence facts.
+
+`EventTypeRuntime<T>::StaticResources()`, `GetResourceProfile()` and capability profiles report concrete resident sizes, alignment, pool slots, pending pointers, counters, target nodes, listener bindings and configured stacks. Each Type has one T1 execution context and three signals: the lane wake, blocked-producer capacity and owed-target capacity. Remote-enabled family coordination adds one drain signal. Event capabilities add no Thread context or work signal. Component figures are already included in resident bytes. Platform task/signal control allocations are explicitly unknown until provider accounting supplies them; there is no hidden heap fallback on hot paths.
+
+The optional caller-owned `SystemClockEventBridge` maps explicit Timing notifications to bounded Serializable diagnostic Types through `TryDispatch`. Register the Types you consume before bootstrap. Unavailable observations increment a counter. Ordinary clock reads produce no events. Quiesce clock-notifying callers before detaching/destroying the borrowed observer bridge. Thread lifecycle is available through the consolidated Thread contracts rather than Event bridge hierarchies.
+
+## Dependencies and validation
+
+Production dependencies are exactly System, Primitive, Task, Threads, Timing and Serializable. Units and Observable are transitive test/Timing requirements. Radio, Mesh, Adapters, RadioAdapters, Command, State, Security and physical transports are forbidden reverse dependencies.
+
+```mermaid
+flowchart TD
+  P["Frozen Type metadata"] --> R["Event runtime"]
+  S["Source admission and pool"] --> L["One Type lane"]
+  R --> L
+  L --> C["Thread pointer FIFO"]
+  L --> A["Adapter admission seam"]
+  C --> H["Owning Thread callback"]
 ```
 
-# Threads infrastructure Event bridges
+Build against the sibling working-branch repositories:
 
-Threads is a required upstream dependency of Event. Event supplies asynchronous representations for the infrastructure that exists in the current Threads contract:
-
-```cpp
-#include <ESPressio_ThreadEventBridges.hpp>
+```sh
+cmake -S tests -B build -DESPRESSIO_DEPENDENCIES=/path/to/repositories
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+python tests/validate_public_surface.py --dependencies /path/to/repositories
+python tools/check_dependency_boundaries.py
 ```
 
-and, where needed:
-
-```cpp
-#include <ESPressio_ThreadEventBridges_Serializable.hpp>
-```
-
-The current bridges cover ThreadManager cleanup/lifecycle and ThreadTerminationDispatcher observations. The removed legacy Thread Garbage Collector subsystem is not emulated by Event and there are no `ThreadGarbageCollection*Event` compatibility types or bridges.
-
-See:
-
-```text
-examples/ThreadInfrastructureEventBridges/
-```
-
-# Dependency direction
-
-Event does not own concrete Event representations for ESPressio Command, Security, Sockets or ESP-Now. Those integrations live with their owning libraries.
-
-```text
-Command  - - -> Event
-Security - - -> Event
-Sockets  - - -> Event
-ESP-Now  - - -> Event
-```
-
-Event CI enforces that reverse dependencies do not return.
-
-# Dependencies
-
-For this Mesh propagation tranche, required dependencies are pinned as follows:
-
-```text
-ESPressio System     structural_realignment_propagation_ESPressio-Mesh
-ESPressio Primitive  structural_realignment_propagation_ESPressio-Mesh
-ESPressio Task       structural_realignment
-ESPressio Threads    structural_realignment
-ESPressio Observable structural_realignment
-ESPressio Timing     structural_realignment
-```
-
-Optional Serializable Event/Event Transport support consumes ESPressio Serializable from `structural_realignment` when the application enables those headers.
-
-# Installation
-
-During this structural-realignment tranche, consume Event from the propagation branch together with the matching participating dependencies:
-
-```ini
-lib_deps =
-    https://github.com/ESPressio-Development-Platform/ESPressio-Event.git#structural_realignment_propagation_ESPressio-Mesh
-```
-
-# Examples
-
-Current examples include:
-
-```text
-examples/EventTransportLoopback/
-examples/EventTransportMultiTransportRouting/
-examples/PrecisionEventThread/
-examples/RuntimeSerializableEvents/
-examples/SerializableEvent/
-examples/SystemClockEventBridge/
-examples/ThreadInfrastructureEventBridges/
-```
-
-# Compatibility
-
-ESPressio Event targets ESP32-family microcontrollers using Arduino-ESP32 and C++17. The active architecture is designed to compile with RTTI disabled. Concrete locally routable Events use compiler-backed type identity and Event-aware Thread ownership uses `Threads::ThreadReleasePolicy` explicitly.
-
-# License
-
-Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
+The validation report records the semantic classification of replaced tests and current gates. Hardware execution and clock certification require the actual platform providers and hardware; host tests do not establish those guarantees.

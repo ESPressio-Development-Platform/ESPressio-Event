@@ -1,106 +1,65 @@
 #pragma once
-
+#include <atomic>
+#include <utility>
 #include <ESPressio_ISystemClockObserver.hpp>
 #include <ESPressio_SystemClock.hpp>
-#include <ESPressio_TimingEvents.hpp>
-
-namespace ESPressio {
-namespace Event {
-
-
-class SystemClockEventBridge final :
-    public Timing::ISystemClockObserver<Timing::ClockTick> {
-private:
-    Observable::ObserverHandlePtr _observerHandle;
-    bool _initialized = false;
-
-    SystemClockEventBridge() = default;
-
+#include "ESPressio_EventRuntime.hpp"
+#include "ESPressio_TimingEvents.hpp"
+namespace ESPressio::Event {
+/// Caller-owned optional bridge. Initialize only after selected diagnostic Types
+/// are registered/started. Every notification uses TryDispatch and may be missed
+/// under bounded pressure; it never waits for Event consumers or services time.
+class SystemClockEventBridge final : public Timing::ISystemClockObserver<> {
+    using Clock=Timing::SystemClock<>;
+    decltype(std::declval<Clock&>().RegisterObserver(static_cast<Timing::ISystemClockObserver<>*>(nullptr))) _handle;
+    std::atomic<std::uint64_t> _unavailable{0};
+    template<class T,class... Args> void Emit(Args&&... args) noexcept {
+        try { if(!T::TryDispatch(std::forward<Args>(args)...)) ++_unavailable; }
+        catch(...) { ++_unavailable; }
+    }
 public:
-    SystemClockEventBridge(const SystemClockEventBridge&) = delete;
-    SystemClockEventBridge& operator=(const SystemClockEventBridge&) = delete;
-
-    static SystemClockEventBridge& GetInstance() {
-        static SystemClockEventBridge instance;
-        return instance;
+    SystemClockEventBridge() noexcept = default;
+    SystemClockEventBridge(const SystemClockEventBridge&)=delete;
+    SystemClockEventBridge& operator=(const SystemClockEventBridge&)=delete;
+    ~SystemClockEventBridge() override { Shutdown(); }
+    bool Initialize(Clock& clock=Clock::GetInstance()) {
+        if(_handle) return true;
+        _handle=clock.RegisterObserver(this);return bool(_handle);
     }
-
-    bool Initialize() {
-        if (_initialized) return true;
-        _observerHandle = Timing::SystemClock<>::GetInstance().RegisterObserver(this);
-        _initialized = static_cast<bool>(_observerHandle);
-        return _initialized;
+    void Shutdown() noexcept { _handle.reset(); }
+    bool IsInitialized() const noexcept { return bool(_handle); }
+    std::uint64_t UnavailableOccurrences() const noexcept { return _unavailable.load(); }
+    void OnSystemClockTimeSet(Timing::ClockTick before,Timing::ClockTick after,std::int64_t difference) override {
+        Emit<SystemClockTimeChangedEvent>(before,after,difference);
     }
-
-    void Shutdown() {
-        _observerHandle.reset();
-        _initialized = false;
+    void OnSystemClockSynchronizationSampleAccepted(Timing::ClockTick,Timing::ClockTick,std::int64_t,
+        const Timing::ClockSynchronizationResult& result,const Timing::ClockSynchronizationStatus& status) override {
+        Emit<SynchronizationSampleAcceptedEvent>(ClockObservationDiagnostic{result},ClockStatusDiagnostic{status});
     }
-
-    bool IsInitialized() const { return _initialized; }
-
-    void OnSystemClockTimeSet(Timing::ClockTick before, Timing::ClockTick after, int64_t diff) override {
-        (new SystemClockTimeChangedEvent(before, after, diff))->Queue();
+    void OnSystemClockSynchronizationSampleRejected(const Timing::ClockSynchronizationResult& result,
+        const Timing::ClockSynchronizationStatus& status) override {
+        Emit<SynchronizationSampleRejectedEvent>(ClockObservationDiagnostic{result},ClockStatusDiagnostic{status});
     }
-
-    void OnSystemClockSynchronizationSampleAccepted(Timing::ClockTick before, Timing::ClockTick after,
-        int64_t diff, const Timing::ClockSynchronizationResult<Timing::ClockTick>& result,
-        const Timing::ClockSynchronizationStatus<Timing::ClockTick>& status) override {
-        (new SynchronizationSampleAcceptedEvent(before, after, diff, result, status))->Queue();
+    void OnSystemClockSynchronizationStateChanged(Timing::TimeReliability before,Timing::TimeReliability after,
+        const Timing::ClockSynchronizationStatus& status) override {
+        Emit<SynchronizationStateChangedEvent>(static_cast<std::uint8_t>(before),static_cast<std::uint8_t>(after),ClockStatusDiagnostic{status});
     }
-
-    void OnSystemClockSynchronized(Timing::ClockTick before, Timing::ClockTick after, int64_t diff,
-        const Timing::ClockSynchronizationResult<Timing::ClockTick>& result,
-        const Timing::ClockSynchronizationStatus<Timing::ClockTick>& status) override {
-        (new SystemClockSynchronizedEvent(before, after, diff, result, status))->Queue();
+    void OnSystemClockSynchronizationReset(const Timing::ClockSynchronizationStatus& before,
+        const Timing::ClockSynchronizationStatus& after) override {
+        Emit<SynchronizationResetEvent>(ClockStatusDiagnostic{before},ClockStatusDiagnostic{after});
     }
-
-    void OnSystemClockSynchronizationSampleRejected(
-        const Timing::ClockSynchronizationResult<Timing::ClockTick>& result,
-        const Timing::ClockSynchronizationStatus<Timing::ClockTick>& status) override {
-        (new SynchronizationSampleRejectedEvent(result, status))->Queue();
+    void OnSystemClockSynchronizationConfigurationChanged(const Timing::ClockSynchronizationProfile& before,
+        const Timing::ClockSynchronizationProfile& after) override {
+        Emit<SynchronizationConfigurationChangedEvent>(ClockProfileDiagnostic{before},ClockProfileDiagnostic{after});
     }
-
-    void OnSystemClockSynchronizationStateChanged(Timing::ClockSynchronizationState before,
-        Timing::ClockSynchronizationState after,
-        const Timing::ClockSynchronizationStatus<Timing::ClockTick>& status) override {
-        (new SynchronizationStateChangedEvent(before, after, status))->Queue();
+    void OnSystemClockCallbackScheduled(Timing::ClockTick scheduled) override { Emit<SystemClockCallbackScheduledEvent>(scheduled); }
+    void OnSystemClockCallbackScheduleFailed(Timing::ClockTick scheduled) override { Emit<SystemClockCallbackScheduleFailedEvent>(scheduled); }
+    void OnSystemClockCallbackExecuted(Timing::ClockTick scheduled,Timing::ClockTick actual,std::int64_t difference) override {
+        Emit<SystemClockCallbackExecutedEvent>(scheduled,actual,difference);
     }
-
-    void OnSystemClockSynchronizationReset(
-        const Timing::ClockSynchronizationStatus<Timing::ClockTick>& before,
-        const Timing::ClockSynchronizationStatus<Timing::ClockTick>& after) override {
-        (new SynchronizationResetEvent(before, after))->Queue();
+    void OnSystemClockCallbackExecutionFailed(Timing::ClockTick scheduled,Timing::ClockTick actual,std::int64_t difference,std::exception_ptr cause) override {
+        Emit<SystemClockCallbackExecutionFailedEvent>(scheduled,actual,difference,bool(cause));
     }
-
-    void OnSystemClockSynchronizationConfigurationChanged(
-        const Timing::ClockSynchronizationConfig& before,
-        const Timing::ClockSynchronizationConfig& after) override {
-        (new SynchronizationConfigurationChangedEvent(before, after))->Queue();
-    }
-
-    void OnSystemClockCallbackScheduled(Timing::ClockTick scheduled) override {
-        (new SystemClockCallbackScheduledEvent(scheduled))->Queue();
-    }
-
-    void OnSystemClockCallbackScheduleFailed(Timing::ClockTick scheduled) override {
-        (new SystemClockCallbackScheduleFailedEvent(scheduled))->Queue();
-    }
-
-    void OnSystemClockCallbackExecuted(Timing::ClockTick scheduled, Timing::ClockTick actual,
-        int64_t diff) override {
-        (new SystemClockCallbackExecutedEvent(scheduled, actual, diff))->Queue();
-    }
-
-    void OnSystemClockCallbackExecutionFailed(Timing::ClockTick scheduled, Timing::ClockTick actual,
-        int64_t diff, std::exception_ptr cause) override {
-        (new SystemClockCallbackExecutionFailedEvent(scheduled, actual, diff, cause))->Queue();
-    }
-
-    void OnSystemClockCallbacksCleared(std::size_t count) override {
-        (new SystemClockCallbacksClearedEvent(count))->Queue();
-    }
+    void OnSystemClockCallbacksCleared(std::size_t count) override { Emit<SystemClockCallbacksClearedEvent>(static_cast<std::uint64_t>(count)); }
 };
-
-} // namespace Event
-} // namespace ESPressio
+}
